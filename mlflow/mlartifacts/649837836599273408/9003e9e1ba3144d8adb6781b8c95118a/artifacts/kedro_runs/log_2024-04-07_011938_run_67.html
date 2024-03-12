@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- This file was created with the aha Ansi HTML Adapter. https://github.com/theZiz/aha -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="application/xml+xhtml; charset=UTF-8"/>
+<title>stdin</title>
+</head>
+<body>
+<pre>
+<span style="color:teal;">[04/07/24 01:19:43]</span><span style="color:teal;"> </span><span style="color:blue;">INFO    </span> <span style="color:#606060;">               session.py:L321     </span> Kedro project solvency_models                                                                                                                                                                                                                              
+<span style="color:teal;">                   </span><span style="color:teal;"> </span><span style="color:blue;">INFO    </span> <span style="color:#606060;">               context.py:L57      </span> mlflow_config.server.mlflow_tracking_uri: <span style="text-decoration:underline;filter: contrast(70%) brightness(190%);color:blue;">http://127.0.0.1:5000</span>                                                                                                                                                                                            
+<span style="color:teal;">                   </span><span style="color:teal;"> </span><span style="color:blue;">INFO    </span> <span style="color:#606060;">               context.py:L62      </span> mlflow_run_id: <span style="font-style:italic;color:purple;">None</span>                                                                                                                                                                                                                                        
+Traceback (most recent call last):
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/bin/kedro&quot;, line 8, in &lt;module&gt;
+    sys.exit(main())
+             ^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/kedro/framework/cli/cli.py&quot;, line 198, in main
+    cli_collection()
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/click/core.py&quot;, line 1157, in __call__
+    return self.main(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/kedro/framework/cli/cli.py&quot;, line 127, in main
+    super().main(
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/click/core.py&quot;, line 1078, in main
+    rv = self.invoke(ctx)
+         ^^^^^^^^^^^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/click/core.py&quot;, line 1688, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/click/core.py&quot;, line 1434, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/click/core.py&quot;, line 783, in invoke
+    return __callback(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/solvency_models/src/solvency_models/cli.py&quot;, line 228, in run
+    run_session()
+  File &quot;/home/krzysiek/Development/solvency-modelling/solvency_models/src/solvency_models/cli.py&quot;, line 216, in run_session
+    session.run(
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/kedro/framework/session/session.py&quot;, line 333, in run
+    context = self.load_context()
+              ^^^^^^^^^^^^^^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/kedro/framework/session/session.py&quot;, line 232, in load_context
+    context = context_class(
+              ^^^^^^^^^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/solvency_models/src/solvency_models/context.py&quot;, line 90, in __init__
+    file.write(self.mlflow_run_id)
+TypeError: write() argument must be str, not None
+
+Kedro run 67 failed.
+Kedro execution time: 6 seconds.
+</pre>
+</body>
+</html>

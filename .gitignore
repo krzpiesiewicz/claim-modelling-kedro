@@ -1,5 +1,11 @@
 data/
 
+.idea
+solvency_models/.idea
+solvency_models/.telemetry
+solvency_models/logs/
+solvency_models/typescript
+
 mlruns/
 
 # Byte-compiled / optimized / DLL files

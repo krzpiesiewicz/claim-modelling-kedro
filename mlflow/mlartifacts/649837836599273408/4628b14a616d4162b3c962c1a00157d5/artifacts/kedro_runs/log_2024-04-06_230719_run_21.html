@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- This file was created with the aha Ansi HTML Adapter. https://github.com/theZiz/aha -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="application/xml+xhtml; charset=UTF-8"/>
+<title>stdin</title>
+</head>
+<body>
+<pre>
+<span style="color:teal;">[04/06/24 23:07:24]</span><span style="color:teal;"> </span><span style="color:blue;">INFO    </span> <span style="color:#606060;">               session.py:L321     </span> Kedro project solvency_models                                                                                                                                                                                                                              
+<span style="color:teal;">                   </span><span style="color:teal;"> </span><span style="color:blue;">INFO    </span> <span style="color:#606060;">               context.py:L56      </span> mlflow_config.server.mlflow_tracking_uri: <span style="text-decoration:underline;filter: contrast(70%) brightness(190%);color:blue;">http://127.0.0.1:5000</span>                                                                                                                                                                                            
+<span style="color:teal;">                   </span><span style="color:teal;"> </span><span style="color:blue;">INFO    </span> <span style="color:#606060;">               context.py:L60      </span> mlflow_run_id: 4628b14a616d4162b3c962c1a00157d5                                                                                                                                                                                                            
+<span style="color:teal;">                   </span><span style="color:teal;"> </span><span style="color:blue;">INFO    </span> <span style="color:#606060;">               context.py:L62      </span> mlflow_run_id: 4628b14a616d4162b3c962c1a00157d5                                                                                                                                                                                                            
+<span style="color:teal;">                   </span><span style="color:teal;"> </span><span style="color:blue;">INFO    </span> <span style="color:#606060;">               context.py:L75      </span> mlflow.__version__: <span style="font-weight:bold;color:teal;">2.11</span>.<span style="font-weight:bold;color:teal;">3</span>                                                                                                                                                                                                                                 
+Downloading artifacts:   0%|                                                                                                                                                                                                                                                                          | 0/1 [00:00&lt;?, ?it/s]Downloading artifacts: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00&lt;00:00, 12945.38it/s]Downloading artifacts: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00&lt;00:00, 3415.56it/s]
+<span style="color:teal;">                   </span><span style="color:teal;"> </span><span style="color:blue;">INFO    </span> <span style="color:#606060;">               context.py:L84      </span> Artifact <span style="color:green;">'kedro_runs.csv'</span> exists in the current mlflow session.                                                                                                                                                                                            
+<span style="color:teal;">                   </span><span style="color:teal;"> </span><span style="color:green;">DEBUG   </span> <span style="color:#606060;">               context.py:L92      </span> kedro_runs_df:    run_no              runtime                                             logdir                                                                                                                                                           
+<span style="color:teal;">                    </span>                                             <span style="font-weight:bold;color:teal;">0</span>      <span style="font-weight:bold;color:teal;">18</span>  <span style="font-weight:bold;color:teal;">2024</span>-<span style="font-weight:bold;color:teal;">04</span>-<span style="font-weight:bold;color:teal;">06</span> <span style="font-weight:bold;filter: contrast(70%) brightness(190%);color:green;">23:00:35</span>  <span style="color:purple;">/home/krzysiek/Development/solvency-modelling/</span><span style="filter: contrast(70%) brightness(190%);color:purple;">...</span>                                                                                                                                                                          
+<span style="color:teal;">                   </span><span style="color:teal;"> </span><span style="color:green;">DEBUG   </span> <span style="color:#606060;">               context.py:L100     </span> new_row:    run_no             runtime                                             logdir                                                                                                                                                                  
+<span style="color:teal;">                    </span>                                             <span style="font-weight:bold;color:teal;">0</span>      <span style="font-weight:bold;color:teal;">21</span> <span style="font-weight:bold;color:teal;">2024</span>-<span style="font-weight:bold;color:teal;">04</span>-<span style="font-weight:bold;color:teal;">06</span> <span style="font-weight:bold;filter: contrast(70%) brightness(190%);color:green;">23:07:19</span>  <span style="color:purple;">/home/krzysiek/Development/solvency-modelling/</span><span style="filter: contrast(70%) brightness(190%);color:purple;">...</span>                                                                                                                                                                           
+Traceback (most recent call last):
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/bin/kedro&quot;, line 8, in &lt;module&gt;
+    sys.exit(main())
+             ^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/kedro/framework/cli/cli.py&quot;, line 198, in main
+    cli_collection()
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/click/core.py&quot;, line 1157, in __call__
+    return self.main(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/kedro/framework/cli/cli.py&quot;, line 127, in main
+    super().main(
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/click/core.py&quot;, line 1078, in main
+    rv = self.invoke(ctx)
+         ^^^^^^^^^^^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/click/core.py&quot;, line 1688, in invoke
+    return _process_result(sub_ctx.command.invoke(sub_ctx))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/click/core.py&quot;, line 1434, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/click/core.py&quot;, line 783, in invoke
+    return __callback(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/solvency_models/src/solvency_models/cli.py&quot;, line 218, in run
+    run_session()
+  File &quot;/home/krzysiek/Development/solvency-modelling/solvency_models/src/solvency_models/cli.py&quot;, line 206, in run_session
+    session.run(
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/kedro/framework/session/session.py&quot;, line 333, in run
+    context = self.load_context()
+              ^^^^^^^^^^^^^^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/kedro/framework/session/session.py&quot;, line 232, in load_context
+    context = context_class(
+              ^^^^^^^^^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/solvency_models/src/solvency_models/context.py&quot;, line 106, in __init__
+    kedro_runs_df.to_csv(csv_path, index=False)
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/pandas/core/generic.py&quot;, line 3902, in to_csv
+    return DataFrameRenderer(formatter).to_csv(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/pandas/io/formats/format.py&quot;, line 1152, in to_csv
+    csv_formatter.save()
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/pandas/io/formats/csvs.py&quot;, line 247, in save
+    with get_handle(
+         ^^^^^^^^^^^
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/pandas/io/common.py&quot;, line 739, in get_handle
+    check_parent_directory(str(handle))
+  File &quot;/home/krzysiek/Development/solvency-modelling/venv/lib/python3.11/site-packages/pandas/io/common.py&quot;, line 604, in check_parent_directory
+    raise OSError(rf&quot;Cannot save file into a non-existent directory: '{parent}'&quot;)
+OSError: Cannot save file into a non-existent directory: 'k/tmp/tmpyj_q42sge/tmp/tmpyj_q42sgd/tmp/tmpyj_q42sgr/tmp/tmpyj_q42sgo/tmp/tmpyj_q42sg_/tmp/tmpyj_q42sgr/tmp/tmpyj_q42sgu/tmp/tmpyj_q42sgn/tmp/tmpyj_q42sgs/tmp/tmpyj_q42sg./tmp/tmpyj_q42sgc/tmp/tmpyj_q42sgs/tmp'
+
+Kedro execution time: 6 seconds.
+</pre>
+</body>
+</html>

@@ -1,0 +1,135 @@
+# Here you can define all your data sets by using simple YAML syntax.
+#
+# Documentation for this file format can be found in "The Data Catalog"
+# Link: https://docs.kedro.org/en/stable/data/data_catalog.html
+#
+# We support interacting with a variety of data stores including local file systems, cloud, network and HDFS
+#
+# An example data set definition can look as follows:
+#
+#bikes:
+#  type: pandas.CSVDataset
+#  filepath: "data/01_raw/bikes.csv"
+#
+#weather:
+#  type: spark.SparkDataset
+#  filepath: s3a://your_bucket/data/01_raw/weather*
+#  file_format: csv
+#  credentials: dev_s3
+#  load_args:
+#    header: True
+#    inferSchema: True
+#  save_args:
+#    sep: '|'
+#    header: True
+#
+#scooters:
+#  type: pandas.SQLTableDataset
+#  credentials: scooters_credentials
+#  table_name: scooters
+#  load_args:
+#    index_col: ['name']
+#    columns: ['name', 'gear']
+#  save_args:
+#    if_exists: 'replace'
+#    # if_exists: 'fail'
+#    # if_exists: 'append'
+#
+# The Data Catalog supports being able to reference the same file using two different Dataset implementations
+# (transcoding), templating and a way to reuse arguments that are frequently repeated. See more here:
+# https://docs.kedro.org/en/stable/data/data_catalog.html
+
+
+raw_features_and_claims_numbers_df:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/freMTLP2freq.csv
+
+raw_severities_df:
+  type: pandas.CSVDataset
+  filepath: data/01_raw/freMTLP2sev.csv
+
+feature_blacklist:
+  type: text.TextDataset
+  filepath: data/01_raw/features_blacklist.txt
+
+features_df:
+  type: pandas.ParquetDataset
+  filepath: data/03_primary/features.pq
+  save_args:
+    index: True
+
+targets_df:
+  type: pandas.ParquetDataset
+  filepath: data/03_primary/targets.pq
+  save_args:
+    index: True
+
+target_df:
+  type: pandas.ParquetDataset
+  filepath: data/03_primary/target.pq
+  save_args:
+    index: True
+
+train_policies:
+  type: pandas.ParquetDataset
+  filepath: data/03_primary/train_policies.pq
+
+calib_policies:
+  type: pandas.ParquetDataset
+  filepath: data/03_primary/calib_policies.pq
+
+test_policies:
+  type: pandas.ParquetDataset
+  filepath: data/03_primary/test_policies.pq
+
+train_keys:
+  type: pickle.PickleDataset
+  filepath: data/03_primary/train_keys.pkl
+
+calib_keys:
+  type: pickle.PickleDataset
+  filepath: data/03_primary/calib_keys.pkl
+
+test_keys:
+  type: pickle.PickleDataset
+  filepath: data/03_primary/test_keys.pkl
+
+sample_keys:
+  type: pickle.PickleDataset
+  filepath: data/04_sample/sample_keys.pkl
+
+sample_features_df:
+  type: pandas.ParquetDataset
+  filepath: data/04_sample/features.pq
+
+sample_target_df:
+  type: pandas.ParquetDataset
+  filepath: data/04_sample/target.pq
+
+transformed_sample_features_df:
+  type: pandas.ParquetDataset
+  filepath: data/04_sample/transformed_features.pq
+
+selected_sample_features_df:
+  type: pandas.ParquetDataset
+  filepath: data/04_sample/selected_features.pq
+
+pure_sample_predictions_df:
+  type: pandas.ParquetDataset
+  filepath: data/04_sample/pure_predictions.pq
+
+pure_calib_predictions_df:
+  type: pandas.ParquetDataset
+  filepath: data/05_calib/pure_predictions.pq
+
+calibrated_calib_predictions_df:
+  type: pandas.ParquetDataset
+  filepath: data/05_calib/calibrated_predictions.pq
+
+pure_test_predictions_df:
+  type: pandas.ParquetDataset
+  filepath: data/06_test/pure_predictions.pq
+
+calibrated_test_predictions_df:
+  type: pandas.ParquetDataset
+  filepath: data/06_test/calibrated_predictions.pq
