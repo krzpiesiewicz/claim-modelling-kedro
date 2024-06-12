@@ -47,7 +47,7 @@ sampling:
 
 
 data_engineering:
-  mlflow_run_id: 219322d6b4d84362a07e91be53a66910 # If provided a MLFLow run id, the de models are saved to / downloaded from the MLflow run
+  mlflow_run_id: # If provided a MLFLow run id, the de models are saved to / downloaded from the MLflow run
   custom_features:
     enabled: True # whether to use custom features
     features: # the list of custom features
@@ -90,7 +90,7 @@ data_engineering:
 
 
 data_science:
-  mlflow_run_id: 219322d6b4d84362a07e91be53a66910 # If provided a MLFLow run id, the selector and prediction model are saved to /
+  mlflow_run_id: # If provided a MLFLow run id, the selector and prediction model are saved to /
     # downloaded from the MLflow run
   feature_selection:
     enabled: True # whether to use the feature selection
