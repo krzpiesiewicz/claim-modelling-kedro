@@ -1,4 +1,5 @@
-# solvency-modelling
+# claim-modelling-kedro
+
 Project for my master thesis
 
 Dataset:
