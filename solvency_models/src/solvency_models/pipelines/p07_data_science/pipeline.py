@@ -1,16 +1,16 @@
 from kedro.pipeline import Pipeline, pipeline, node
 
-from solvency_models.pipelines.p07_data_science.nodes import select_features, fit_predictive_model
+from solvency_models.pipelines.p07_data_science.nodes import fit_features_selector, fit_predictive_model
 
 
 def create_pipeline(**kwargs) -> Pipeline:
     return pipeline(
         [
             node(
-                func=select_features,
+                func=fit_features_selector,
                 inputs=["config", "transformed_sample_features_df", "sample_target_df"],
                 outputs="selected_sample_features_df",
-                name="select_features",
+                name="fit_features_selector",
             ),
             node(
                 func=fit_predictive_model,

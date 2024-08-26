@@ -2,14 +2,14 @@ import logging
 import os
 import tempfile
 from abc import ABC, abstractmethod
-from typing import Sequence
+from typing import Sequence, Dict
 
 import mlflow
 import pandas as pd
 
 from solvency_models.pipelines.p01_init.config import Config
 from solvency_models.pipelines.utils.mlflow_model import MLFlowModelLogger, MLFlowModelLoader
-from solvency_models.pipelines.utils.utils import get_class_from_path
+from solvency_models.pipelines.utils.utils import get_class_from_path, get_partition, get_mlflow_run_id_for_partition
 
 logger = logging.getLogger(__name__)
 
@@ -63,8 +63,8 @@ class SelectorModel(ABC):
         self._features_importances = features_importances.sort_values(ascending=False)
 
 
-def select_features_by_mlflow_model(config: Config, transformed_features_df: pd.DataFrame,
-                                    mlflow_run_id: str = None) -> pd.DataFrame:
+def select_features_by_mlflow_model_part(config: Config, transformed_features_df: pd.DataFrame,
+                                         mlflow_run_id: str = None) -> pd.DataFrame:
     logger.info("Selecting features by the MLFlow model...")
     # Load the selector model from the MLflow model registry
     selector = MLFlowModelLoader("features selector model").load_model(path=_selector_artifact_path,
@@ -75,8 +75,8 @@ def select_features_by_mlflow_model(config: Config, transformed_features_df: pd.
     return selected_features_df
 
 
-def fit_transform_features_selector(config: Config, transformed_sample_features_df: pd.DataFrame,
-                                    sample_target_df: pd.DataFrame) -> pd.DataFrame:
+def fit_transform_features_selector_part(config: Config, transformed_sample_features_df: pd.DataFrame,
+                                         sample_target_df: pd.DataFrame) -> pd.DataFrame:
     selector = get_class_from_path(config.ds.fs_model_class)(config=config)
     logger.info("Fitting the features selector...")
     selector.fit(transformed_sample_features_df, sample_target_df)
@@ -103,4 +103,30 @@ def fit_transform_features_selector(config: Config, transformed_sample_features_
         f"Successfully saved the features importances to MLFlow path {os.path.join(_select_artifact_path, _features_importances_filename)}")
     selected_features_df = selector.transform(transformed_sample_features_df)
     logger.info("Selected the features.")
+    return selected_features_df
+
+
+def fit_transform_features_selector(config: Config, sample_features_df: Dict[str, pd.DataFrame],
+                                    sample_target_df: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+    logger.info(f"Fitting features selector on the sample dataset...")
+    selected_features_df = {}
+    for part in sample_features_df.keys():
+        features_part_df = get_partition(sample_features_df, part)
+        target_part_df = get_partition(sample_target_df, part)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(part)
+        logger.info(f"Fitting selector on partition '{part}' of the sample dataset...")
+        with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
+            selected_features_df[part] = fit_transform_features_selector_part(config, features_part_df, target_part_df)
+    return selected_features_df
+
+
+def select_features_by_mlflow_model(config: Config, features_df: Dict[str, pd.DataFrame],
+                                    mlflow_run_id: str = None) -> Dict[str, pd.DataFrame]:
+    selected_features_df = {}
+    logger.info(f"Selecting features of the sample dataset...")
+    for part in features_df.keys():
+        features_part_df = get_partition(features_df, part)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(part, parent_mflow_run_id=mlflow_run_id)
+        logger.info(f"Selecting partition '{part}' of the sample dataset...")
+        selected_features_df[part] = select_features_by_mlflow_model_part(config, features_part_df, mlflow_subrun_id)
     return selected_features_df

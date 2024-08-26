@@ -1,7 +1,7 @@
 import logging
 import time
-from datetime import timedelta
 from abc import ABC, abstractmethod
+from datetime import timedelta
 from typing import Any, Dict, Union, List, Tuple
 
 import mlflow
@@ -12,7 +12,7 @@ from solvency_models.pipelines.p01_init.config import Config, MetricEnum
 from solvency_models.pipelines.utils.metrics import Metric
 from solvency_models.pipelines.utils.mlflow_model import MLFlowModelLogger, MLFlowModelLoader
 from solvency_models.pipelines.utils.utils import get_class_from_path, assert_pandas_no_lacking_indexes, \
-    trunc_target_index, preds_as_dataframe_with_col_name
+    trunc_target_index, preds_as_dataframe_with_col_name, get_partition, get_mlflow_run_id_for_partition
 
 logger = logging.getLogger(__name__)
 
@@ -83,8 +83,8 @@ class PredictiveModel(ABC):
         self._hparams = hparams
 
 
-def predict_by_mlflow_model(config: Config, selected_features_df: pd.DataFrame,
-                            mlflow_run_id: str = None) -> pd.DataFrame:
+def predict_by_mlflow_model_part(config: Config, selected_features_df: pd.DataFrame,
+                                 mlflow_run_id: str = None) -> pd.DataFrame:
     logger.info("Predicting the target by the MLFlow model...")
     # Load the predictive model from the MLflow model registry
     model = MLFlowModelLoader("predictive model").load_model(path=_predictive_model_artifact_path, run_id=mlflow_run_id)
@@ -94,8 +94,8 @@ def predict_by_mlflow_model(config: Config, selected_features_df: pd.DataFrame,
     return predictions_df
 
 
-def fit_transform_predictive_model(config: Config, selected_sample_features_df: pd.DataFrame,
-                                   sample_target_df: pd.DataFrame) -> pd.DataFrame:
+def fit_transform_predictive_model_part(config: Config, selected_sample_features_df: pd.DataFrame,
+                                        sample_target_df: pd.DataFrame) -> pd.DataFrame:
     # Fit a model
     logger.info("Fitting the predictive model...")
     model = get_class_from_path(config.ds.model_class)(config=config)
@@ -122,9 +122,9 @@ def join_predictions_with_target(config: Config, predictions_df: pd.DataFrame,
     return joined_df
 
 
-def evaluate_predictions(config: Config, predictions_df: pd.DataFrame,
-                         target_df: pd.DataFrame, prefix,
-                         log_to_mlflow: bool) -> List[Tuple[MetricEnum, str, float]]:
+def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
+                              target_df: pd.DataFrame, prefix,
+                              log_to_mlflow: bool) -> List[Tuple[MetricEnum, str, float]]:
     """
     prefix: str - default None, but can by any string like train, test, pure, cal etc.
     If prefix is not None, it will be added to the metric name separated by underscore.
@@ -146,4 +146,46 @@ def evaluate_predictions(config: Config, predictions_df: pd.DataFrame,
         for _, metric_name, score in scores:
             mlflow.log_metric(metric_name, score)
         logger.info("Logged the metrics to MLFlow.")
+    return scores
+
+
+def predict_by_mlflow_model(config: Config, selected_features_df: Dict[str, pd.DataFrame],
+                            mlflow_run_id: str = None) -> Dict[str, pd.DataFrame]:
+    predictions_df = {}
+    logger.info("Predicting the target by the MLFlow model...")
+    for part in selected_features_df.keys():
+        selected_features_part_df = get_partition(selected_features_df, part)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(part, parent_mflow_run_id=mlflow_run_id)
+        logger.info(f"Predicting the target on partition '{part}' of the dataset by the MLFlow model...")
+        predictions_df[part] = predict_by_mlflow_model_part(config, selected_features_part_df, mlflow_subrun_id)
+    return predictions_df
+
+
+def fit_transform_predictive_model(config: Config, selected_sample_features_df: Dict[str, pd.DataFrame],
+                                   sample_target_df: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+    predictions_df = {}
+    logger.info("Fitting and transforming the predictive model...")
+    for part in selected_sample_features_df.keys():
+        selected_sample_features_part_df = get_partition(selected_sample_features_df, part)
+        sample_target_part_df = get_partition(sample_target_df, part)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(part)
+        logger.info(f"Fitting and transforming the predictive model on partition '{part}' of the sample dataset...")
+        with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
+            predictions_df[part] = fit_transform_predictive_model_part(config, selected_sample_features_part_df,
+                                                                   sample_target_part_df)
+    return predictions_df
+
+
+def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame],
+                         target_df: Dict[str, pd.DataFrame], prefix: str,
+                         log_to_mlflow: bool) -> Dict[str, List[Tuple[MetricEnum, str, float]]]:
+    scores = {}
+    logger.info("Evaluating the predictions...")
+    for part in predictions_df.keys():
+        predictions_part_df = get_partition(predictions_df, part)
+        target_part_df = get_partition(target_df, part)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(part)
+        logger.info(f"Evaluating the predictions on partition '{part}' of the dataset...")
+        with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
+            scores[part] = evaluate_predictions_part(config, predictions_part_df, target_part_df, prefix, log_to_mlflow)
     return scores

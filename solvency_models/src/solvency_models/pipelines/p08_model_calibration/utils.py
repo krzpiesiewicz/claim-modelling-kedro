@@ -1,12 +1,13 @@
 import logging
-from typing import Tuple
+from typing import Tuple, Dict
 
+import mlflow
 import pandas as pd
 
 from solvency_models.pipelines.p01_init.config import Config
 from solvency_models.pipelines.p08_model_calibration.calibration_models import CalibrationModel
 from solvency_models.pipelines.utils.mlflow_model import MLFlowModelLogger, MLFlowModelLoader
-from solvency_models.pipelines.utils.utils import get_class_from_path
+from solvency_models.pipelines.utils.utils import get_class_from_path, get_mlflow_run_id_for_partition, get_partition
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 _calibration_model_artifact_path = "calibration/model"
 
 
-def remove_calib_outliers(
+def remove_calib_outliers_part(
         config: Config,
         features_df: pd.DataFrame,
         target_df: pd.DataFrame
@@ -48,7 +49,7 @@ def _calibrate_by_model(config: Config, model: CalibrationModel, pure_prediction
     return calibrated_predictions_df
 
 
-def calibrate_predictions_by_mlflow_model(config: Config, pure_predictions_df: pd.DataFrame,
+def calibrate_predictions_by_mlflow_model_part(config: Config, pure_predictions_df: pd.DataFrame,
                                           mlflow_run_id: str) -> pd.DataFrame:
     if config.clb.enabled:
         logger.info("Calibrationg the pure predictions by the MLFlow model...")
@@ -70,7 +71,7 @@ def calibrate_predictions_by_mlflow_model(config: Config, pure_predictions_df: p
         return pure_predictions_df
 
 
-def fit_transform_calibration_model(config: Config, pure_calib_predictions_df: pd.DataFrame,
+def fit_transform_calibration_model_part(config: Config, pure_calib_predictions_df: pd.DataFrame,
                                     target_calib_df: pd.DataFrame) -> pd.DataFrame:
     # Fit the calibration model
     logger.info("Fitting the calibration model...")
@@ -85,4 +86,49 @@ def fit_transform_calibration_model(config: Config, pure_calib_predictions_df: p
     logger.info("Transformed the calib predictions.")
     # Save the model
     MLFlowModelLogger(model, "calibration model").log_model(_calibration_model_artifact_path)
+    return calibrated_predictions_df
+
+
+def remove_calib_outliers(
+        config: Config,
+        features_df: Dict[str, pd.DataFrame],
+        target_df: Dict[str, pd.DataFrame]
+) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
+    features_df_without_outliers = {}
+    target_df_without_outliers = {}
+    logger.info("Removing outliers from the calibration dataset...")
+    for part in features_df.keys():
+        features_part_df = get_partition(features_df, part)
+        target_part_df = get_partition(target_df, part)
+        logger.info(f"Removing outliers from partition '{part}' of the calibration dataset...")
+        features_df_without_outliers[part], target_df_without_outliers[part] = remove_calib_outliers_part(config, features_part_df, target_part_df)
+    logger.info("Removed the outliers.")
+    return features_df_without_outliers, target_df_without_outliers
+
+
+def calibrate_predictions_by_mlflow_model(config: Config, pure_predictions_df: Dict[str, pd.DataFrame],
+                                          mlflow_run_id: str) -> Dict[str, pd.DataFrame]:
+    calibrated_predictions_df = {}
+    logger.info("Calibrating the pure predictions by the MLFlow model...")
+    for part in pure_predictions_df.keys():
+        pure_predictions_part_df = get_partition(pure_predictions_df, part)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(part, parent_mflow_run_id=mlflow_run_id)
+        logger.info(f"Calibrating the pure predictions on partition '{part}' of the dataset by the MLFlow model...")
+        calibrated_predictions_df[part] = calibrate_predictions_by_mlflow_model_part(config, pure_predictions_part_df, mlflow_subrun_id)
+    logger.info("Calibrated the predictions.")
+    return calibrated_predictions_df
+
+
+def fit_transform_calibration_model(config: Config, pure_calib_predictions_df: Dict[str, pd.DataFrame],
+                                    target_calib_df: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+    calibrated_predictions_df = {}
+    logger.info("Fitting and transforming the calibration model...")
+    for part in pure_calib_predictions_df.keys():
+        pure_calib_predictions_part_df = get_partition(pure_calib_predictions_df, part)
+        target_calib_part_df = get_partition(target_calib_df, part)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(part)
+        logger.info(f"Fitting and transforming the calibration model on partition '{part}' of the calibration dataset...")
+        with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
+            calibrated_predictions_df[part] = fit_transform_calibration_model_part(config, pure_calib_predictions_part_df, target_calib_part_df)
+    logger.info("Fitted and transformed the calibration model.")
     return calibrated_predictions_df

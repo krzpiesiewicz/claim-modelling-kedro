@@ -29,9 +29,16 @@ data:
   split_random_seed: 1
   calib_size: 0.1 # [0,1) - the part of policies used for model calibration
     # if calib_size is None or zero, then calibration.enabled has to be set to False
-  test_size: 0.1 # (0, 1) the part of policies used for test
-    #  test_size has to be greater than 0.
-  # => train_size = 1 - calib_data_size - calib_data_size (train_size has to be greater than 0)
+  test_size: 0.1 # (0, 1) the part of policies used for test if cross_validation.enabled is False
+    # if cross_validation.enabled is True, then test_size param is ignored (test_size = data_size / folds).
+    # test_size has to be greater than 0.
+    # => train_size = 1 - calib_data_size - calib_data_size (train_size has to be greater than 0)
+  cross_validation:
+    enabled: False
+    folds: 3 # the number of folds in cross-validation (repetitions of data splitting)
+    # test_size = 1 / folds
+    # train_size = 1 - calib_size - test_size
+
 
 
 sampling:

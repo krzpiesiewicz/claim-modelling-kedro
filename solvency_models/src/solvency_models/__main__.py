@@ -6,6 +6,7 @@ from pathlib import Path
 
 from kedro.framework.cli.utils import KedroCliError, load_entry_points
 from kedro.framework.project import configure_project
+from kedro.runner import SequentialRunner
 
 
 def _find_run_command(package_name):
@@ -39,7 +40,9 @@ def _find_run_command_in_plugins(plugins):
 def main(*args, **kwargs):
     package_name = Path(__file__).parent.name
     configure_project(package_name)
-    run = _find_run_command(package_name)
+    runner = SequentialRunner()
+    run = runner.run
+    # run = _find_run_command(package_name)
     run(*args, **kwargs)
 
 

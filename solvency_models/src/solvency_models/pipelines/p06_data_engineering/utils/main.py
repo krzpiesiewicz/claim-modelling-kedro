@@ -1,5 +1,7 @@
 import logging
+from typing import Dict
 
+import mlflow
 import pandas as pd
 
 from solvency_models.pipelines.p01_init.config import Config
@@ -15,6 +17,7 @@ from solvency_models.pipelines.p06_data_engineering.utils.onehot_encoder import 
 from solvency_models.pipelines.p06_data_engineering.utils.scaler import fit_transform_scaler, \
     scale_features_by_mlflow_model
 from solvency_models.pipelines.p06_data_engineering.utils.utils import split_categories_and_numerics, join_features_dfs
+from solvency_models.pipelines.utils.utils import get_partition, get_mlflow_run_id_for_partition
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +27,8 @@ def assert_features_dfs_have_same_indexes(features_df, transformed_features_df):
         transformed_features_df.index), "Indexes of the transformed features do not match the originals."
 
 
-def fit_transform_features(config: Config, features_df: pd.DataFrame) -> pd.DataFrame:
+def fit_transform_features_part(config: Config, features_df: pd.DataFrame) -> pd.DataFrame:
+    logger.debug(f"features_df:\n{features_df}")
     # Add custom features
     if config.de.is_custom_features_creator_enabled:
         features_df = fit_transform_custom_features_creator(config, features_df)
@@ -62,8 +66,9 @@ def fit_transform_features(config: Config, features_df: pd.DataFrame) -> pd.Data
     return transformed_features_df
 
 
-def transform_features_by_mlflow_models(config: Config, features_df: pd.DataFrame,
-                                        mlflow_run_id: str = None) -> pd.DataFrame:
+def transform_features_by_mlflow_model_part(config: Config, features_df: pd.DataFrame,
+                                             mlflow_run_id: str = None) -> pd.DataFrame:
+    logger.debug(f"features_df:\n{features_df}")
     # Add custom categories
     if config.de.is_custom_features_creator_enabled:
         features_df = create_custom_features_by_mlflow_model(config, features_df, mlflow_run_id)
@@ -93,4 +98,28 @@ def transform_features_by_mlflow_models(config: Config, features_df: pd.DataFram
     # Join categorical and numerical features
     transformed_features_df = join_features_dfs([categorical_features_df, numerical_features_df])
     assert_features_dfs_have_same_indexes(features_df, transformed_features_df)
+    return transformed_features_df
+
+
+def fit_transform_features(config: Config, features_df: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+    logger.info(f"Fitting features transformers on the sample dataset...")
+    transformed_features_df = {}
+    for part in features_df.keys():
+        features_part_df = get_partition(features_df, part)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(part)
+        logger.info(f"Fitting transformers on partition '{part}' of the sample dataset...")
+        with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
+            transformed_features_df[part] = fit_transform_features_part(config, features_part_df)
+    return transformed_features_df
+
+
+def transform_features_by_mlflow_model(config: Config, features_df: Dict[str, pd.DataFrame],
+                                             mlflow_run_id: str = None) -> Dict[str, pd.DataFrame]:
+    logger.info(f"Transforming features...")
+    transformed_features_df = {}
+    for part in features_df.keys():
+        features_part_df = get_partition(features_df, part)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(part, parent_mflow_run_id=mlflow_run_id)
+        logger.info(f"Transforming features on partition '{part}'...")
+        transformed_features_df[part] = transform_features_by_mlflow_model_part(config, features_part_df, mlflow_subrun_id)
     return transformed_features_df

@@ -1,16 +1,16 @@
 from kedro.pipeline import Pipeline, pipeline, node
 
-from solvency_models.pipelines.p06_data_engineering.nodes import transform_features
+from solvency_models.pipelines.p06_data_engineering.nodes import fit_features_transformer
 
 
 def create_pipeline(**kwargs) -> Pipeline:
     return pipeline(
         [
             node(
-                func=transform_features,
+                func=fit_features_transformer,
                 inputs=["config", "sample_features_df"],
                 outputs="transformed_sample_features_df",
-                name="transform_features",
+                name="fit_features_transformer",
             ),
         ]
     )

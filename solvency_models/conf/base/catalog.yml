@@ -58,78 +58,116 @@ features_df:
   save_args:
     index: True
 
-targets_df:
+targets_df: # This is a DataFrame with all targets
   type: pandas.ParquetDataset
   filepath: data/03_primary/targets.pq
   save_args:
     index: True
 
-target_df:
+target_df: # This is a DataFrame with the target for the current task
   type: pandas.ParquetDataset
   filepath: data/03_primary/target.pq
   save_args:
     index: True
 
 train_policies:
-  type: pandas.ParquetDataset
-  filepath: data/03_primary/train_policies.pq
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/03_primary/train_policies/
+  filename_suffix: ".pq"
 
 calib_policies:
-  type: pandas.ParquetDataset
-  filepath: data/03_primary/calib_policies.pq
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/03_primary/calib_policies/
+  filename_suffix: ".pq"
 
 test_policies:
-  type: pandas.ParquetDataset
-  filepath: data/03_primary/test_policies.pq
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/03_primary/test_policies/
+  filename_suffix: ".pq"
 
 train_keys:
-  type: pickle.PickleDataset
-  filepath: data/03_primary/train_keys.pkl
+  type: partitions.PartitionedDataset
+  dataset: pickle.PickleDataset
+  path: data/03_primary/train_keys/
+  filename_suffix: ".pkl"
 
 calib_keys:
-  type: pickle.PickleDataset
-  filepath: data/03_primary/calib_keys.pkl
+  type: partitions.PartitionedDataset
+  dataset: pickle.PickleDataset
+  path: data/03_primary/calib_keys/
+  filename_suffix: ".pkl"
 
 test_keys:
-  type: pickle.PickleDataset
-  filepath: data/03_primary/test_keys.pkl
+  type: partitions.PartitionedDataset
+  dataset: pickle.PickleDataset
+  path: data/03_primary/test_keys/
+  filename_suffix: ".pkl"
 
 sample_keys:
-  type: pickle.PickleDataset
-  filepath: data/04_sample/sample_keys.pkl
+  type: partitions.PartitionedDataset
+  dataset: pickle.PickleDataset
+  path: data/04_sample/sample_keys/
+  filename_suffix: ".pkl"
 
 sample_features_df:
-  type: pandas.ParquetDataset
-  filepath: data/04_sample/features.pq
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/04_sample/features/
+  filename_suffix: ".pq"
 
 sample_target_df:
-  type: pandas.ParquetDataset
-  filepath: data/04_sample/target.pq
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/04_sample/target/
+  filename_suffix: ".pq"
 
 transformed_sample_features_df:
-  type: pandas.ParquetDataset
-  filepath: data/04_sample/transformed_features.pq
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/04_sample/transformed_features/
+  filename_suffix: ".pq"
 
 selected_sample_features_df:
-  type: pandas.ParquetDataset
-  filepath: data/04_sample/selected_features.pq
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/04_sample/selected_features/
+  filename_suffix: ".pq"
 
 pure_sample_predictions_df:
-  type: pandas.ParquetDataset
-  filepath: data/04_sample/pure_predictions.pq
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/04_sample/pure_predictions/
+  filename_suffix: ".pq"
 
 pure_calib_predictions_df:
-  type: pandas.ParquetDataset
-  filepath: data/05_calib/pure_predictions.pq
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/05_calib/pure_predictions/
+  filename_suffix: ".pq"
 
 calibrated_calib_predictions_df:
-  type: pandas.ParquetDataset
-  filepath: data/05_calib/calibrated_predictions.pq
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/05_calib/calibrated_predictions/
+  filename_suffix: ".pq"
 
 pure_test_predictions_df:
-  type: pandas.ParquetDataset
-  filepath: data/06_test/pure_predictions.pq
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/06_test/pure_predictions/
+  filename_suffix: ".pq"
 
 calibrated_test_predictions_df:
-  type: pandas.ParquetDataset
-  filepath: data/06_test/calibrated_predictions.pq
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/06_test/calibrated_predictions/
+  filename_suffix: ".pq"
+
+test_target_df:
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/06_test/target/
+  filename_suffix: ".pq"

@@ -80,6 +80,14 @@ loggers:
     formatter: simple
     level: INFO
 
+  solvency_models.pipelines.p06_data_engineering.utils:
+    formatter: simple
+    level: INFO
+
+  solvency_models.pipelines.p06_data_engineering.utils.main:
+    formatter: simple
+    level: INFO
+
   solvency_models.pipelines.p06_data_engineering.utils.cat_reducer:
     formatter: simple
     level: INFO

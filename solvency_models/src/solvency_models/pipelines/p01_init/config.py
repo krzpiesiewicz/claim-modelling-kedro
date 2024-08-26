@@ -1,3 +1,4 @@
+import ast
 import logging
 import os
 import tempfile
@@ -67,6 +68,11 @@ class DataConfig:
     policy_exposure_col: str
     policy_id_col: str
     split_random_seed: int
+    cv_enabled: bool
+    cv_folds: int
+    cv_parts_names: List[str]
+    cv_mlflow_runs_ids: Dict[str, str]
+    one_part_key = "0"
     calib_size: float
     test_size: float
 
@@ -90,16 +96,31 @@ class DataConfig:
                              self.claims_severity_target_col, self.claims_total_amount_target_col,
                              self.policy_exposure_col]
         self.split_random_seed = params["split_random_seed"]
+
         self.calib_size = params["calib_size"]
-        self.test_size = params["test_size"]
         if self.calib_size is None:
             self.calib_size = 0
-        if self.test_size + self.calib_size >= 1:
-            raise ValueError("Sum of calib_size and test_size should be less than 1.")
-        if self.test_size <= 0:
-            raise ValueError("test_size should be greater than 0.")
         if self.calib_size < 0:
             raise ValueError("calib_size should be greater or equal to 0.")
+
+        self.cv_enabled = params["cross_validation"]["enabled"]
+        self.cv_mlflow_runs_ids = None
+        if self.cv_enabled:
+            self.cv_folds = params["cross_validation"]["folds"]
+            if self.cv_folds <= 1:
+                raise ValueError("Number of folds should be greater than 1.")
+            self.cv_parts_names = list(map(str, range(self.cv_folds)))
+            self.test_size = 1 / self.cv_folds
+            self.one_part_key = None
+        else:
+            self.cv_folds = None
+            self.cv_parts_names = None
+            self.test_size = params["test_size"]
+            if self.test_size + self.calib_size >= 1:
+                raise ValueError("Sum of calib_size and test_size should be less than 1.")
+            if self.test_size <= 0:
+                raise ValueError("test_size should be greater than 0.")
+            self.one_part_key = "0"
 
 
 class MetricEnum(Enum):
@@ -416,6 +437,7 @@ class CalibrationConfig:
                 raise ValueError(f"Calibration method \"{self.method}\" not supported.")
         self.model_class = f"solvency_models.pipelines.p08_model_calibration.calibration_models.{self.model_class}"
 
+
 @dataclass
 class TestConfig:
     lower_bound: float
@@ -455,3 +477,34 @@ def log_config_to_mlflow(config: Config):
         with open(file_path, "w") as file:
             yaml.dump(asdict(config), file)
         mlflow.log_artifact(file_path)
+
+
+def add_sub_runs_ids_to_config(config: Config) -> Config:
+    run = mlflow.active_run()
+    logger.info(f"Searching for sub runs in MLFlow run ID: {run.info.run_id}.")
+    if "cv_subruns" in run.data.params:
+        subruns_dct = get_subruns_dct(run)
+        config.data.cv_mlflow_runs_ids = subruns_dct
+        logger.info(f"Loaded cross validation sub runs: \n" +
+                    "\n".join([f" - {part}: {run_id}" for part, run_id in subruns_dct.items()]))
+    else:
+        logger.info("No sub runs found.")
+        logger.info("Creating sub runs...")
+        subruns_dct = {}
+        for part in config.data.cv_parts_names:
+            with mlflow.start_run(run_name=f"CV_{part}", nested=True) as subrun:
+                subrun_id = subrun.info.run_id
+                subruns_dct[part] = subrun_id
+                logger.info(f"Created sub run for cross validation split {part} with ID: {subrun_id}")
+        config.data.cv_mlflow_runs_ids = subruns_dct
+        mlflow.log_param(f"cv_subruns", subruns_dct)
+        logger.info("Created all sub runs and logged ids to MLflow.")
+    return config
+
+
+def get_subruns_dct(run) -> Dict[str, str]:
+    logger.info(f"type(run): {type(run)}")
+    if "cv_subruns" in run.data.params:
+        return ast.literal_eval(run.data.params["cv_subruns"])
+    else:
+        return None

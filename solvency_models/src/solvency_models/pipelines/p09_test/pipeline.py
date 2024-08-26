@@ -9,7 +9,7 @@ def create_pipeline(**kwargs) -> Pipeline:
             node(
                 func=test_model_and_compute_stats,
                 inputs=["config", "calibrated_calib_predictions_df", "features_df", "target_df", "test_keys"],
-                outputs="calibrated_test_predictions_df",
+                outputs=["calibrated_test_predictions_df", "test_target_df"],
                 name="test_model_and_compute_stats",
             ),
         ]
