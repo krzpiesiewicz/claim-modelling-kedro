@@ -112,7 +112,7 @@ def calibrate_predictions_by_mlflow_model(config: Config, pure_predictions_df: D
     logger.info("Calibrating the pure predictions by the MLFlow model...")
     for part in pure_predictions_df.keys():
         pure_predictions_part_df = get_partition(pure_predictions_df, part)
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(part, parent_mflow_run_id=mlflow_run_id)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mflow_run_id=mlflow_run_id)
         logger.info(f"Calibrating the pure predictions on partition '{part}' of the dataset by the MLFlow model...")
         calibrated_predictions_df[part] = calibrate_predictions_by_mlflow_model_part(config, pure_predictions_part_df, mlflow_subrun_id)
     logger.info("Calibrated the predictions.")
@@ -126,7 +126,7 @@ def fit_transform_calibration_model(config: Config, pure_calib_predictions_df: D
     for part in pure_calib_predictions_df.keys():
         pure_calib_predictions_part_df = get_partition(pure_calib_predictions_df, part)
         target_calib_part_df = get_partition(target_calib_df, part)
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(part)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
         logger.info(f"Fitting and transforming the calibration model on partition '{part}' of the calibration dataset...")
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
             calibrated_predictions_df[part] = fit_transform_calibration_model_part(config, pure_calib_predictions_part_df, target_calib_part_df)

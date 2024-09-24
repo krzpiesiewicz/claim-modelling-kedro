@@ -4,7 +4,8 @@ from typing import Tuple, Callable
 import pandas as pd
 from pandera.typing import Series
 
-from solvency_models.pipelines.p01_init.config import Config, Target
+from solvency_models.pipelines.p01_init.config import Config
+from solvency_models.pipelines.p01_init.mdl_info_config import Target
 from solvency_models.pipelines.p05_sampling.utils import is_target_gt_zero, return_none
 
 logger = logging.getLogger(__name__)

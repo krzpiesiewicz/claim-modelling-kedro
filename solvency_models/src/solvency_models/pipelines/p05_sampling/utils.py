@@ -71,7 +71,7 @@ def sample_with_no_condition(config: Config, target_df: pd.DataFrame, train_keys
 
 
 def sample_with_target_ratio(config: Config, target_df: pd.DataFrame, train_keys: pd.Index,
-                             is_event: Callable[[Series], Series[bool]]) -> pd.Index:
+                             is_event: Callable[[Series], Series[bool]]) -> Tuple[pd.Index, float]:
     train_trg_df = assert_train_size_gte_sample_size(config, target_df, train_keys)
     train_size = train_trg_df.shape[0]
     events_keys = train_trg_df[is_event(train_trg_df[config.mdl_task.target_col])].index
@@ -131,4 +131,4 @@ def sample_with_target_ratio(config: Config, target_df: pd.DataFrame, train_keys
         logger.warning(f"The actual target_ratio is {actual_target_ratio} that is less than "
                        f"{round(100 * (1 - rel_error_threshold), 1)}% of the theoretical target_ratio {config.smpl.target_ratio}.")
     mlflow.log_param("target_ratio_actual_value", actual_target_ratio)
-    return sample_keys
+    return sample_keys, actual_target_ratio

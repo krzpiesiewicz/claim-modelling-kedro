@@ -3,7 +3,6 @@ from typing import Tuple
 
 import pandas as pd
 
-from solvency_models.pipelines.p01_init.config import Config
 from solvency_models.pipelines.utils.utils import shortened_seq_to_string
 
 logger = logging.getLogger(__name__)

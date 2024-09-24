@@ -113,7 +113,7 @@ def fit_transform_features_selector(config: Config, sample_features_df: Dict[str
     for part in sample_features_df.keys():
         features_part_df = get_partition(sample_features_df, part)
         target_part_df = get_partition(sample_target_df, part)
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(part)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
         logger.info(f"Fitting selector on partition '{part}' of the sample dataset...")
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
             selected_features_df[part] = fit_transform_features_selector_part(config, features_part_df, target_part_df)
@@ -126,7 +126,7 @@ def select_features_by_mlflow_model(config: Config, features_df: Dict[str, pd.Da
     logger.info(f"Selecting features of the sample dataset...")
     for part in features_df.keys():
         features_part_df = get_partition(features_df, part)
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(part, parent_mflow_run_id=mlflow_run_id)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mflow_run_id=mlflow_run_id)
         logger.info(f"Selecting partition '{part}' of the sample dataset...")
         selected_features_df[part] = select_features_by_mlflow_model_part(config, features_part_df, mlflow_subrun_id)
     return selected_features_df

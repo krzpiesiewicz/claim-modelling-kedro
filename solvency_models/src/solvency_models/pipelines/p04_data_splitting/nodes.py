@@ -2,9 +2,14 @@ import logging
 from typing import Tuple, Dict
 
 import pandas as pd
+from kedro.io import DataCatalog
 from sklearn.model_selection import train_test_split
 
 from solvency_models.pipelines.p01_init.config import Config
+from solvency_models.pipelines.utils.stratified_cv_split import get_stratified_train_calib_test_cv
+from solvency_models.pipelines.utils.stratified_split import get_stratified_train_calib_test_split_keys
+from solvency_models.pipelines.utils.utils import remove_dataset
+from solvency_models.hooks import get_catalog
 
 logger = logging.getLogger(__name__)
 
@@ -28,47 +33,46 @@ def _split_train_calib(config: Config, train_calib_idx: pd.Index, target_df: pd.
 def split_train_calib_test(
         config: Config,
         target_df: pd.DataFrame
-        # ):
 ) -> Tuple[
-    Dict[str, pd.DataFrame], Dict[str, pd.DataFrame], Dict[str, pd.DataFrame], Dict[str, pd.Index], Dict[str, pd.Index],
-    Dict[str, pd.Index]]:
-    # ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.Index, pd.Index, pd.Index]:
+    Dict[str, pd.DataFrame], Dict[str, pd.DataFrame], Dict[str, pd.DataFrame],
+    Dict[str, pd.Index], Dict[str, pd.Index], Dict[str, pd.Index]]:
+
     logger.info("Splitting policies into: train, calib and test datasets...")
 
-    rest, test_policies = train_test_split(
-        target_df[config.data.claims_freq_target_col] > 0,
-        test_size=config.data.test_size,
-        random_state=config.data.split_random_seed,
-    )
-    if config.data.calib_size == 0:
-        train_policies = rest
-        calib_policies = pd.Series([], index=pd.Index([], name=rest.index.name))
-    else:
-        train_policies, calib_policies = train_test_split(
-            target_df.loc[rest.index, config.data.claims_freq_target_col] > 0,
-            test_size=config.data.calib_size / (1 - config.data.test_size),
-            random_state=config.data.split_random_seed,
+    if config.data.cv_enabled:
+        train_keys, calib_keys, test_keys = get_stratified_train_calib_test_cv(
+            target_df,
+            stratify_target_col=config.mdl_task.target_col,
+            cv_folds=config.data.cv_folds,
+            cv_parts_names=config.data.cv_parts_names,
+            shuffle=True,
+            random_seed=config.data.split_random_seed,
+            verbose=True,
         )
-    train_keys = train_policies.index
-    calib_keys = calib_policies.index
-    test_keys = test_policies.index
-    test_policies = pd.Series(test_policies.index).to_frame()
-    train_policies = pd.Series(train_policies.index).to_frame()
-    calib_policies = pd.Series(calib_policies.index).to_frame()
-    all_size = target_df.shape[0]
-    logger.info(f"""...split into:
-    - train: {train_policies.size} ({round(100 * train_policies.size / all_size, 1)}%)
-    - calib: {calib_policies.size} ({round(100 * calib_policies.size / all_size, 1)}%)
-    - test: {test_policies.size} ({round(100 * test_policies.size / all_size, 1)}%)""")
-    logger.debug(f"""test_policies: {test_policies.head()}""")
+        train_policies = {}
+        calib_policies = {}
+        test_policies = {}
+        for part in train_keys.keys():
+            train_policies[part] = pd.Series(train_keys[part]).to_frame()
+            calib_policies[part] = pd.Series(calib_keys[part]).to_frame()
+            test_policies[part] = pd.Series(test_keys[part]).to_frame()
 
-    one_part_key = config.data.one_part_key
-    train_policies = {one_part_key: train_policies}
-    calib_policies = {one_part_key: calib_policies}
-    test_policies = {one_part_key: test_policies}
-
-    train_keys = {one_part_key: train_keys}
-    calib_keys = {one_part_key: calib_keys}
-    test_keys = {one_part_key: test_keys}
+    else:
+        train_keys, calib_keys, test_keys = get_stratified_train_calib_test_split_keys(
+            target_df,
+            stratify_target_col=config.mdl_task.target_col,
+            test_size=config.data.test_size,
+            calib_size=config.data.calib_size,
+            shuffle=True,
+            random_seed=config.data.split_random_seed,
+            verbose=True,
+        )
+        one_part_key = config.data.one_part_key
+        train_policies = {one_part_key: pd.Series(train_keys).to_frame()}
+        calib_policies = {one_part_key: pd.Series(calib_keys).to_frame()}
+        test_policies = {one_part_key: pd.Series(test_keys).to_frame()}
+        train_keys = {one_part_key: train_keys}
+        calib_keys = {one_part_key: calib_keys}
+        test_keys = {one_part_key: test_keys}
 
     return train_policies, calib_policies, test_policies, train_keys, calib_keys, test_keys

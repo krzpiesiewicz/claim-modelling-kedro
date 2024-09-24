@@ -5,7 +5,8 @@ from typing import List
 
 import pandas as pd
 
-from solvency_models.pipelines.p01_init.config import Config, CustomFeatureConfig
+from solvency_models.pipelines.p01_init.config import Config
+from solvency_models.pipelines.p01_init.de_config import CustomFeatureConfig
 from solvency_models.pipelines.p06_data_engineering.utils.utils import assert_features_dtypes
 from solvency_models.pipelines.utils.mlflow_model import MLFlowModelLoader, MLFlowModelLogger
 from solvency_models.pipelines.utils.utils import get_class_from_path

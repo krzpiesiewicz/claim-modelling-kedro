@@ -9,6 +9,10 @@ https://docs.kedro.org/en/stable/kedro_project_setup/settings.html."""
 # Hooks are executed in a Last-In-First-Out (LIFO) order.
 # HOOKS = (ProjectHooks(),)
 
+from .hooks import MyCatalogHook, RemoveOutputDatasetsHook
+
+HOOKS = (MyCatalogHook(), RemoveOutputDatasetsHook())
+
 # Installed plugins for which to disable hook auto-registration.
 DISABLE_HOOKS_FOR_PLUGINS = ("kedro-viz")
 

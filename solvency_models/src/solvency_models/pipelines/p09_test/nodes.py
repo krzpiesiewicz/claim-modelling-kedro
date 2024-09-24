@@ -14,7 +14,7 @@ from solvency_models.pipelines.utils.utils import get_partition, save_prediction
 logger = logging.getLogger(__name__)
 
 
-def test_model_and_compute_stats(config: Config, calibrated_calib_predictions_df: pd.DataFrame,
+def test_model_and_compute_stats(config: Config, calibrated_calib_predictions_df: Dict[str, pd.DataFrame],
                                  features_df: Dict[str, pd.DataFrame], target_df: Dict[str, pd.DataFrame],
                                  test_keys: Dict[str, pd.Index]) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
     """
@@ -46,15 +46,14 @@ def test_model_and_compute_stats(config: Config, calibrated_calib_predictions_df
     # Transform predictions by the MLFlow calibration model
     calibrated_test_predictions_df = calibrate_predictions_by_mlflow_model(config, pure_test_predictions_df,
                                                                            mlflow_run_id=config.clb.mlflow_run_id)
-    # Evaluate the predictions
-    evaluate_predictions(config, pure_test_predictions_df, test_target_df, prefix="pure_test", log_to_mlflow=True)
-    evaluate_predictions(config, calibrated_test_predictions_df, test_target_df, prefix="test", log_to_mlflow=True)
-
-    # Average the metrics over the cross-validation folds
-    if config.data.cv_enabled:
-        ...  # TODO: average the metrics over the cross-validation folds
 
     # Save the predictions and the target in MLFlow
     save_predictions_and_target_in_mlflow(calibrated_test_predictions_df, test_target_df, dataset="test")
+
+    # Evaluate the predictions
+    evaluate_predictions(config, pure_test_predictions_df, test_target_df, dataset="test", prefix="pure",
+                         log_metrics_to_mlflow=True, save_metrics_table=True)
+    evaluate_predictions(config, calibrated_test_predictions_df, test_target_df, dataset="test",
+                         log_metrics_to_mlflow=True, save_metrics_table=True)
 
     return calibrated_test_predictions_df, test_target_df

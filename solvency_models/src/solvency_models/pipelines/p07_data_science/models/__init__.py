@@ -1,1 +1,1 @@
-from .glm import StatsmodelsGLM, SklearnPoissonGLM
+from .glm import StatsmodelsGLM, SklearnPoissonGLM, SklearnGammaGLM, SklearnTweedieGLM

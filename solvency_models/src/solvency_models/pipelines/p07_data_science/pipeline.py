@@ -1,6 +1,7 @@
 from kedro.pipeline import Pipeline, pipeline, node
 
-from solvency_models.pipelines.p07_data_science.nodes import fit_features_selector, fit_predictive_model
+from solvency_models.pipelines.p07_data_science.nodes import fit_features_selector, tune_hyper_parameters, \
+    fit_predictive_model
 
 
 def create_pipeline(**kwargs) -> Pipeline:
@@ -13,8 +14,14 @@ def create_pipeline(**kwargs) -> Pipeline:
                 name="fit_features_selector",
             ),
             node(
-                func=fit_predictive_model,
+                func=tune_hyper_parameters,
                 inputs=["config", "selected_sample_features_df", "sample_target_df"],
+                outputs="best_hparams",
+                name="tune_hyper_parameters",
+            ),
+            node(
+                func=fit_predictive_model,
+                inputs=["config", "selected_sample_features_df", "sample_target_df", "best_hparams"],
                 outputs="pure_sample_predictions_df",
                 name="fit_predictive_model",
             ),

@@ -106,7 +106,7 @@ def fit_transform_features(config: Config, features_df: Dict[str, pd.DataFrame])
     transformed_features_df = {}
     for part in features_df.keys():
         features_part_df = get_partition(features_df, part)
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(part)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
         logger.info(f"Fitting transformers on partition '{part}' of the sample dataset...")
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
             transformed_features_df[part] = fit_transform_features_part(config, features_part_df)
@@ -114,12 +114,12 @@ def fit_transform_features(config: Config, features_df: Dict[str, pd.DataFrame])
 
 
 def transform_features_by_mlflow_model(config: Config, features_df: Dict[str, pd.DataFrame],
-                                             mlflow_run_id: str = None) -> Dict[str, pd.DataFrame]:
+                                       mlflow_run_id: str = None) -> Dict[str, pd.DataFrame]:
     logger.info(f"Transforming features...")
     transformed_features_df = {}
     for part in features_df.keys():
         features_part_df = get_partition(features_df, part)
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(part, parent_mflow_run_id=mlflow_run_id)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mflow_run_id=mlflow_run_id)
         logger.info(f"Transforming features on partition '{part}'...")
         transformed_features_df[part] = transform_features_by_mlflow_model_part(config, features_part_df, mlflow_subrun_id)
     return transformed_features_df

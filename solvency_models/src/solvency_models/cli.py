@@ -2,7 +2,7 @@
 Intended to be invoked via `kedro`."""
 import logging
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Tuple
 
 import click
 from kedro.framework.project import settings
@@ -155,6 +155,13 @@ KEDRO_RUN_STATUS_HELP = "TODO: KEDRO_STATUS_HELP"
     default=None,
     help=KEDRO_RUN_STATUS_HELP,
 )
+@click.option(
+    "--experiment-and-run-names",
+    nargs=2,  # Expect two arguments
+    type=(str, str),  # Both arguments are of type string
+    default=None,
+    help="Specify experiment name and run name as two separate arguments."
+)
 def run(
     tags,
     env,
@@ -179,6 +186,7 @@ def run(
     kedro_log_to_mlflow: bool,
     kedro_elapsed_time: int,
     kedro_run_status: int,
+    experiment_and_run_names: Tuple[str, str],
 ):
     """Run the pipeline."""
 
@@ -205,7 +213,8 @@ def run(
             pipeline=pipeline,
             run_status=kedro_run_status
         ),
-        mlflow_run_id=mlflow_run_id
+        mlflow_run_id=mlflow_run_id,
+        experiment_and_run_names=experiment_and_run_names
     )
 
     with KedroSession.create(

@@ -14,6 +14,8 @@ from kedro.framework.session import KedroSession
 from kedro_mlflow.config.kedro_mlflow_config import KedroMlflowConfig
 from pluggy import PluginManager
 
+from solvency_models.experiments import get_run_mlflow_id, set_run_mlflow_id
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,10 +36,17 @@ class ProjectContext(KedroContext):
                         "%reload_kedro --params ipython_notebook=True\n"
                         "in your jupyter notebook, please. Alternatively, you can run\n"
                         "%reload_kedro --params ipython_notebook=True,mlflow_run_id=\"<mlflow-run-id>\"")
+
+        self.mlflow_run_id = None
+        self.experiment_name, self.experiment_run_name = extra_params.get("experiment_and_run_names") or (None, None)
+        if self.experiment_name is not None:
+            experiment_mlflow_run_id = get_run_mlflow_id(self.experiment_name, self.experiment_run_name)
+            self.mlflow_run_id = extra_params["mlflow_run_id"] or experiment_mlflow_run_id
+
         self.ipython_notebook = extra_params.get("ipython_notebook", False)
         if self.ipython_notebook:
             extra_params.pop("ipython_notebook")
-            self.mlflow_run_id = extra_params.get("mlflow_run_id")
+            self.mlflow_run_id = extra_params.get("mlflow_run_id") or self.mlflow_run_id
             if "mlflow_run_id" in extra_params:
                 extra_params.pop("mlflow_run_id")
         else:
@@ -53,9 +62,10 @@ class ProjectContext(KedroContext):
             else:
                 self.kedro_runtime = pd.Timestamp(extra_params["kedro"]["runtime"])
                 self.logs_index_file = extra_params["kedro"]["logs_index_file"]
-                self.mlflow_run_id = extra_params["mlflow_run_id"]
+                self.mlflow_run_id = extra_params["mlflow_run_id"] or self.mlflow_run_id
             for k in ["kedro", "mlflow_run_id"]:
                 extra_params.pop(k)
+
 
         config_loader.config_patterns.update(
             {"mlflow": ["mlflow*", "mlflow*/**", "**/mlflow*"],
@@ -68,23 +78,29 @@ class ProjectContext(KedroContext):
         conf_mlflow_yml = config_loader["mlflow"]
         mlflow_config = KedroMlflowConfig.parse_obj({**conf_mlflow_yml})
         mlflow_tracking_uri = mlflow_config.server.mlflow_tracking_uri
+        self.experiment_name = self.experiment_name or mlflow_config.tracking.experiment.name
         logger.info(f"mlflow_config.server.mlflow_tracking_uri: {mlflow_tracking_uri}")
         mlflow.set_tracking_uri(mlflow_tracking_uri)
-        mlflow.set_experiment(mlflow_config.tracking.experiment.name)
+        mlflow.set_experiment(self.experiment_name)
 
         self.mlflow_run_id = self.mlflow_run_id or mlflow_config.tracking.run.id
         if self.mlflow_run_id is not None:
             if mlflow.active_run() is not None:
                 mlflow.end_run()
-            mlflow.start_run(self.mlflow_run_id)
+            mlflow.start_run(self.mlflow_run_id, run_name=self.experiment_run_name)
         else:
             if mlflow.active_run() is not None:
                 mlflow.end_run()
-            mlflow.start_run()
+            mlflow.start_run(run_name=self.experiment_run_name)
             self.mlflow_run_id = mlflow.active_run().info.run_id
 
         logger.info(f"mlflow_run_id: {self.mlflow_run_id}")
         logger.debug(f"self.params: {self.params}")
+
+        if self.experiment_run_name is not None:
+            experiment_mlflow_run_id = get_run_mlflow_id(self.experiment_name, self.experiment_run_name)
+            if experiment_mlflow_run_id is None or experiment_mlflow_run_id != self.mlflow_run_id:
+                set_run_mlflow_id(self.experiment_name, self.experiment_run_name, self.mlflow_run_id)
 
         if not self.ipython_notebook:
             if self.kedro_log_to_mlflow:
@@ -128,6 +144,7 @@ class ProjectContext(KedroContext):
                 kedro_runs_df = pd.concat([kedro_runs_df, new_row],
                                           ignore_index=True) if kedro_runs_df is not None else new_row
                 self.log_kedro_runs_df_to_mlflow(kedro_runs_df)
+
 
     def append_mlflow_run_id(self):
         with open(self.logs_index_file, "r+") as file:

@@ -48,7 +48,7 @@ sampling:
   random_seed: 1
   n_obs: 50000 # 50k # the number of samples which are used to train a model
     # if n_obs is None, then all training data is used
-  target_ratio: 0.5 # the ratio of nonzero samples
+  target_ratio: <SAMPLING_TARGET_RATIO> # the ratio of nonzero samples
   allow_lower_ratio: True # allow the ratio of nonzero samples to be lower than target_ratio
   include_zeros: True # include zero values of target in a sample
   lower_bound: 0

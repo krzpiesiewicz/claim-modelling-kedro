@@ -78,7 +78,7 @@ loggers:
 
   solvency_models.pipelines.p05_sampling:
     formatter: simple
-    level: INFO
+    level: DEBUG
 
   solvency_models.pipelines.p06_data_engineering.utils:
     formatter: simple
@@ -107,6 +107,14 @@ loggers:
   solvency_models.pipelines.p08_model_calibration.calibration_models:
     formatter: simple
     level: DEBUG
+
+  solvency_models.pipelines.utils.utils:
+    formatter: simple
+    level: DEBUG
+
+  solvency_models.pipelines.utils.stratified_split:
+    formatter: simple
+    level: INFO
 
 
   solvency_models:

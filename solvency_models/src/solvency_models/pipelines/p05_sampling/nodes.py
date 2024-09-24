@@ -1,12 +1,15 @@
 import logging
 from typing import Callable, Tuple, Dict
 
+import mlflow
+import numpy as np
 import pandas as pd
 from pandera.typing import Series
 
 from solvency_models.pipelines.p01_init.config import Config
 from solvency_models.pipelines.p05_sampling.utils import sample_with_no_condition, \
     sample_with_target_ratio, get_all_samples, return_none, remove_outliers
+from solvency_models.pipelines.utils.utils import get_mlflow_run_id_for_partition
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +21,7 @@ def sample_part(
         train_keys: pd.Index,
         calib_keys: pd.Index,
         is_event: Callable[[Series], Series[bool]]
-) -> Tuple[Dict[str, pd.Index], pd.DataFrame, pd.DataFrame]:
+) -> Tuple[Dict[str, pd.Index], pd.DataFrame, pd.DataFrame, float]:
     # If set, use also the calibration data for sampling
     if config.smpl.use_calib_data:
         train_keys = train_keys.union(calib_keys)
@@ -33,12 +36,13 @@ def sample_part(
             sample_keys = sample_with_no_condition(config=config,
                                                    target_df=train_trg_df_without_outliers,
                                                    train_keys=train_keys_without_outliers)
+            actual_target_ratio = None
         else:
             # Sample with target ratio condition
-            sample_keys = sample_with_target_ratio(config=config,
-                                                   target_df=train_trg_df_without_outliers,
-                                                   train_keys=train_keys_without_outliers,
-                                                   is_event=is_event)
+            sample_keys, actual_target_ratio = sample_with_target_ratio(config=config,
+                                                                        target_df=train_trg_df_without_outliers,
+                                                                        train_keys=train_keys_without_outliers,
+                                                                        is_event=is_event)
     else:  # No sampling
         sample_keys = get_all_samples(config=config,
                                       target_df=train_trg_df_without_outliers,
@@ -46,7 +50,7 @@ def sample_part(
 
     sample_features_df = features_df.loc[sample_keys, :]
     sample_target_df = target_df.loc[sample_keys, :]
-    return sample_keys, sample_features_df, sample_target_df
+    return sample_keys, sample_features_df, sample_target_df, actual_target_ratio
 
 
 def sample(
@@ -59,20 +63,29 @@ def sample(
 ) -> Tuple[Dict[str, pd.Index], Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
     logger.info(f"Sampling from the train dataset...")
     # assert that train_keys, calib_keys have the same partitions names
+    logger.info(f"train_keys.keys(): {train_keys.keys()}")
     assert train_keys.keys() == calib_keys.keys()
     partitions_keys = train_keys.keys()
     # sample independently in each partition
     sample_keys = {}
     sample_features_df = {}
     sample_target_df = {}
+    actual_target_ratios = []
     for part in partitions_keys:
         logger.info(f"Sampling from partition '{part}' of the train dataset...")
         train_keys_part = train_keys[part]()
         calib_keys_part = calib_keys[part]()
         logger.debug(f"type(train_keys_part): {type(train_keys_part)}")
-        sample_keys_part, sample_features_part_df, sample_target_part_df = sample_part(
-            config, features_df, target_df, train_keys_part, calib_keys_part, is_event)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
+        logger.debug(f"mlflow_subrun_id: {mlflow_subrun_id}")
+        with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
+            sample_keys_part, sample_features_part_df, sample_target_part_df, actual_target_ratio = sample_part(
+                config, features_df, target_df, train_keys_part, calib_keys_part, is_event)
         sample_keys[part] = sample_keys_part
         sample_features_df[part] = sample_features_part_df
         sample_target_df[part] = sample_target_part_df
+        if actual_target_ratio is not None:
+            actual_target_ratios.append(actual_target_ratio)
+    if len(actual_target_ratios) > 0:
+        mlflow.log_metric("actual_target_ratio", np.mean(actual_target_ratios))
     return sample_keys, sample_features_df, sample_target_df

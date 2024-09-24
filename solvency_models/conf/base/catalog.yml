@@ -39,6 +39,10 @@
 # (transcoding), templating and a way to reuse arguments that are frequently repeated. See more here:
 # https://docs.kedro.org/en/stable/data/data_catalog.html
 
+config:
+  type: pickle.PickleDataset
+  filepath: data/03_primary/config.pkl
+  backend: pickle
 
 raw_features_and_claims_numbers_df:
   type: pandas.CSVDataset
@@ -135,6 +139,11 @@ selected_sample_features_df:
   dataset: pandas.ParquetDataset
   path: data/04_sample/selected_features/
   filename_suffix: ".pq"
+
+best_haprams:
+  type: pickle.PickleDataset
+  filepath: data/04_primary/best_hparamas.pkl
+  backend: pickle
 
 pure_sample_predictions_df:
   type: partitions.PartitionedDataset
