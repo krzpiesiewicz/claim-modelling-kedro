@@ -17,5 +17,5 @@ python3.11 -m venv venv
 echo -e "> source venv/bin/activate"
 source venv/bin/activate
 
-echo -e "> pip install -r solvency_models/requirements.txt"
-pip install -r solvency_models/requirements.txt
+echo -e "> pip install -r claim_modelling_kedro/requirements.txt"
+pip install -r claim_modelling_kedro/requirements.txt

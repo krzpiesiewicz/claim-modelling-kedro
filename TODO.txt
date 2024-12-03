@@ -1,0 +1,9 @@
+TODO:
+0. ogarnąć gammaGLM (daje wartości zero lub mniejsze z inverse linkiem - trzeba poprawić, gdyż wywala błąd na metryce Tweedie z p = 2)
+1. dopisać add_constant do StatsmodelGLM
+2. Dodać statsmodels.discrete.count_model.ZeroInflatedGeneralizedPoisson dla częstotliwości
+3. Ogarnąć wszystko dla TweediegoGLM
+4. Sprawdzić poprawność obliczania giniego (gini nie powinien być równy 1 dla trywialnego modelu - constant) - przypadek GammaGLM jako kalibracja
+5. Wykres krzywej lorentza
+6. rozkłady średniej predykcji i średniego targetu w percentylach
+

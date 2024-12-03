@@ -1,0 +1,141 @@
+# To enable this custom logging configuration, set KEDRO_LOGGING_CONFIG to the path of this file.
+# More information available at https://docs.kedro.org/en/stable/logging/logging.html
+version: 1
+
+disable_existing_loggers: False
+
+formatters:
+  simple:
+    (): src.claim_modelling_kedro.custom_formatter.IndentedMessageFormatter
+#    (): logging.Formatter
+    indent_size: 36
+    wrap_width: 230
+    format: "[grey39]%(filename)25s:L%(lineno)-8s[/grey39] %(message)s"
+    datefmt: "[%m/%d/%y %H:%M:%S]"
+
+  coloredlog:
+    (): src.claim_modelling_kedro.custom_formatter.IndentedMessageColoredFormatter
+    format: "%(cyan)s%(asctime)s %(reset)s%(log_color)s%(levelname)-8s%(reset)s%(light_black)s%(filename)25s:%(lineno)-8d%(reset)s%(message)s"
+    datefmt: "[%m/%d/%y %H:%M:%S]"
+    indent_size: 4
+    log_colors:
+      DEBUG: light_blue
+      INFO: green
+      WARNING: yellow
+      ERROR: red
+      CRITICAL: red
+
+
+handlers:
+  console:
+    class: logging.StreamHandler
+#    level: INFO
+    level: DEBUG
+    formatter: simple
+    stream: ext://sys.stdout
+
+  info_file_handler:
+    class: logging.handlers.RotatingFileHandler
+    level: INFO
+    formatter: simple
+    filename: info.log
+    maxBytes: 10485760 # 10MB
+    backupCount: 20
+    encoding: utf8
+    delay: True
+
+  rich:
+    class: kedro.logging.RichHandler
+    rich_tracebacks: True
+    formatter: simple
+    # Advance options for customisation.
+    # See https://docs.kedro.org/en/stable/logging/logging.html#project-side-logging-configuration
+#    tracebacks_show_locals: True
+    markup: True
+    show_path: False
+
+loggers:
+  kedro:
+    level: INFO
+    formatter: simple
+#    level: DEBUG
+
+  claim_modelling_kedro.context:
+    formatter: simple
+    level: INFO
+
+  claim_modelling_kedro.pipelines.p01_init.ds_config:
+    formatter: simple
+    level: DEBUG
+
+  claim_modelling_kedro.pipelines.p02_data_preprocessing:
+    formatter: simple
+    level: INFO
+
+  claim_modelling_kedro.pipelines.p03_data_splitting:
+    formatter: simple
+    level: INFO
+
+  claim_modelling_kedro.pipelines.p04_define_modeling_task:
+    formatter: simple
+    level: INFO
+
+  claim_modelling_kedro.pipelines.p05_sampling:
+    formatter: simple
+    level: INFO
+
+  claim_modelling_kedro.pipelines.p06_data_engineering.utils:
+    formatter: simple
+    level: INFO
+
+  claim_modelling_kedro.pipelines.p06_data_engineering.utils.main:
+    formatter: simple
+    level: INFO
+
+  claim_modelling_kedro.pipelines.p06_data_engineering.utils.cat_reducer:
+    formatter: simple
+    level: INFO
+
+  claim_modelling_kedro.pipelines.p07_data_science.models.glm:
+    formatter: simple
+    level: DEBUG
+
+  claim_modelling_kedro.pipelines.p07_data_science.model:
+    formatter: simple
+    level: DEBUG
+
+  claim_modelling_kedro.pipelines.p07_data_science:
+    formatter: simple
+    level: INFO
+
+  claim_modelling_kedro.pipelines.p08_model_calibration.utils:
+    formatter: simple
+    level: INFO
+
+  claim_modelling_kedro.pipelines.p08_model_calibration.nodes:
+    formatter: simple
+    level: INFO
+
+  claim_modelling_kedro.pipelines.p08_model_calibration.calibration_models:
+    formatter: simple
+    level: INFO
+
+  claim_modelling_kedro.pipelines.utils.utils:
+    formatter: simple
+    level: INFO
+
+  claim_modelling_kedro.pipelines.utils.stratified_split:
+    formatter: simple
+    level: INFO
+
+
+  claim_modelling_kedro:
+#    level: INFO
+    level: INFO
+
+  mlflow:
+    level: INFO
+
+
+root:
+  handlers: [rich]

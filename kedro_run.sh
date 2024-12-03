@@ -1,5 +1,5 @@
 #!/bin/bash
-KEDRO_DIR="solvency_models"
+KEDRO_DIR="claim_modelling_kedro"
 
 LOGS_DIR="logs/kedro"
 #echo -e "> source venv/bin/activate"

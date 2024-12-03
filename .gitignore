@@ -1,10 +1,13 @@
 data/
+logs/
+mlflow/
 
 .idea
-solvency_models/.idea
-solvency_models/.telemetry
-solvency_models/logs/
-solvency_models/typescript
+claim_modelling_kedro/.idea
+claim_modelling_kedro/.telemetry
+claim_modelling_kedro/logs/
+claim_modelling_kedro/typescript
+
 
 mlruns/
 
@@ -37,7 +40,7 @@ share/python-wheels/
 MANIFEST
 
 # PyInstaller
-#  Usually these files are written by a python script from a template
+#  Usually these files are written by a python script from a experiment_dir_template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
@@ -163,8 +166,48 @@ dmypy.json
 cython_debug/
 
 # PyCharm
-#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+#  JetBrains specific experiment_dir_template is maintained in a separate JetBrains..gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
+#  and can be added to the global .gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+# also keep all .gitkeep files
+!.gitkeep
+
+# keep also the example dataset
+#!data/01_raw/*
+
+.telemetry
+typescript
+stats.json
+
+##########################
+# Common files
+
+# IntelliJ
+.idea/
+*.iml
+out/
+.idea_modules/
+
+### macOS
+*.DS_Store
+.AppleDouble
+.LSOverride
+.Trashes
+
+# Vim
+*~
+.*.swo
+.*.swp
+
+# emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+
+# kate
+*.kate-swp

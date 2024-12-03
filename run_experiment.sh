@@ -1,5 +1,5 @@
 #!/bin/bash
-KEDRO_DIR="solvency_models"
+KEDRO_DIR="claim_modelling_kedro"
 LOGS_DIR="logs/run_experiment"
 
 #echo -e "> source venv/bin/activate"
@@ -14,7 +14,7 @@ ARGS="$@"
 echo "$(pwd)"
 
 
-echo "> python3 src/solvency_models/experiments/run_experiment.py $ARGS"
+echo "> python3 src/claim_modelling_kedro/experiments/run_experiment.py $ARGS"
 
 shopt -s expand_aliases
 alias decolor.styles='sed -E "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})*)?[m,K,H,f,J]//gm"'
@@ -35,7 +35,7 @@ STATUS_FILE=$LOG_DIR/status.txt
 
 START_TIME=$(date +%s)
 
-script --return --flush --quiet --command "python3 src/solvency_models/experiments/run_experiment.py $ARGS && (echo \"succeeded\" > $STATUS_FILE) || (echo \"failed\" > $STATUS_FILE)" | tee /dev/tty > $LOG_DIR/$LOG_NAME.log
+script --return --flush --quiet --command "python3 src/claim_modelling_kedro/experiments/run_experiment.py $ARGS && (echo \"succeeded\" > $STATUS_FILE) || (echo \"failed\" > $STATUS_FILE)" | tee /dev/tty > $LOG_DIR/$LOG_NAME.log
 if [ -f $STATUS_FILE ] && grep -Fxq "succeeded" $STATUS_FILE; then
     status=0
 else
