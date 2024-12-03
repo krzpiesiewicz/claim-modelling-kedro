@@ -4,7 +4,7 @@ model:
   short_description: Poisson GLM for claim frequency
   full_description: GLM from stats models with canonical Gamma link function
   target: frequency # 'claim_number' – the number of claims,
-                           # 'total_claims_amount' – the total amount of claims (inlcuding zeros),
+                           # 'total_claims_amount' – the total amount of claims (including zeros),
                            # 'frequency' – the number of claims (including zeros) per unit of exposure (claim_number / exposure),
                            # 'avg_claim_amount' – the average amount of claims (total_claims_amount / claim_number) without zeros,
                            # 'pure_premium' – the total amount of claims (including zeros) per unit of exposure (total_claims_amount / exposure)
@@ -153,12 +153,13 @@ data_science:
                  # model_class: claim_modelling_kedro.pipelines.p07_data_science.models.SklearnPoissonGLM
                  # if empty, the model class is inferred from the parameter model.model
     const_hparams:
-#      StatsmodelsGammaGLM:
-#        link: inverse # 'log', 'inverse'
+      StatsmodelsGammaGLM:
+        link: inverse # 'log', 'inverse'
 #        variance: mu_squared # 'mu', 'mu_squared', 'power(p)', where p is a float number, e.g., 'power(1.5)'
-      SklearnPoissonGLM:
-        alpha: 1
-        fit_intercept: True
+        force_min_y_pred: "auto"
+#      SklearnPoissonGLM:
+#        alpha: 1
+#        fit_intercept: True
 #      GradientBoostingRegressor:
 #        n_estimators: 100
 
