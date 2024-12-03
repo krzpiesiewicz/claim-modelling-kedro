@@ -1,4 +1,0 @@
-run_no,pipeline,runtime,execution_time,status,logdir
-64,init,2024-04-07 01:16:59,,,/home/krzysiek/Development/solvency-modelling/solvency_models/logs/log_2024-04-07_011659_run_64
-65,init,2024-04-07 01:17:49,0 days 00:00:08,SUCCESS,/home/krzysiek/Development/solvency-modelling/solvency_models/logs/log_2024-04-07_011749_run_65
-66,init,2024-04-07 01:18:32,0 days 00:00:08,SUCCESS,/home/krzysiek/Development/solvency-modelling/solvency_models/logs/log_2024-04-07_011832_run_66
