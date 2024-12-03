@@ -1,5 +1,4 @@
-# claim-modelling-kedro
-
+# claim-modelling
 Project for my master thesis
 
 Dataset:
