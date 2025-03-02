@@ -122,6 +122,9 @@ def fit_transform_features_selector(config: Config, sample_features_df: Dict[str
 
 def select_features_by_mlflow_model(config: Config, features_df: Dict[str, pd.DataFrame],
                                     mlflow_run_id: str = None) -> Dict[str, pd.DataFrame]:
+    if not config.ds.fs_enabled:
+        logger.info("Feature selection is disabled. Hence, returning the input features.")
+        return features_df
     selected_features_df = {}
     logger.info(f"Selecting features of the sample dataset...")
     for part in features_df.keys():
