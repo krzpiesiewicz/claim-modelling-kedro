@@ -136,7 +136,8 @@ class DataScienceConfig:
         self.model_random_seed = model_params["random_seed"]
         logger.debug(f'model_params["const_hparams"]: {model_params["const_hparams"]}')
         logger.debug(f'mdl_info.model.value: {mdl_info.model.value}')
-        logger.debug(f'model_params["const_hparams"][mdl_info.model.value]: {model_params["const_hparams"][mdl_info.model.value]}')
+        if mdl_info.model.value in model_params["const_hparams"]:
+            logger.debug(f'model_params["const_hparams"][mdl_info.model.value]: {model_params["const_hparams"][mdl_info.model.value]}')
         if (model_params["const_hparams"] is not None
                 and mdl_info.model.value in model_params["const_hparams"]
                 and model_params["const_hparams"][mdl_info.model.value] is not None):
