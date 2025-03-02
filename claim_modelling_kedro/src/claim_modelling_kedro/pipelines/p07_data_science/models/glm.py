@@ -1,7 +1,7 @@
 import logging
 import re
 from abc import ABC
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List, Union, Collection
 
 import numpy as np
 import pandas as pd
@@ -193,6 +193,18 @@ class SklearnPoissonGLM(SklearnGLM):
         return ["lbfgs", "newton-cholesky"]
 
     @classmethod
+    def _sklearn_hparams_names(cls) -> Collection[str]:
+        return [
+            "alpha",
+            "fit_intercept",
+            "solver",
+            "max_iter",
+            "tol",
+            "warm_start",
+            "verbose"
+        ]
+
+    @classmethod
     def get_hparams_space(cls) -> Dict[str, Any]:
         return {
             "alpha": hp.loguniform("alpha", -5, 10),
@@ -202,10 +214,11 @@ class SklearnPoissonGLM(SklearnGLM):
 
     @classmethod
     def get_hparams_from_hyperopt_res(cls, hopt_hparams: Dict[str, Any]) -> Dict[str, Any]:
-        hparams = {}
-        hparams["alpha"] = float(hopt_hparams["alpha"])
-        hparams["fit_intercept"] = bool(hopt_hparams["fit_intercept"])
-        hparams["solver"] = cls._get_solver_options()[int(hopt_hparams["solver"])]
+        hparams = {
+            "alpha": float(hopt_hparams["alpha"]),
+            "fit_intercept": bool(hopt_hparams["fit_intercept"]),
+            "solver": cls._get_solver_options()[int(hopt_hparams["solver"])]
+        }
         return hparams
 
     @classmethod
@@ -231,6 +244,18 @@ class SklearnGammaGLM(SklearnGLM):
     @classmethod
     def _get_solver_options(cls) -> List[str]:
         return ["lbfgs", "newton-cholesky"]
+
+    @classmethod
+    def _sklearn_hparams_names(cls) -> Collection[str]:
+        return [
+            "alpha",
+            "fit_intercept",
+            "solver",
+            "max_iter",
+            "tol",
+            "warm_start",
+            "verbose"
+        ]
 
     @classmethod
     def get_hparams_space(cls) -> Dict[str, Any]:
@@ -275,6 +300,19 @@ class SklearnTweedieGLM(SklearnGLM):
     @classmethod
     def _get_solver_options(cls) -> List[str]:
         return ["lbfgs", "newton-cholesky"]
+
+    @classmethod
+    def _sklearn_hparams_names(cls) -> Collection[str]:
+        return [
+            "alpha",
+            "fit_intercept",
+            "power",
+            "solver",
+            "max_iter",
+            "tol",
+            "warm_start",
+            "verbose"
+        ]
 
     @classmethod
     def get_hparams_space(cls) -> Dict[str, Any]:
