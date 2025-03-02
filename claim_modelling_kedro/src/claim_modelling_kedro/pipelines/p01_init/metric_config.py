@@ -35,6 +35,9 @@ class MetricEnum(MetricType, Enum):
     GINI: str = "gini"
     EXP_WEIGHTED_GINI: str = "exposure_weighted_gini"
     CLNB_WEIGHTED_GINI: str = "claim_nb_weighted_gini"
+    CC: str = "concentration_coefficient"
+    EXP_WEIGHTED_CC: str = "exposure_weighted_cc"
+    CLNB_WEIGHTED_CC: str = "claim_nb_weighted_cc"
 
 
 @dataclass
