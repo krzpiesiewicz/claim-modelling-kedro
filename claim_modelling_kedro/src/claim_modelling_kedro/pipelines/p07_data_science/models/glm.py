@@ -31,7 +31,7 @@ class StatsmodelsGLM(PredictiveModel):
     """
 
     def __init__(self, config: Config, **kwargs):
-        super().__init__(config, **kwargs)
+        PredictiveModel.__init__(self, config, **kwargs)
 
     def metric(self) -> Metric:
         match self.config.mdl_info.model:
@@ -57,6 +57,7 @@ class StatsmodelsGLM(PredictiveModel):
         self._min_y = None
         force_min_y_pred = self._hparams.get("force_min_y_pred")
         self._force_min_y_pred = force_min_y_pred if force_min_y_pred != "auto" else False
+        self._fit_intercept = self._hparams.get("fit_intercept", True)
         match self.config.mdl_info.model:
             case ModelEnum.STATSMODELS_GAUSSIAN_GLM:
                 self.family = sm.families.Gaussian()
@@ -87,10 +88,18 @@ class StatsmodelsGLM(PredictiveModel):
             case ModelEnum.STATSMODELS_POISSON_GLM:
                 self.family = sm.families.Poisson()
             case ModelEnum.STATSMODELS_TWEEDIE_GLM:
-                p = self._hparams.get("power")
-                if p is None:
-                    raise ValueError("Tweedie model requires power parameter.")
-                self.family = sm.families.Tweedie(link=sm.families.links.Power(power=1 / (1 - p)), var_power=p)
+                link = self._hparams.get("link")
+                var_power = self._hparams.get("power")
+                if var_power is None:
+                    raise ValueError("Tweedie model for Power link requires power parameter.")
+                match link or "log":
+                    case "log":
+                        link = sm.families.links.Log()
+                    case "power":
+                        if var_power == 1:
+                            raise ValueError("power = 1 is not valid for Tweedie with Power link due to division by zero.")
+                        link = sm.families.links.Power(power=1 / (1 - var_power))
+                self.family = sm.families.Tweedie(link=link, var_power=var_power)
             case _:
                 raise ValueError(
                     f"""Family for model {self.config.mdl_info.model} not supported in Stastsmodels GLM. Supported families are:
@@ -100,22 +109,34 @@ class StatsmodelsGLM(PredictiveModel):
             - \"Tweedie\" fpr {ModelEnum.STATSMODELS_TWEEDIE_GLM}.""")
 
     def _fit(self, features_df: Union[pd.DataFrame, np.ndarray], target_df: Union[pd.DataFrame, np.ndarray], **kwargs):
-        logger.debug("_fit")
+        logger.debug("StatsmodelsGLM _fit called")
+        logger.debug(f"{self.get_hparams()=}")
         if type(target_df) is pd.DataFrame:
             y = target_df[self.target_col]
+        else:
+            y = target_df
         if self._force_min_y_pred:
             self._min_y = np.min(y)
+        if self._fit_intercept:
+            features_df = sm.add_constant(features_df)
+        logger.debug(f"{features_df.head()=}")
+        logger.debug(f"{y.head()=}")
         if "sample_weight" in kwargs:
             weights = kwargs["sample_weight"]
             kwargs = {key: val for key, val in kwargs.items() if key != "sample_weight"}
-            logger.debug(f"Weights - max: {np.max(weights)}, min: {np.min(weights)}, contains NaN: {np.isnan(weights).any()}")
+            logger.debug(f"Weights - max: {np.max(weights)}, min: {np.min(weights)}, contains NaN: {np.isnan(weights).any()}, contains +/–inf: {np.isinf(weights).any() or np.isneginf(weights).any()}")
+            self.model = sm.GLM(y, features_df, family=self.family, var_weights=weights).fit(**kwargs)
         else:
-            weights = None
-        # self.model = sm.GLM(y, features_df, family=self.family, var_weights=weights).fit(**kwargs)
-        self.model = sm.GLM(y, features_df, family=self.family).fit(**kwargs)
+            self.model = sm.GLM(y, features_df, family=self.family).fit(**kwargs)
+        logger.debug(f"Model fitted - {self.model.summary()}")
         self._set_features_importances(np.abs(self.model.params))
 
     def _predict(self, features_df: pd.DataFrame) -> pd.Series:
+        logger.debug("StatsmodelsGLM _predict called")
+        logger.debug(f"{self.get_hparams()=}")
+        if self._fit_intercept:
+            features_df = sm.add_constant(features_df)
+        logger.debug(f"{features_df.head()=}")
         y_pred = self.model.predict(features_df)
         logger.debug(f"Predictions - max: {np.max(y_pred)}, min: {np.min(y_pred)}, contains NaN: {np.isnan(y_pred).any()}")
         logger.debug(f"_force_min_y_pred: {self._force_min_y_pred}, _min_y: {self._min_y}")
@@ -135,7 +156,7 @@ class StatsmodelsGLM(PredictiveModel):
 
     @classmethod
     def get_default_hparams(cls) -> Dict[str, Any]:
-        return {"link": None, "power": None, "force_min_y_pred": "auto"}
+        return {"link": None, "power": None, "force_min_y_pred": "auto", "fit_intercept": True}
 
     def get_params(self, deep: bool = True) -> Dict[str, Any]:
         """
@@ -150,7 +171,7 @@ class StatsmodelsGLM(PredictiveModel):
 
 class SklearnGLM(SklearnModel, ABC):
     def __init__(self, config: Config, model_class, **kwargs):
-        super().__init__(config, model_class, **kwargs)
+        SklearnModel.__init__(self, config, model_class, **kwargs)
 
     def _fit(self, features_df: Union[pd.DataFrame, np.ndarray], target_df: Union[pd.DataFrame, np.ndarray], **kwargs):
         super()._fit(features_df, target_df, **kwargs)
@@ -162,7 +183,7 @@ class SklearnGLM(SklearnModel, ABC):
 
 class SklearnPoissonGLM(SklearnGLM):
     def __init__(self, config: Config, **kwargs):
-        super().__init__(config, model_class=PoissonRegressor, **kwargs)
+        SklearnGLM.__init__(self, config, model_class=PoissonRegressor, **kwargs)
 
     def metric(self) -> Metric:
         return MeanPoissonDeviance(self.config, pred_col=self.pred_col)
@@ -202,7 +223,7 @@ class SklearnPoissonGLM(SklearnGLM):
 
 class SklearnGammaGLM(SklearnGLM):
     def __init__(self, config: Config, **kwargs):
-        super().__init__(config, model_class=GammaRegressor, **kwargs)
+        SklearnGLM.__init__(self, config, model_class=GammaRegressor, **kwargs)
 
     def metric(self) -> Metric:
         return MeanGammaDeviance(self.config, pred_col=self.pred_col)
@@ -243,7 +264,7 @@ class SklearnGammaGLM(SklearnGLM):
 
 class SklearnTweedieGLM(SklearnGLM):
     def __init__(self, config: Config, **kwargs):
-        super().__init__(config, model_class=TweedieRegressor, **kwargs)
+        SklearnGLM.__init__(self, config, model_class=TweedieRegressor, **kwargs)
 
     def metric(self) -> Metric:
         hparams = self.get_hparams()

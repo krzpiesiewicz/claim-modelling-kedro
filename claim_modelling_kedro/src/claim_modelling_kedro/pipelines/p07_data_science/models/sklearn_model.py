@@ -1,7 +1,7 @@
 import copy
 import logging
-from abc import ABC
-from typing import Dict, Any, Union
+from abc import ABC, abstractmethod
+from typing import Dict, Any, Union, Collection
 
 import numpy as np
 import pandas as pd
@@ -15,18 +15,10 @@ logger = logging.getLogger(__name__)
 class SklearnModel(PredictiveModel, ABC):
     def __init__(self, config: Config, model_class, hparams: Dict[str, Any] = None,
                  fit_kwargs: Dict[str, Any] = None, **kwargs):
-        super().__init__(config=config, fit_kwargs=fit_kwargs)
+        logger.debug(f"SklearnModel.__init__ with model_class: {model_class}")
+        PredictiveModel.__init__(self, config=config, fit_kwargs=fit_kwargs, call_updated_hparams=False, **kwargs)
         self.model_class = model_class
-        model_hparams = self.get_default_hparams().copy()
-        if hparams is not None:
-            model_hparams.update(hparams)
-        for key, value in kwargs.items():
-            if key in model_hparams:
-                model_hparams[key] = value
-            else:
-                logger.warning(f"Unknown hyperparameter {key} for model {self.model_class}")
-        self.model = self.model_class(**model_hparams)
-        self.update_hparams(model_hparams)
+        self.update_hparams(hparams)
         logger.debug(f"hparams: {self._hparams}")
 
     def _fit(self, features_df: Union[pd.DataFrame, np.ndarray], target_df: Union[pd.DataFrame, np.ndarray], **kwargs):
@@ -37,8 +29,15 @@ class SklearnModel(PredictiveModel, ABC):
     def _predict(self, features_df: Union[pd.DataFrame, np.ndarray]) -> pd.Series:
         return self.model.predict(features_df)
 
+    @classmethod
+    @abstractmethod
+    def _sklearn_hparams_names(cls) -> Collection[str]:
+        pass
+
     def _updated_hparams(self):
-        self.model = self.model_class(**self._hparams)
+        sklearn_hparams_names = self.__class__._sklearn_hparams_names()
+        sklearn_params = {key: val for key, val in self.get_hparams().items() if key in sklearn_hparams_names}
+        self.model = self.model_class(**sklearn_params)
 
     def get_params(self, deep: bool = True) -> Dict[str, Any]:
         params = self.model.get_params(deep)

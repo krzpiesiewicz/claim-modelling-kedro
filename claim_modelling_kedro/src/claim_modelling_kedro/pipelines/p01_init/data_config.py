@@ -50,6 +50,7 @@ class DataConfig:
                              self.claims_avg_amount_target_col, self.claims_total_amount_target_col,
                              self.claims_pure_premium_target_col, self.policy_exposure_col]
         self.split_random_seed = params["split_random_seed"]
+        self.stratify_target_col = params["stratify_target_col"]
 
         self.cv_enabled = params["cross_validation"]["enabled"]
         self.cv_mlflow_runs_ids = None

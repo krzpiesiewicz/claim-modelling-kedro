@@ -39,12 +39,15 @@ def get_sample_weight(config: Config, target_df: Union[pd.DataFrame, np.ndarray]
 
 
 class PredictiveModel(ABC):
-    def __init__(self, config: Config, fit_kwargs: Dict[str, Any] = None):
+    def __init__(self, config: Config, target_col: str, pred_col: str, fit_kwargs: Dict[str, Any] = None,
+                 hparams: Dict[str, Any] = None, call_updated_hparams: bool = True):
         self.config = config
-        self.target_col = config.mdl_task.target_col
-        self.pred_col = config.mdl_task.prediction_col
+        self.target_col = target_col
+        self.pred_col = pred_col
         self._fit_kwargs = fit_kwargs if fit_kwargs is not None else {}
         self._hparams = None
+        if hparams is not None:
+            self.update_hparams(hparams, call_updated_hparams=call_updated_hparams)
         self._features_importances = None
         self._not_fitted = True
 
@@ -62,7 +65,9 @@ class PredictiveModel(ABC):
         if self._not_fitted:
             raise ValueError("The model is not fitted yet. Please, fit the model before making predictions.")
         preds = self._predict(features_df)
+        logger.debug(f"{preds=}")
         preds = preds_as_dataframe_with_col_name(features_df, preds, self.pred_col)
+        logger.debug(f"{preds=}")
         return preds
 
     def transform(self, features_df: Union[pd.DataFrame, np.ndarray]) -> pd.DataFrame:
@@ -115,6 +120,7 @@ class PredictiveModel(ABC):
     def get_hparams_from_hyperopt_res(self, hopt_hparams: Dict[str, Any]) -> Dict[str, Any]:
         return self.__class__.get_hparams_from_hyperopt_res(hopt_hparams)
 
+    @classmethod
     def get_default_hparams(cls) -> Dict[str, Any]:
         return {}
 
@@ -129,14 +135,19 @@ class PredictiveModel(ABC):
         pass
 
     def get_hparams(self) -> Dict[str, Any]:
-        return self._hparams.copy()
+        hparams = self.get_default_hparams()
+        hparams.update(self._hparams)
+        return hparams
 
-    def update_hparams(self, hparams: Dict[str, Any]):
+    def update_hparams(self, hparams: Dict[str, Any] = None, call_updated_hparams: bool = True, **kwargs):
         if self._hparams is None:
             self._hparams = self.get_default_hparams().copy()
-        self._hparams.update(hparams)
+        if hparams is not None:
+            self._hparams.update(hparams)
+        self._hparams.update(kwargs)
         self._not_fitted = True
-        self._updated_hparams()
+        if call_updated_hparams:
+            self._updated_hparams()
 
     @abstractmethod
     def _updated_hparams(self):
@@ -159,7 +170,8 @@ def fit_transform_predictive_model_part(config: Config, selected_sample_features
                                         sample_target_df: pd.DataFrame, best_hparams: Dict[str, Any]) -> pd.DataFrame:
     # Fit a model
     logger.info("Fitting the predictive model...")
-    model = get_class_from_path(config.ds.model_class)(config=config)
+    model = get_class_from_path(config.ds.model_class)(config=config, target_col=config.mdl_task.target_col,
+                                                       pred_col=config.mdl_task.prediction_col)
     logger.debug(f"udated hparams: {best_hparams}")
     model.update_hparams(best_hparams)
     start_time = time.time()
@@ -197,7 +209,12 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
     scores = {}
     for metric_enum in config.mdl_task.evaluation_metrics:
         metric = Metric.from_enum(config, metric_enum, pred_col=config.mdl_task.prediction_col)
-        score = metric.eval(target_df, predictions_df)
+        try:
+            score = metric.eval(target_df, predictions_df)
+        except Exception as e:
+            logger.error(f"Error while evaluating the metric {metric.get_short_name()}: {e}")
+            logger.warning(f"Setting the score to NaN.")
+            score = np.nan
         metric_name = metric.get_short_name()
         if prefix is not None:
             metric_name = f"{prefix}_{metric_name}"

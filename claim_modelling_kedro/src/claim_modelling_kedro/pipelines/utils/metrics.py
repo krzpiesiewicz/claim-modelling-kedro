@@ -208,8 +208,26 @@ class MeanBiasDeviation(Metric):
         super().__init__(config, sklearn_like_metric=self.mbd, **kwargs)
 
     @staticmethod
-    def mbd(y_true, y_pred, **kwargs):
-        return np.mean(y_true - y_pred)
+    def mbd(y_true, y_pred, sample_weight=None, **kwargs):
+        """
+        Calculate the Mean Bias Deviation (MBD) with optional sample weights.
+
+        Args:
+            y_true (array-like): True target values.
+            y_pred (array-like): Predicted target values.
+            sample_weight (array-like, optional): Weights for each sample. Defaults to None.
+
+        Returns:
+            float: Weighted or unweighted Mean Bias Deviation.
+        """
+        diff = y_true - y_pred
+        if sample_weight is None:
+            # Unweighted mean
+            return np.mean(diff)
+        else:
+            # Weighted mean
+            sample_weight = np.asarray(sample_weight)
+            return np.average(diff, weights=sample_weight)
 
     def _get_name(self) -> str:
         return "Mean Bias Deviation"
@@ -323,26 +341,84 @@ class NormalizedGiniCoefficient(Metric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=self._weighted_normalized_gini, **kwargs)
 
+    # @staticmethod
+    # def _weighted_gini(y_true: np.ndarray, y_pred: np.ndarray, sample_weight: np.ndarray = None):
+    #     assert len(y_true) == len(y_pred)
+    #     if sample_weight is None:
+    #         sample_weight = np.ones_like(y_true)
+    #
+    #     all_data = np.asarray(np.c_[y_true, y_pred, sample_weight, np.arange(len(y_true))], dtype=float)
+    #     # Sort by predicted values, then by index in case of ties
+    #     all_data = all_data[np.lexsort((all_data[:, 3], -1 * all_data[:, 1]))]
+    #     weighted_losses = all_data[:, 0] * all_data[:, 2]
+    #     cumulative_weight = all_data[:, 2].sum()
+    #
+    #     weighted_gini_sum = np.cumsum(weighted_losses).sum() / weighted_losses.sum()
+    #     weighted_gini_sum -= (cumulative_weight + 1) / 2.0
+    #     return weighted_gini_sum / cumulative_weight
+    #
+    # @staticmethod
+    # def _weighted_normalized_gini(y_true, y_pred, sample_weight=None):
+    #     return NormalizedGiniCoefficient._weighted_gini(y_true, y_pred, sample_weight) / \
+    #         NormalizedGiniCoefficient._weighted_gini(y_true, y_true, sample_weight)
+
     @staticmethod
     def _weighted_gini(y_true: np.ndarray, y_pred: np.ndarray, sample_weight: np.ndarray = None):
-        assert len(y_true) == len(y_pred)
+        """
+        Compute the weighted Gini coefficient.
+
+        Args:
+            y_true (np.ndarray): Array of true values.
+            y_pred (np.ndarray): Array of predicted values.
+            sample_weight (np.ndarray): Array of sample weights. If None, all weights are set to 1.
+
+        Returns:
+            float: Weighted Gini coefficient.
+        """
+        assert len(y_true) == len(y_pred), "y_true and y_pred must have the same length"
         if sample_weight is None:
             sample_weight = np.ones_like(y_true)
 
-        all_data = np.asarray(np.c_[y_true, y_pred, sample_weight, np.arange(len(y_true))], dtype=float)
-        # Sort by predicted values, then by index in case of ties
-        all_data = all_data[np.lexsort((all_data[:, 3], -1 * all_data[:, 1]))]
+        # Combine all data into a single array
+        all_data = np.asarray(np.c_[y_true, y_pred, sample_weight], dtype=float)
+
+        # Sort by predicted values (descending), then by true values (descending)
+        all_data = all_data[np.lexsort((all_data[:, 0], -all_data[:, 1]))]
+
+        # Compute cumulative weighted losses
         weighted_losses = all_data[:, 0] * all_data[:, 2]
         cumulative_weight = all_data[:, 2].sum()
 
+        # Check for division by zero
+        if cumulative_weight == 0:
+            return 0.0
+
         weighted_gini_sum = np.cumsum(weighted_losses).sum() / weighted_losses.sum()
         weighted_gini_sum -= (cumulative_weight + 1) / 2.0
+
         return weighted_gini_sum / cumulative_weight
 
     @staticmethod
-    def _weighted_normalized_gini(y_true, y_pred, sample_weight=None):
-        return NormalizedGiniCoefficient._weighted_gini(y_true, y_pred, sample_weight) / \
-            NormalizedGiniCoefficient._weighted_gini(y_true, y_true, sample_weight)
+    def _weighted_normalized_gini(y_true: np.ndarray, y_pred: np.ndarray, sample_weight: np.ndarray = None):
+        """
+        Compute the normalized weighted Gini coefficient.
+
+        Args:
+            y_true (np.ndarray): Array of true values.
+            y_pred (np.ndarray): Array of predicted values.
+            sample_weight (np.ndarray): Array of sample weights. If None, all weights are set to 1.
+
+        Returns:
+            float: Normalized weighted Gini coefficient.
+        """
+        gini_pred = NormalizedGiniCoefficient._weighted_gini(y_true, y_pred, sample_weight)
+        gini_true = NormalizedGiniCoefficient._weighted_gini(y_true, y_true, sample_weight)
+
+        # Avoid division by zero
+        if gini_true == 0:
+            return 0.0
+
+        return gini_pred / gini_true
 
     def _get_name(self) -> str:
         return "Normalized Gini Coefficient"

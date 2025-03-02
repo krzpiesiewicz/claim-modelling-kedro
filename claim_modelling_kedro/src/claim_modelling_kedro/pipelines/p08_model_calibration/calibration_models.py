@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Union
+from typing import Dict, Any, Union, List
 
 import numpy as np
 import pandas as pd
@@ -9,6 +9,10 @@ from cir_model import CenteredIsotonicRegression
 from sklearn.linear_model import PoissonRegressor, GammaRegressor, TweedieRegressor
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
+from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel
+from claim_modelling_kedro.pipelines.p07_data_science.models import StatsmodelsGLM
+from claim_modelling_kedro.pipelines.p07_data_science.models.sklearn_model import SklearnModel
+from claim_modelling_kedro.pipelines.utils.metrics import Metric, RootMeanSquaredError
 from claim_modelling_kedro.pipelines.utils.utils import assert_pandas_no_lacking_indexes, trunc_target_index, \
     preds_as_dataframe_with_col_name
 
@@ -16,25 +20,24 @@ from claim_modelling_kedro.pipelines.utils.utils import assert_pandas_no_lacking
 logger = logging.getLogger(__name__)
 
 
-class CalibrationModel(ABC):
-    def __init__(self, config: Config, fit_kwargs: Dict[str, Any] = None):
-        self.config = config
-        self.target_col = config.mdl_task.target_col
+class CalibrationModel(PredictiveModel, ABC):
+    def __init__(self, config: Config, **kwargs):
+        logger.debug(f"CalibrationModel.__init__")
+        PredictiveModel.__init__(self, config, target_col=config.mdl_task.target_col,
+                         pred_col=config.clb.calibrated_prediction_col, **kwargs)
         self.pure_pred_col = config.clb.pure_prediction_col
         self.calib_pred_col = config.clb.calibrated_prediction_col
-        self._fit_kwargs = fit_kwargs if fit_kwargs is not None else {}
-        self._hparams = None
-        self._features_importances = None
 
     def fit(self, pure_predictions_df: Union[pd.DataFrame, np.ndarray],
             target_df: Union[pd.DataFrame, pd.Series, np.ndarray], **kwargs):
+        logger.debug("CalibrationModel fit called")
         assert_pandas_no_lacking_indexes(pure_predictions_df, target_df, "pure_predictions_df", "target_df")
         target_df = trunc_target_index(pure_predictions_df, target_df)
-        self._fit(pure_predictions_df, target_df, **self._fit_kwargs, **kwargs)
+        super().fit(pure_predictions_df, target_df, **kwargs)
 
     def predict(self, pure_predictions_df: Union[pd.DataFrame, np.ndarray]) -> pd.DataFrame:
-        preds = self._predict(pure_predictions_df)
-        preds = preds_as_dataframe_with_col_name(pure_predictions_df, preds, self.calib_pred_col)
+        logger.debug("CalibrationModel predict called")
+        preds = super().predict(pure_predictions_df)
         return preds
 
     def transform(self, pure_predictions_df: Union[pd.DataFrame, np.ndarray]) -> pd.DataFrame:
@@ -51,64 +54,109 @@ class CalibrationModel(ABC):
 
 class IsotonicLikeCalibrationModel(CalibrationModel, ABC):
     def __init__(self, config: Config, **kwargs):
-        super().__init__(config, **kwargs)
-        self.y_min = None
+        logger.debug(f"IsotonicLikeCalibrationModel.__init__")
+        CalibrationModel.__init__(self, config, **kwargs)
+        self._y_min = None
 
-    def _set_y_min(self, pure_predictions_df: pd.DataFrame, target_df: pd.DataFrame) -> None:
+    def _set_y_min(self, pure_predictions_df: pd.DataFrame, target_df: pd.DataFrame) -> pd.DataFrame:
         combined_df = pd.concat([pure_predictions_df[[self.pure_pred_col]], target_df[[self.target_col]]], axis=1)
         sorted_df = combined_df.sort_values(by=self.pure_pred_col, ascending=True)
+        logger.debug(f"{sorted_df=}")
+        # Find the first non-zero position and replace the values before it (including that position)
+        # with the mean of the target values up to that position so that the balance is preserved
         first_nonzero_position = sorted_df[sorted_df[self.target_col] > 0].index[0]
+        logger.debug(f"{first_nonzero_position=}")
         pos = first_nonzero_position
-        self.y_min = np.mean(sorted_df[self.target_col].iloc[:pos])
+        smallest_df = sorted_df.loc[:pos, self.target_col]
+        logger.debug(f"{smallest_df=}")
+        self._y_min = np.mean(smallest_df)
+        logger.debug(f"{self._y_min=}")
+        smallest_idx = smallest_df.index
+        logger.debug(f"{smallest_idx=}")
+        adjusted_target_df = target_df.copy()
+        adjusted_target_df.loc[smallest_idx, self.target_col] = self._y_min
+        return adjusted_target_df
 
     def get_y_min(self) -> float:
-        return self.y_min
+        return self._y_min
+
+    def metric(self) -> Metric:
+        return RootMeanSquaredError(self.config, pred_col=self.pred_col)
 
 
-class CIRModelCenteredIsotonicRegression(IsotonicLikeCalibrationModel):
-    def __init__(self, config: Config, hparams: Dict[str, Any] = None, **kwargs):
-        super().__init__(config, **kwargs)
-        self.hparams = dict(increasing=True, out_of_bounds="clip")
-        if hparams is not None:
-            self.hparams.update(hparams)
-        self.model = CenteredIsotonicRegression(**self.hparams)
-
-    def _fit(self, pure_predictions_df: pd.DataFrame, target_df: pd.DataFrame, **kwargs):
-        self._set_y_min(pure_predictions_df, target_df)
-        x = pure_predictions_df[self.pure_pred_col]
-        y = target_df[self.target_col]
-        logger.debug(f"_fit- x: {x}\ny: {y}")
-        self.model.fit(x, y)
-
-    def _predict(self, pure_predictions_df: pd.DataFrame) -> Union[pd.DataFrame, pd.Series, np.ndarray]:
-        x = pure_predictions_df[self.pure_pred_col]
-        logger.debug(f"_predict - x: {x}")
-        pred = self.model.transform(x)
-        pred[pred < self.y_min] = self.y_min
-        return pred
-
-
-class SklearnIsotonicRegression(IsotonicLikeCalibrationModel):
-    def __init__(self, config: Config, hparams: Dict[str, Any] = None, **kwargs):
-        super().__init__(config, **kwargs)
-        self.hparams = dict(increasing=True, out_of_bounds="clip")
-        if hparams is not None:
-            self.hparams.update(hparams)
-        self.model = IsotonicRegression(**self.hparams)
+class SklearnLikeIsotonicRegression(IsotonicLikeCalibrationModel, SklearnModel):
+    def __init__(self, config: Config, model_class, **kwargs):
+        IsotonicLikeCalibrationModel.__init__(self, config, call_updated_hparams=False, **kwargs)
+        SklearnModel.__init__(self, config=config, model_class=model_class,
+                              pred_col=self.pred_col, target_col=self.target_col, **kwargs)
 
     def _fit(self, pure_predictions_df: pd.DataFrame, target_df: pd.DataFrame, **kwargs):
-        self._set_y_min(pure_predictions_df, target_df)
-        self.hparams.update(y_min=self.y_min)
-        self.model = IsotonicRegression(**self.hparams)
-        x = pure_predictions_df[self.pure_pred_col]
-        y = target_df[self.target_col]
-        self.model.fit(x, y)
+        logger.debug(f"CSklearnLikeIsotonicRegression._fit called with kwargs: {kwargs}")
+        if self.force_positive:
+            target_df = self._set_y_min(pure_predictions_df, target_df)
+        pure_predictions_df = pure_predictions_df[self.pure_pred_col]
+        SklearnModel._fit(self, pure_predictions_df, target_df, **kwargs)
 
     def _predict(self, pure_predictions_df: pd.DataFrame) -> Union[pd.DataFrame, pd.Series, np.ndarray]:
-        x = pure_predictions_df[self.pure_pred_col]
-        pred = self.model.transform(x)
-        pred[pred < self.y_min] = self.y_min
+        pure_predictions_df = pure_predictions_df[self.pure_pred_col]
+        pred = SklearnModel._predict(self, pure_predictions_df)
         return pred
+
+    def _updated_hparams(self):
+        logger.debug(f"_updated_hparams - self._hparams: {self._hparams}")
+        self.force_positive = self.get_hparams().get("force_positive")
+        self._y_min = None
+        SklearnModel._updated_hparams(self)
+
+    @classmethod
+    def get_default_hparams(cls) -> Dict[str, Any]:
+        return {
+            "increasing": True,
+            "out_of_bounds": "clip",
+            "force_positive": True
+        }
+
+    @classmethod
+    def _sklearn_hparams_names(cls) -> List[str]:
+        return ["increasing", "out_of_bounds"]
+
+
+class CIRModelCenteredIsotonicRegression(SklearnLikeIsotonicRegression):
+    def __init__(self, config: Config, **kwargs):
+        super().__init__(config, model_class=CenteredIsotonicRegression, **kwargs)
+
+
+class SklearnIsotonicRegression(SklearnLikeIsotonicRegression):
+    def __init__(self, config: Config, **kwargs):
+        super().__init__(config, model_class=IsotonicRegression, **kwargs)
+
+
+class StatsmodelsGLMCalibration(CalibrationModel, StatsmodelsGLM):
+    """
+    A CalibrationModel that uses StatsmodelsGLM for predictive modeling with calibration capabilities.
+    """
+    def __init__(self, config: Config, **kwargs):
+        # Initialize both parent classes
+        CalibrationModel.__init__(self, config, **kwargs)
+        StatsmodelsGLM.__init__(self, config, pred_col=self.pred_col, target_col=self.target_col, **kwargs)
+
+    def _fit(self, pure_predictions_df: pd.DataFrame, target_df: pd.DataFrame, **kwargs):
+        """
+        Use the _fit method from StatsmodelsGLM for fitting the calibration model.
+        """
+        logger.debug("StatsmodelsGLMCalibration _fit called")
+        pure_predictions_df = pure_predictions_df[self.pure_pred_col]
+        # Call StatsmodelsGLM's _fit method
+        StatsmodelsGLM._fit(self, pure_predictions_df, target_df, **kwargs)
+
+    def _predict(self, pure_predictions_df: pd.DataFrame) -> pd.Series:
+        """
+        Use the _predict method from StatsmodelsGLM for making predictions.
+        """
+        logger.debug("StatsmodelsGLMCalibration _predict called")
+        pure_predictions_df = pure_predictions_df[self.pure_pred_col]
+        # Call StatsmodelsGLM's _predict method
+        return StatsmodelsGLM._predict(self, pure_predictions_df)
 
 
 class SklearnPoissonGLM(CalibrationModel):

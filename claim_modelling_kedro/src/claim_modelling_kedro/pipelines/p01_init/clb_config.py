@@ -8,6 +8,9 @@ from claim_modelling_kedro.pipelines.p01_init.mdl_task_config import ModelTask
 class CalibrationMethod(Enum):
     ISOTONIC_REGRESSION: str = "IsotonicRegression"
     CENTERED_ISOTONIC_REGRESSION: str = "CenteredIsotonicRegression"
+    STATS_MODELS_POISSON_GLM: str = "StatsmodelsPoissonGLM"
+    STATS_MODELS_GAMMA_GLM: str = "StatsmodelsGammaGLM"
+    STATS_MODELS_TWEEDIE_GLM: str = "StatsmodelsTweedieGLM"
     SKLEARN_POISSON_GLM: str = "SklearnPoissonGLM"
     SKLEARN_GAMMA_GLM: str = "SklearnGammaGLM"
     SKLEARN_TWEEDIE_GLM: str = "SklearnTweedieGLM"
@@ -39,10 +42,16 @@ class CalibrationConfig:
                 self.model_class = "SklearnIsotonicRegression"
             case CalibrationMethod.CENTERED_ISOTONIC_REGRESSION:
                 self.model_class = "CIRModelCenteredIsotonicRegression"
+            case CalibrationMethod.STATS_MODELS_POISSON_GLM:
+                self.model_class = "StatsmodelsGLMCalibration"
+            case CalibrationMethod.STATS_MODELS_GAMMA_GLM:
+                self.model_class = "StatsmodelsGLMCalibration"
             case CalibrationMethod.SKLEARN_POISSON_GLM:
                 self.model_class = "SklearnPoissonGLM"
             case CalibrationMethod.SKLEARN_GAMMA_GLM:
                 self.model_class = "SklearnGammaGLM"
+            case CalibrationMethod.STATS_MODELS_TWEEDIE_GLM:
+                self.model_class = "StatsmodelsTweedieGLM"
             case CalibrationMethod.SKLEARN_TWEEDIE_GLM:
                 self.model_class = "SklearnTweedieGLM"
             case _:

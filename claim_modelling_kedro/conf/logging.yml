@@ -98,11 +98,15 @@ loggers:
 
   claim_modelling_kedro.pipelines.p07_data_science.models.glm:
     formatter: simple
-    level: DEBUG
+    level: INFO
 
   claim_modelling_kedro.pipelines.p07_data_science.model:
     formatter: simple
-    level: DEBUG
+    level: INFO
+
+  claim_modelling_kedro.pipelines.p07_data_science.models:
+    formatter: simple
+    level: INFO
 
   claim_modelling_kedro.pipelines.p07_data_science:
     formatter: simple

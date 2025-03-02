@@ -2,32 +2,12 @@ import logging
 from typing import Tuple, Dict
 
 import pandas as pd
-from kedro.io import DataCatalog
-from sklearn.model_selection import train_test_split
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.utils.stratified_cv_split import get_stratified_train_calib_test_cv
 from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_calib_test_split_keys
-from claim_modelling_kedro.pipelines.utils.utils import remove_dataset
-from claim_modelling_kedro.hooks import get_catalog
 
 logger = logging.getLogger(__name__)
-
-
-def _split_train_calib(config: Config, train_calib_idx: pd.Index, target_df: pd.DataFrame) -> Tuple[
-    pd.Series, pd.Series, pd.Index, pd.Index]:
-    if config.data.calib_size == 0:
-        train_policies = train_calib_idx
-        calib_policies = pd.Series([], index=pd.Index([], name=target_df.index.name))
-    else:
-        train_policies, calib_policies = train_test_split(
-            target_df.loc[train_calib_idx, config.data.claims_freq_target_col] > 0,
-            test_size=config.data.calib_size / (1 - config.data.test_size),
-            random_state=config.data.split_random_seed,
-        )
-    train_keys = train_policies.index
-    calib_keys = calib_policies.index
-    return train_policies, calib_policies, train_keys, calib_keys
 
 
 def split_train_calib_test(
@@ -38,11 +18,17 @@ def split_train_calib_test(
     Dict[str, pd.Index], Dict[str, pd.Index], Dict[str, pd.Index]]:
 
     logger.info("Splitting policies into: train, calib and test datasets...")
+    if config.data.stratify_target_col is not None:
+        stratify_target_col = config.data.stratify_target_col
+    else:
+        logger.info("No stratification column provided. Using the target column for stratification.")
+        stratify_target_col = config.mdl_task.target_col
+    logger.info(f"Stratifying on column: {stratify_target_col}")
 
     if config.data.cv_enabled:
         train_keys, calib_keys, test_keys = get_stratified_train_calib_test_cv(
             target_df,
-            stratify_target_col=config.mdl_task.target_col,
+            stratify_target_col=stratify_target_col,
             cv_folds=config.data.cv_folds,
             cv_parts_names=config.data.cv_parts_names,
             shuffle=True,
@@ -60,7 +46,7 @@ def split_train_calib_test(
     else:
         train_keys, calib_keys, test_keys = get_stratified_train_calib_test_split_keys(
             target_df,
-            stratify_target_col=config.mdl_task.target_col,
+            stratify_target_col=stratify_target_col,
             test_size=config.data.test_size,
             calib_size=config.data.calib_size,
             shuffle=True,

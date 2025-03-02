@@ -1,4 +1,4 @@
-# solvency-models
+# claim-modelling-kedro
 
 ## Initialization
 
