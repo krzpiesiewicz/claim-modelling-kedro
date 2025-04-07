@@ -1,8 +1,8 @@
 import logging
 import time
 from datetime import timedelta
-from typing import Dict, Any
 from functools import partial
+from typing import Dict, Any
 
 import hyperopt
 import mlflow
@@ -14,8 +14,8 @@ from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.ds_config import HyperoptAlgoEnum
 from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel
 from claim_modelling_kedro.pipelines.utils.metrics import Metric
-from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_test_split_keys
 from claim_modelling_kedro.pipelines.utils.stratified_cv_split import get_stratified_train_test_cv
+from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_test_split_keys
 from claim_modelling_kedro.pipelines.utils.utils import get_partition, get_mlflow_run_id_for_partition, \
     get_class_from_path, \
     round_decimal, save_pd_dataframe_as_csv_in_mlflow
@@ -27,10 +27,10 @@ _hypertune_artifact_path = "hyperopt"
 
 
 def log_trials_info_to_mlflow(
-    trials: Trials,
-    space: Dict[str, Any],
-    log_folds_metrics: bool,
-    artifact_path: str
+        trials: Trials,
+        space: Dict[str, Any],
+        log_folds_metrics: bool,
+        artifact_path: str
 ) -> None:
     """
     Create a DataFrame from the trials and log it to MLFlow.
@@ -47,7 +47,7 @@ def log_trials_info_to_mlflow(
     } for trial in trials.trials])], axis=1)
     trials_df = pd.concat([trials_df, pd.DataFrame([
         {**space_eval(space, {k: v[0] if isinstance(v, list) else v for k, v in trial["misc"]["vals"].items()})
-    } for trial in trials.trials])], axis=1)
+         } for trial in trials.trials])], axis=1)
     save_pd_dataframe_as_csv_in_mlflow(trials_df, artifact_path, "trials.csv", index=False)
 
     if log_folds_metrics:
@@ -57,7 +57,8 @@ def log_trials_info_to_mlflow(
                 rows.append({
                     "trial_no": trial["tid"] + 1,
                     "dataset": dataset,
-                    **{fold: round_decimal(score, 3) for fold, score in enumerate((trial.get("attachments") or {}).get(f"{dataset}_scores") or [])},
+                    **{fold: round_decimal(score, 3) for fold, score in
+                       enumerate((trial.get("attachments") or {}).get(f"{dataset}_scores") or [])},
                 })
         trials_scores_df = pd.DataFrame(rows)
         save_pd_dataframe_as_csv_in_mlflow(trials_scores_df, artifact_path, "trials_folds_scores.csv", index=False)
@@ -78,7 +79,8 @@ def fit_model(hparams: Dict[str, any],
         msg += f"    - {param}: {value}\n"
     msg += f"Fitting the predictive model(s) for hyperopt trial {trial_no}..."
     logger.info(msg)
-    log_trials_info_to_mlflow(trials, space, log_folds_metrics=config.ds.hopt_cv_enabled, artifact_path=hyperopt_artifact_path)
+    log_trials_info_to_mlflow(trials, space, log_folds_metrics=config.ds.hopt_cv_enabled,
+                              artifact_path=hyperopt_artifact_path)
 
     if config.ds.hopt_cv_enabled:
         train_keys_cv, val_keys_cv = get_stratified_train_test_cv(sample_target_df,
@@ -124,7 +126,8 @@ def fit_model(hparams: Dict[str, any],
             train_scores.append(train_score)
             val_scores.append(val_score)
 
-            logger.debug(f"Hyperopt fold: {fold}. Train score ({metric_name}): {train_score}, Validation score ({metric_name}): {val_score}.")
+            logger.debug(
+                f"Hyperopt fold: {fold}. Train score ({metric_name}): {train_score}, Validation score ({metric_name}): {val_score}.")
 
         train_score_mean = np.mean(train_scores)
         val_score_mean = np.mean(val_scores)
@@ -187,7 +190,8 @@ def fit_model(hparams: Dict[str, any],
     }
     trials.trials[-1]["attachments"] = attachments
     trials.trials[-1]["result"] = trial_result
-    log_trials_info_to_mlflow(trials, space, log_folds_metrics=config.ds.hopt_cv_enabled, artifact_path=hyperopt_artifact_path)
+    log_trials_info_to_mlflow(trials, space, log_folds_metrics=config.ds.hopt_cv_enabled,
+                              artifact_path=hyperopt_artifact_path)
     return {
         **trial_result,
         "attachments": attachments
@@ -214,7 +218,8 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
         if hparam in hparam_space:
             hparam_space.pop(hparam)
     if hparam_space is None or len(hparam_space) == 0:
-        logger.warning("No hyperparameters to tune. Please check the hyperparameters space. Returning an empty dict as best_hparams.")
+        logger.warning(
+            "No hyperparameters to tune. Please check the hyperparameters space. Returning an empty dict as best_hparams.")
         return {}
 
     trials = Trials()
@@ -249,7 +254,7 @@ def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFram
             f"Tuning the hyper parameters of the predictive model on partition '{part}' of the sample dataset...")
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
             best_hparams_part = hypertune_part(config, selected_sample_features_part_df, sample_target_part_df,
-                                               hyperopt_artifact_path = f"{_hypertune_artifact_path}/{part}")
+                                               hyperopt_artifact_path=f"{_hypertune_artifact_path}/{part}")
             best_hparams[part] = best_hparams_part
             msg = f"The best hyperparameters for partition '{part}':\n"
             for param, value in best_hparams_part.items():

@@ -1,5 +1,4 @@
 import logging
-import re
 from abc import ABC
 from typing import Dict, Any, List, Union, Collection
 
@@ -15,7 +14,6 @@ from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveMod
 from claim_modelling_kedro.pipelines.p07_data_science.models.sklearn_model import SklearnModel
 from claim_modelling_kedro.pipelines.utils.metrics import Metric, RootMeanSquaredError, MeanPoissonDeviance, \
     MeanGammaDeviance, NormalizedGiniCoefficient, MeanTweedieDeviance
-
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +95,8 @@ class StatsmodelsGLM(PredictiveModel):
                         link = sm.families.links.Log()
                     case "power":
                         if var_power == 1:
-                            raise ValueError("power = 1 is not valid for Tweedie with Power link due to division by zero.")
+                            raise ValueError(
+                                "power = 1 is not valid for Tweedie with Power link due to division by zero.")
                         link = sm.families.links.Power(power=1 / (1 - var_power))
                 self.family = sm.families.Tweedie(link=link, var_power=var_power)
             case _:
@@ -124,7 +123,8 @@ class StatsmodelsGLM(PredictiveModel):
         if "sample_weight" in kwargs:
             weights = kwargs["sample_weight"]
             kwargs = {key: val for key, val in kwargs.items() if key != "sample_weight"}
-            logger.debug(f"Weights - max: {np.max(weights)}, min: {np.min(weights)}, contains NaN: {np.isnan(weights).any()}, contains +/–inf: {np.isinf(weights).any() or np.isneginf(weights).any()}")
+            logger.debug(
+                f"Weights - max: {np.max(weights)}, min: {np.min(weights)}, contains NaN: {np.isnan(weights).any()}, contains +/–inf: {np.isinf(weights).any() or np.isneginf(weights).any()}")
             self.model = sm.GLM(y, features_df, family=self.family, var_weights=weights).fit(**kwargs)
         else:
             self.model = sm.GLM(y, features_df, family=self.family).fit(**kwargs)
@@ -138,7 +138,8 @@ class StatsmodelsGLM(PredictiveModel):
             features_df = sm.add_constant(features_df)
         logger.debug(f"{features_df.head()=}")
         y_pred = self.model.predict(features_df)
-        logger.debug(f"Predictions - max: {np.max(y_pred)}, min: {np.min(y_pred)}, contains NaN: {np.isnan(y_pred).any()}")
+        logger.debug(
+            f"Predictions - max: {np.max(y_pred)}, min: {np.min(y_pred)}, contains NaN: {np.isnan(y_pred).any()}")
         logger.debug(f"_force_min_y_pred: {self._force_min_y_pred}, _min_y: {self._min_y}")
         if self._force_min_y_pred:
             y_pred = np.maximum(y_pred, self._min_y)
@@ -251,7 +252,6 @@ class SklearnGammaGLM(SklearnGLM):
             "fit_intercept": hp.choice("fit_intercept", [True, False]),
             "solver": hp.choice("solver", ["lbfgs", "newton-cholesky"])
         }
-
 
     @classmethod
     def get_default_hparams(cls) -> Dict[str, Any]:
