@@ -2,6 +2,9 @@ import importlib
 import logging
 import shutil
 import tempfile
+import yaml
+import os
+import math
 from typing import Sequence, Union, Dict, Any, Tuple
 
 from kedro.io import DataCatalog
@@ -12,9 +15,6 @@ import pandas as pd
 from claim_modelling_kedro.pipelines.p01_init.config import get_subruns_dct, Config
 
 logger = logging.getLogger(__name__)
-
-import yaml
-import os
 
 
 def parse_catalog_as_dict(catalog_path=None):
@@ -225,17 +225,19 @@ def load_predictions_and_target_from_mlflow(dataset: str,
     return predictions_df, target_df
 
 
-def save_pd_dataframe_as_csv_in_mlflow(df: pd.DataFrame, artifact_path: str, csv_filename: str):
+def save_pd_dataframe_as_csv_in_mlflow(df: pd.DataFrame, artifact_path: str, csv_filename: str, index: bool = True):
     with tempfile.TemporaryDirectory() as temp_dir:
         csv_path = os.path.join(temp_dir, csv_filename)
-        df = df.reset_index()
+        if index:
+            df = df.reset_index()
         df.columns.name = None
         df.to_csv(csv_path, index=False)
         mlflow.log_artifact(csv_path, artifact_path=artifact_path)
         return csv_path
 
 
-def load_pd_dataframe_csv_from_mlflow(artifact_path: str, filename: str = None,mlflow_run_id: str = None, index_col=None,
+def load_pd_dataframe_csv_from_mlflow(artifact_path: str, filename: str = None, mlflow_run_id: str = None,
+                                      index_col=None,
                                       columns_index_name=None) -> pd.DataFrame:
     if mlflow_run_id is None:
         mlflow_run_id = mlflow.active_run().info.run_id
@@ -302,3 +304,24 @@ def convert_np_to_native(obj):
         return [convert_np_to_native(i) for i in obj]
     else:
         return obj
+
+
+def round_decimal(val: float, significant_digits: int) -> float | int:
+    if val is None:
+        return None
+    if val == 0:
+        return 0
+
+    abs_val = abs(val)
+    int_part = math.floor(abs_val)
+    num_digits_int_part = len(str(int_part)) if int_part > 0 else 0
+
+    # If all significant digits are taken by the integer part → return original value
+    if num_digits_int_part >= significant_digits:
+        return int(val) if val == int(val) else math.copysign(int_part, val)
+
+    # Digits left for decimal part
+    decimal_digits = significant_digits - num_digits_int_part
+
+    rounded = round(val, decimal_digits)
+    return rounded

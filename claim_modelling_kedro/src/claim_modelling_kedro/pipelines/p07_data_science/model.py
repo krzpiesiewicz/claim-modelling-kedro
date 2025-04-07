@@ -113,14 +113,6 @@ class PredictiveModel(ABC):
         return self.__class__.get_hparams_space()
 
     @classmethod
-    @abstractmethod
-    def get_hparams_from_hyperopt_res(cls, hopt_hparams: Dict[str, Any]) -> Dict[str, Any]:
-        pass
-
-    def get_hparams_from_hyperopt_res(self, hopt_hparams: Dict[str, Any]) -> Dict[str, Any]:
-        return self.__class__.get_hparams_from_hyperopt_res(hopt_hparams)
-
-    @classmethod
     def get_default_hparams(cls) -> Dict[str, Any]:
         return {}
 

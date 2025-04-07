@@ -151,10 +151,6 @@ class StatsmodelsGLM(PredictiveModel):
         return {}
 
     @classmethod
-    def get_hparams_from_hyperopt_res(cls, hopt_hparams: Dict[str, Any]) -> Dict[str, Any]:
-        return {}
-
-    @classmethod
     def get_default_hparams(cls) -> Dict[str, Any]:
         return {"link": None, "power": None, "force_min_y_pred": "auto", "fit_intercept": True}
 
@@ -213,15 +209,6 @@ class SklearnPoissonGLM(SklearnGLM):
         }
 
     @classmethod
-    def get_hparams_from_hyperopt_res(cls, hopt_hparams: Dict[str, Any]) -> Dict[str, Any]:
-        hparams = {
-            "alpha": float(hopt_hparams["alpha"]),
-            "fit_intercept": bool(hopt_hparams["fit_intercept"]),
-            "solver": cls._get_solver_options()[int(hopt_hparams["solver"])]
-        }
-        return hparams
-
-    @classmethod
     def get_default_hparams(cls) -> Dict[str, Any]:
         return {
             "alpha": 1.0,
@@ -265,14 +252,6 @@ class SklearnGammaGLM(SklearnGLM):
             "solver": hp.choice("solver", ["lbfgs", "newton-cholesky"])
         }
 
-    @classmethod
-    def get_hparams_from_hyperopt_res(cls, hopt_hparams: Dict[str, Any]) -> Dict[str, Any]:
-        hparams = {
-            "alpha": float(hopt_hparams["alpha"]),
-            "fit_intercept": bool(hopt_hparams["fit_intercept"]),
-            "solver": cls._get_solver_options()[int(hopt_hparams["solver"])]
-        }
-        return hparams
 
     @classmethod
     def get_default_hparams(cls) -> Dict[str, Any]:
@@ -322,15 +301,6 @@ class SklearnTweedieGLM(SklearnGLM):
             "power": hp.uniform("power", 1.0, 2.0),
             "solver": hp.choice("solver", ["lbfgs", "newton-cholesky"])
         }
-
-    @classmethod
-    def get_hparams_from_hyperopt_res(cls, hopt_hparams: Dict[str, Any]) -> Dict[str, Any]:
-        hparams = {}
-        hparams["alpha"] = float(hopt_hparams["alpha"])
-        hparams["fit_intercept"] = bool(hopt_hparams["fit_intercept"])
-        hparams["power"] = float(hopt_hparams["power"])
-        hparams["solver"] = cls._get_solver_options()[int(hopt_hparams["solver"])]
-        return hparams
 
     @classmethod
     def get_default_hparams(cls) -> Dict[str, Any]:
