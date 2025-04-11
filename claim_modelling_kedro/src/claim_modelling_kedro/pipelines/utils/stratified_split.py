@@ -26,14 +26,15 @@ def get_stratified_sample_keys(target_df: pd.DataFrame, stratify_target_col: str
     # Ensure size is valid
     if isinstance(size, float):
         if not (0 < size <= 1):
-            raise ValueError("If size is a float, it must be in the range (0, 1].")
-        n_buckets = int(len(target_df) * size)
+            raise ValueError("If size is a float, it must be in the range (0, 1]. But got {size=}.")
+        n_buckets = int(target_df.shape[0] * size)
     elif isinstance(size, int):
-        if size <= 0 or size > len(target_df):
-            raise ValueError("If size is an int, it must be in the range [1, len(target_df)].")
+        if size <= 0 or size > target_df.shape[0]:
+            raise ValueError(
+                f"If size is an int, it must be in the range from 1 to {target_df.shape[0]=}. But got {size=}.")
         n_buckets = size
     else:
-        raise TypeError("Size must be either an int or a float.")
+        raise TypeError(f"Size must be either an int or a float. But got {size=} of type {type(size)}.")
 
     # Sort the DataFrame by the stratify_target_col
     sorted_df = target_df.sort_values(by=stratify_target_col, ascending=True)
@@ -58,7 +59,7 @@ def get_stratified_sample_keys(target_df: pd.DataFrame, stratify_target_col: str
     if verbose:
         print(f"Stratified sampling completed. {len(sampled_indices)} samples selected from {n_buckets} buckets.")
 
-    return sampled_indices
+    return sorted_df.loc[sampled_indices, :].index
 
 
 def get_stratified_train_calib_test_split_keys(target_df: pd.DataFrame, stratify_target_col: str,

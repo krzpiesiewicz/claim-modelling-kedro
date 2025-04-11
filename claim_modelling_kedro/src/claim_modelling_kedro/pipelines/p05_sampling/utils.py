@@ -6,6 +6,7 @@ import pandas as pd
 from pandera.typing import Series
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
+from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_sample_keys
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,8 @@ def assert_train_size_gte_given_config_sample_size(config: Config, train_trg_df:
     return train_trg_df
 
 
-def get_actual_target_ratio(config: Config, sample_trg_df: pd.DataFrame, is_event: Callable[[Series], Series[bool]]) -> float:
+def get_actual_target_ratio(config: Config, sample_trg_df: pd.DataFrame,
+                            is_event: Callable[[Series], Series[bool]]) -> float:
     if is_event is return_none:
         return None
     sampled_events = is_event(sample_trg_df[config.mdl_task.target_col]).sum()
@@ -70,9 +72,9 @@ def sample_with_no_condition(config: Config, target_df: pd.DataFrame, train_keys
     - target: {config.mdl_info.target}
     - all observations: {train_size}
     - sample size: {config.smpl.n_obs}""")
-    sample_keys = train_trg_df.sample(
-        n=config.smpl.n_obs,
-        random_state=config.smpl.random_seed).index
+    sample_keys = get_stratified_sample_keys(train_trg_df, config.data.stratify_target_col,
+                                             size=config.smpl.n_obs, shuffle=True,
+                                             random_seed=config.smpl.random_seed)
     sample_df = train_trg_df.loc[sample_keys, :]
     sample_size = sample_df.shape[0]
     train_size = train_trg_df.shape[0]
@@ -131,16 +133,18 @@ def sample_with_target_ratio(config: Config, target_df: pd.DataFrame, train_keys
     if n_events_in_sample == 0:
         sample_events_keys = pd.Index([], name=train_trg_df.index.name)
     else:
-        sample_events_keys = train_trg_df.loc[events_keys, :].sample(
-            n=n_events_in_sample,
-            random_state=config.smpl.random_seed).index
+        sample_events_keys = get_stratified_sample_keys(train_trg_df.loc[events_keys, :],
+                                                        config.data.stratify_target_col,
+                                                        size=n_events_in_sample, shuffle=True,
+                                                        random_seed=config.smpl.random_seed)
     non_events_keys = train_keys.difference(events_keys)
     if n_non_events_in_sample == 0:
         sample_non_events_keys = pd.Index([], name=train_trg_df.index.name)
     else:
-        sample_non_events_keys = train_trg_df.loc[non_events_keys, :].sample(
-            n=n_non_events_in_sample,
-            random_state=config.smpl.random_seed).index
+        sample_non_events_keys = get_stratified_sample_keys(train_trg_df.loc[non_events_keys, :],
+                                                            config.data.stratify_target_col,
+                                                            size=n_non_events_in_sample, shuffle=True,
+                                                            random_seed=config.smpl.random_seed)
     sample_keys = sample_events_keys.union(sample_non_events_keys)
     sample_df = train_trg_df.loc[sample_keys, :]
     sampled_events = is_event(sample_df[config.mdl_task.target_col]).sum()
@@ -152,7 +156,8 @@ def sample_with_target_ratio(config: Config, target_df: pd.DataFrame, train_keys
     rel_error_target_ratio = abs(config.smpl.target_ratio - actual_target_ratio) / config.smpl.target_ratio
     rel_error_threshold = 0.001
     if rel_error_target_ratio > rel_error_threshold:
-        logger.warning(f"The actual target_ratio is {actual_target_ratio} that is {'less' if config.smpl.target_ratio - actual_target_ratio > 0 else 'greater'} than "
-                       f"{round(100 * (1 - rel_error_threshold), 1)}% of the theoretical target_ratio {config.smpl.target_ratio}.")
+        logger.warning(
+            f"The actual target_ratio is {actual_target_ratio} that is {'less' if config.smpl.target_ratio - actual_target_ratio > 0 else 'greater'} than "
+            f"{round(100 * (1 - rel_error_threshold), 1)}% of the theoretical target_ratio {config.smpl.target_ratio}.")
     mlflow.log_param("target_ratio_actual_value", actual_target_ratio)
     return sample_keys
