@@ -9,7 +9,8 @@ from pandera.typing import Series
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p05_sampling.utils import sample_with_no_condition, \
     sample_with_target_ratio, get_all_samples, remove_outliers, get_actual_target_ratio, return_none
-from claim_modelling_kedro.pipelines.utils.utils import get_mlflow_run_id_for_partition
+from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_test_split_keys
+from claim_modelling_kedro.pipelines.utils.utils import get_mlflow_run_id_for_partition, get_partition
 
 logger = logging.getLogger(__name__)
 
@@ -87,3 +88,27 @@ def sample(
     if len(actual_target_ratios) > 0:
         mlflow.log_metric("actual_target_ratio", np.mean(actual_target_ratios))
     return sample_keys, sample_features_df, sample_target_df
+
+
+def train_val_split(
+        config: Config,
+        sample_keys: Dict[str, pd.Index],
+        sample_target_df: Dict[str, pd.DataFrame]
+) -> Tuple[Dict[str, pd.Index], Dict[str, pd.DataFrame]]:
+    logger.info(f"Splitting the sample into train and validation datasets...")
+    partitions_keys = sample_keys.keys()
+    train_keys = {}
+    val_keys = {}
+    for part in partitions_keys:
+        logger.info(f"Splitting partition '{part}' of the sample into train and validation datasets...")
+        sample_keys_part = get_partition(sample_keys, part)
+        sample_target_df_part = get_partition(sample_target_df, part)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
+        with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
+            train_keys_part, val_keys_part = get_stratified_train_test_split_keys(target_df=sample_target_df_part.loc[sample_keys_part,:],
+                                                                                  stratify_target_col=config.mdl_task.target_col,
+                                                                                  test_size=config.ds.split_val_size,
+                                                                                  random_seed=config.ds.split_random_seed)
+            train_keys[part] = train_keys_part
+            val_keys[part] = val_keys_part
+    return train_keys, val_keys

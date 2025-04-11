@@ -134,6 +134,18 @@ transformed_sample_features_df:
   path: data/04_sample/transformed_features/
   filename_suffix: ".pq"
 
+sample_train_keys:
+  type: partitions.PartitionedDataset
+  dataset: pickle.PickleDataset
+  path: data/04_sample/sample_train_keys/
+  filename_suffix: ".pkl"
+
+sample_val_keys:
+  type: partitions.PartitionedDataset
+  dataset: pickle.PickleDataset
+  path: data/04_sample/sample_val_keys/
+  filename_suffix: ".pkl"
+
 selected_sample_features_df:
   type: partitions.PartitionedDataset
   dataset: pandas.ParquetDataset
@@ -142,7 +154,7 @@ selected_sample_features_df:
 
 best_haprams:
   type: pickle.PickleDataset
-  filepath: data/04_primary/best_hparamas.pkl
+  filepath: data/04_sample/best_hparamas.pkl
   backend: pickle
 
 pure_sample_predictions_df:

@@ -9,19 +9,22 @@ def create_pipeline(**kwargs) -> Pipeline:
         [
             node(
                 func=fit_features_selector,
-                inputs=["config", "transformed_sample_features_df", "sample_target_df"],
+                inputs=["config", "transformed_sample_features_df", "sample_target_df", "sample_train_keys",
+                        "sample_val_keys"],
                 outputs="selected_sample_features_df",
                 name="fit_features_selector",
             ),
             node(
                 func=tune_hyper_parameters,
-                inputs=["config", "selected_sample_features_df", "sample_target_df"],
+                inputs=["config", "selected_sample_features_df", "sample_target_df", "sample_train_keys",
+                        "sample_val_keys"],
                 outputs="best_hparams",
                 name="tune_hyper_parameters",
             ),
             node(
                 func=fit_predictive_model,
-                inputs=["config", "selected_sample_features_df", "sample_target_df", "best_hparams"],
+                inputs=["config", "selected_sample_features_df", "sample_target_df", "sample_train_keys",
+                        "sample_val_keys", "best_hparams"],
                 outputs="pure_sample_predictions_df",
                 name="fit_predictive_model",
             ),

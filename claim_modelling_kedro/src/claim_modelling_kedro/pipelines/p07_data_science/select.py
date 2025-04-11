@@ -76,10 +76,11 @@ def select_features_by_mlflow_model_part(config: Config, transformed_features_df
 
 
 def fit_transform_features_selector_part(config: Config, transformed_sample_features_df: pd.DataFrame,
-                                         sample_target_df: pd.DataFrame) -> pd.DataFrame:
+                                         sample_target_df: pd.DataFrame, sample_train_keys: pd.Index,
+                                         sample_val_keys: pd.Index) -> pd.DataFrame:
     selector = get_class_from_path(config.ds.fs_model_class)(config=config)
     logger.info("Fitting the features selector...")
-    selector.fit(transformed_sample_features_df, sample_target_df)
+    selector.fit(transformed_sample_features_df.loc[sample_train_keys,:], sample_target_df.loc[sample_train_keys,:])
     logger.info("Fitted the features selector.")
     # Save the selector
     MLFlowModelLogger(selector, f"features selector model").log_model(_selector_artifact_path)
@@ -107,16 +108,20 @@ def fit_transform_features_selector_part(config: Config, transformed_sample_feat
 
 
 def fit_transform_features_selector(config: Config, sample_features_df: Dict[str, pd.DataFrame],
-                                    sample_target_df: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+                                    sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
+                                    sample_val_keys: Dict[str, pd.Index]) -> Dict[str, pd.DataFrame]:
     logger.info(f"Fitting features selector on the sample dataset...")
     selected_features_df = {}
     for part in sample_features_df.keys():
         features_part_df = get_partition(sample_features_df, part)
         target_part_df = get_partition(sample_target_df, part)
+        sample_train_keys_part = get_partition(sample_train_keys, part)
+        sample_val_keys_part = get_partition(sample_val_keys, part)
         mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
         logger.info(f"Fitting selector on partition '{part}' of the sample dataset...")
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-            selected_features_df[part] = fit_transform_features_selector_part(config, features_part_df, target_part_df)
+            selected_features_df[part] = fit_transform_features_selector_part(config, features_part_df, target_part_df,
+                                                                              sample_train_keys_part, sample_val_keys_part)
     return selected_features_df
 
 

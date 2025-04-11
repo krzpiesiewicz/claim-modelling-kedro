@@ -72,6 +72,8 @@ def fit_model(hparams: Dict[str, any],
               metric: Metric,
               selected_sample_features_df: pd.DataFrame,
               sample_target_df: pd.DataFrame,
+              sample_train_keys: pd.Index,
+              sample_val_keys: pd.Index,
               hyperopt_artifact_path: str) -> float:
     trial_no = len(trials.trials)
     msg = f"Hyperopt trial {trial_no}. Hyperparameters:\n"
@@ -88,15 +90,16 @@ def fit_model(hparams: Dict[str, any],
                                                                   cv_folds=config.ds.hopt_cv_folds, shuffle=True,
                                                                   random_seed=config.ds.hopt_split_random_seed,
                                                                   verbose=False)
-    else:
-        train_keys, test_keys = get_stratified_train_test_split_keys(sample_target_df,
+    elif sample_val_keys is None:
+        sample_train_keys, sample_val_keys = get_stratified_train_test_split_keys(sample_target_df,
                                                                      stratify_target_col=config.mdl_task.target_col,
                                                                      test_size=config.ds.hopt_split_val_size,
                                                                      shuffle=True,
                                                                      random_seed=config.ds.hopt_split_random_seed,
                                                                      verbose=False)
-        train_keys_cv = {"0": train_keys}
-        val_keys_cv = {"0": test_keys}
+    if not config.ds.hopt_cv_enabled:
+        train_keys_cv = {"0": sample_train_keys}
+        val_keys_cv = {"0": sample_val_keys}
 
     train_scores = []
     val_scores = []
@@ -199,7 +202,8 @@ def fit_model(hparams: Dict[str, any],
 
 
 def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
-                   sample_target_df: pd.DataFrame, hyperopt_artifact_path: str,
+                   sample_target_df: pd.DataFrame, sample_train_keys: pd.Index,
+                   sample_val_keys: pd.Index, hyperopt_artifact_path: str,
                    save_best_hparams_in_mlfow: bool = True) -> Dict[str, Any]:
     match config.ds.hopt_algo:
         case HyperoptAlgoEnum.TPE:
@@ -225,7 +229,8 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
     trials = Trials()
     objective = partial(fit_model, config=config, model=model, trials=trials, space=hparam_space, metric=metric,
                         selected_sample_features_df=selected_sample_features_df,
-                        sample_target_df=sample_target_df, hyperopt_artifact_path=hyperopt_artifact_path)
+                        sample_target_df=sample_target_df, sample_train_keys=sample_train_keys,
+                        sample_val_keys=sample_val_keys, hyperopt_artifact_path=hyperopt_artifact_path)
     hp_assignment = fmin(
         fn=objective,
         space=hparam_space,
@@ -242,18 +247,21 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
 
 
 def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFrame],
-              sample_target_df: Dict[str, pd.DataFrame],
-              save_best_hparams_in_mlfow: bool = True) -> Dict[str, Dict[str, Any]]:
+              sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
+              sample_val_keys: Dict[str, pd.Index], save_best_hparams_in_mlfow: bool = True) -> Dict[str, Dict[str, Any]]:
     logger.info(f"Tuning the hyper parameters of the predictive model {config.ds.model_class}...")
     best_hparams = {}
     for part in selected_sample_features_df.keys():
         selected_sample_features_part_df = get_partition(selected_sample_features_df, part)
         sample_target_part_df = get_partition(sample_target_df, part)
+        sample_train_keys_part = get_partition(sample_train_keys, part)
+        sample_val_keys_part = get_partition(sample_val_keys, part)
         mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
         logger.info(
             f"Tuning the hyper parameters of the predictive model on partition '{part}' of the sample dataset...")
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
             best_hparams_part = hypertune_part(config, selected_sample_features_part_df, sample_target_part_df,
+                                               sample_train_keys_part, sample_val_keys_part,
                                                hyperopt_artifact_path=f"{_hypertune_artifact_path}/{part}")
             best_hparams[part] = best_hparams_part
             msg = f"The best hyperparameters for partition '{part}':\n"

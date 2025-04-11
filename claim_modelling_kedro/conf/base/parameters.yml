@@ -3,13 +3,13 @@ model:
   author: Krzysztof Piesiewicz
   short_description: Poisson GLM for claim frequency
   full_description: GLM from stats models with canonical Gamma link function
-  target: pure_premium # 'claim_number' – the number of claims,
+  target: avg_claim_amount # 'claim_number' – the number of claims,
                            # 'total_claims_amount' – the total amount of claims (including zeros),
                            # 'frequency' – the number of claims (including zeros) per unit of exposure (claim_number / exposure),
                            # 'avg_claim_amount' – the average amount of claims (total_claims_amount / claim_number) without zeros,
                            # 'pure_premium' – the total amount of claims (including zeros) per unit of exposure (total_claims_amount / exposure)
   type: GLM
-  model: StatsmodelsTweedieGLM # 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
+  model: SklearnGammaGLM # 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
     # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM'
 
 
@@ -32,7 +32,7 @@ data:
   policy_exposure_col: Exposure
   policy_id_col: IDpol
   split_random_seed: 1
-  stratify_target_col: ClaimPurePremium_TRG # the target column used for stratification;
+  stratify_target_col: ClaimSeverity_TRG # the target column used for stratification;
     # possible values: 'ClaimNb_TRG', 'ClaimFreq_TRG', 'ClaimTotalAmount_TRG', 'ClaimSeverity_TRG', 'ClaimPurePremium_TRG';
     # if empty, the column coresponding to the model.target is used.
   calib_size: 0.1 # [0,1) - the part of policies used for model calibration
@@ -54,9 +54,9 @@ data:
 sampling:
   use_calib_data: False # whether to use also the calibration data for sampling
   random_seed: 1
-  n_obs: 20000 # the number of samples which are used to train a model.
+  n_obs: # the number of samples which are used to train a model.
           # If n_obs is None, then all training data is used
-  target_ratio: 0.5 # the ratio of nonzero samples, if None, the ratio is not controlled
+  target_ratio: # the ratio of nonzero samples, if None, the ratio is not controlled
                     # if target_ratio is not None and n_obs is None, then get all targets and complete the sample with zeros
   allow_lower_ratio: True # allow the ratio of nonzero samples to be lower than target_ratio
   include_zeros: True # include zero values of target in a sample
@@ -64,7 +64,7 @@ sampling:
   upper_bound:
 
 data_engineering:
-  mlflow_run_id: ea87665dc85a49ad9acfca3b81226d9e # If provided a MLFLow run id, the de models are saved to / downloaded from the MLflow run
+  mlflow_run_id: # If provided a MLFLow run id, the de models are saved to / downloaded from the MLflow run
   custom_features:
     enabled: True # whether to use custom features
     features: # the list of custom features
@@ -109,8 +109,10 @@ data_engineering:
 data_science:
   mlflow_run_id: # If provided a MLFLow run id, the selector and prediction model are saved to /
     # downloaded from the MLflow run
+  split_val_size: 0.3 # the part of data used for validation the final model
+  split_random_seed: 0 # the random seed for splitting the data into train and validation sets
   feature_selection:
-    enabled: True # whether to use the feature selection
+    enabled: False # whether to use the feature selection
     max_n_features: 45 # the number of features used in the model; if empty, "auto" is used
     min_importance: 0.0001 # the minimum importance of a feature
     max_iter: 100 # the maximum number of iterations
@@ -126,7 +128,7 @@ data_science:
           fit_kwargs:
             max_iter: 10
   hyperopt:
-    enabled: False # whether to use the hyperopt
+    enabled: True # whether to use the hyperopt
     metric: claim_nb_weighted_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
       # 'gamma_deviance', 'exposure_weighted_gamma_deviance', 'claim_nb_weighted_gamma_deviance',
       # 'rmse', 'exposure_weighted_rmse', 'claim_nb_weighted_rmse', 'r2', 'exposure_weighted_r2', 'claim_nb_weighted_r2',
@@ -144,36 +146,11 @@ data_science:
       folds: 10 # the number of folds in cross-validation
       # val_size = 1 / folds
       # train_size = 1 - val_size
-    split_val_size: 0.2 # the part of data used for validation – used only if cross_validation.enabled is False
+    split_val_size: 0.3 # the part of data used for validation – used only if cross_validation.enabled is False
     split_random_seed: 0 # the random seed for splitting the data into train and validation sets
     excluded_params:
 #      GradientBoostingRegressor:
 #        - n_estimators
-    space:
-      StatsmodelsTweedieGLM:
-        power:
-          type: uniform
-          low: 1.0
-          high: 2.0
-      SklearnPoissonGLM:
-        alpha:
-          type: uniform
-          low: 0.0
-          high: 1.0
-      SklearnGammaGLM:
-        alpha:
-          type: uniform
-          low: 0.0
-          high: 1.0
-      SklearnTweedieGLM:
-        alpha:
-          type: uniform
-          low: 0.0
-          high: 1.0
-        power:
-          type: uniform
-          low: 1.0
-          high: 2.0
 
   model:
     random_seed: 0

@@ -21,6 +21,8 @@ class HyperoptAlgoEnum(Enum):
 @dataclass
 class DataScienceConfig:
     mlflow_run_id: str
+    split_random_seed: int
+    split_val_size: float
     fs_enabled: bool
     fs_method: str
     fs_model_class: str
@@ -46,6 +48,8 @@ class DataScienceConfig:
     def __init__(self, parameters: Dict, mdl_info: ModelInfo):
         params = parameters["data_science"]
         self.mlflow_run_id = params["mlflow_run_id"]
+        self.split_random_seed = params["split_random_seed"]
+        self.split_val_size = params["split_val_size"]
         fs_params = params["feature_selection"]
         self.fs_enabled = fs_params["enabled"]
         self.fs_method = FeatureSelectionMethod(fs_params["method"])

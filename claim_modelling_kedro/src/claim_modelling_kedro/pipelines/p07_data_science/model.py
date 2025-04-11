@@ -159,7 +159,8 @@ def predict_by_mlflow_model_part(config: Config, selected_features_df: pd.DataFr
 
 
 def fit_transform_predictive_model_part(config: Config, selected_sample_features_df: pd.DataFrame,
-                                        sample_target_df: pd.DataFrame, best_hparams: Dict[str, Any]) -> pd.DataFrame:
+                                        sample_target_df: pd.DataFrame, sample_train_keys: pd.Index,
+                                        sample_val_keys: pd.Index, best_hparams: Dict[str, Any]) -> pd.DataFrame:
     # Fit a model
     logger.info("Fitting the predictive model...")
     model = get_class_from_path(config.ds.model_class)(config=config, target_col=config.mdl_task.target_col,
@@ -167,7 +168,7 @@ def fit_transform_predictive_model_part(config: Config, selected_sample_features
     logger.debug(f"udated hparams: {best_hparams}")
     model.update_hparams(best_hparams)
     start_time = time.time()
-    model.fit(selected_sample_features_df, sample_target_df)
+    model.fit(selected_sample_features_df.loc[sample_train_keys,:], sample_target_df.loc[sample_train_keys,:])
     end_time = time.time()
     elapsed_time = end_time - start_time
     formatted_time = str(timedelta(seconds=elapsed_time))
@@ -181,17 +182,9 @@ def fit_transform_predictive_model_part(config: Config, selected_sample_features
     return predictions_df
 
 
-def join_predictions_with_target(config: Config, predictions_df: pd.DataFrame,
-                                 target_df: pd.DataFrame) -> pd.DataFrame:
-    logger.info("Joining the predictions with the target...")
-    joined_df = target_df.join(predictions_df, how="left")
-    logger.info("Joined the predictions with the target.")
-    return joined_df
-
-
 def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
-                              target_df: pd.DataFrame, prefix,
-                              log_metrics_to_mlflow: bool) -> List[Tuple[MetricEnum, str, float]]:
+                              target_df: pd.DataFrame, prefix: str,
+                              log_metrics_to_mlflow: bool, keys: pd.Index = None) -> List[Tuple[MetricEnum, str, float]]:
     """
     prefix: str - default None, but can by any string like train, test, pure, cal etc.
     If prefix is not None, it will be added to the metric name separated by underscore.
@@ -202,6 +195,9 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
     for metric_enum in config.mdl_task.evaluation_metrics:
         metric = Metric.from_enum(config, metric_enum, pred_col=config.mdl_task.prediction_col)
         try:
+            if keys is not None:
+                predictions_df = predictions_df.loc[keys, :]
+                target_df = target_df.loc[keys, :]
             score = metric.eval(target_df, predictions_df)
         except Exception as e:
             logger.error(f"Error while evaluating the metric {metric.get_short_name()}: {e}")
@@ -235,25 +231,29 @@ def predict_by_mlflow_model(config: Config, selected_features_df: Dict[str, pd.D
 
 def fit_transform_predictive_model(config: Config, selected_sample_features_df: Dict[str, pd.DataFrame],
                                    sample_target_df: Dict[str, pd.DataFrame],
+                                   sample_train_keys: Dict[str, pd.Index], sample_val_keys: Dict[str, pd.Index],
                                    best_hparams: Dict[str, Dict[str, Any]]) -> Dict[str, pd.DataFrame]:
     predictions_df = {}
     logger.info("Fitting and transforming the predictive model...")
     for part in selected_sample_features_df.keys():
         selected_sample_features_part_df = get_partition(selected_sample_features_df, part)
         sample_target_part_df = get_partition(sample_target_df, part)
+        sample_train_keys_part = get_partition(sample_train_keys, part)
+        sample_val_keys_part = get_partition(sample_val_keys, part)
         best_hparams_part = best_hparams[part] if best_hparams is not None else None
         mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
         logger.info(f"Fitting and transforming the predictive model on partition '{part}' of the sample dataset...")
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-            predictions_df[part] = fit_transform_predictive_model_part(config, selected_sample_features_part_df,
-                                                                       sample_target_part_df, best_hparams_part)
+            predictions_df[part] = fit_transform_predictive_model_part(config, selected_sample_features_part_df, sample_target_part_df, sample_train_keys_part, sample_val_keys_part, best_hparams_part)
     return predictions_df
 
 
 def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame],
-                         target_df: Dict[str, pd.DataFrame], dataset: str, prefix: str = None,
+                         target_df: Dict[str, pd.DataFrame], dataset: str,
+                         prefix: str = None,
                          log_metrics_to_mlflow: bool = True,
-                         save_metrics_table: bool = True) -> Tuple[
+                         save_metrics_table: bool = True,
+                         keys: Dict[str, pd.Index] = None) -> Tuple[
     Dict[str, List[Tuple[MetricEnum, str, float]]], pd.DataFrame]:
     scores_by_part = {}
     scores_by_names = {}
@@ -261,12 +261,13 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
     for part in predictions_df.keys():
         predictions_part_df = get_partition(predictions_df, part)
         target_part_df = get_partition(target_df, part)
+        keys_part = get_partition(keys, part) if keys is not None else None
         mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
         logger.info(f"Evaluating the predictions on partition '{part}' of the dataset...")
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
             joined_prefix = f"{dataset}_{prefix}" if prefix is not None else dataset
             scores_by_part[part] = evaluate_predictions_part(config, predictions_part_df, target_part_df,
-                                                             joined_prefix, log_metrics_to_mlflow)
+                                                             joined_prefix, log_metrics_to_mlflow, keys=keys_part)
         for (metric_enum, metric_name), score in scores_by_part[part].items():
             if metric_name not in scores_by_names:
                 scores_by_names[metric_name] = {}
