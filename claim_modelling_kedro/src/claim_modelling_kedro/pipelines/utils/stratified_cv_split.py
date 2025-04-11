@@ -37,12 +37,14 @@ def _get_stratified_train_calib_test_cv(target_df: pd.DataFrame, stratify_target
 
     # Step 2: Label the sorted samples in a round-robin manner
     n_samples = target_df.shape[0]
-    fold_labels = np.tile(np.arange(cv_folds), n_samples // cv_folds + 1)[:n_samples]
+    n_buckets = n_samples // cv_folds + 1
+    fold_labels = np.tile(np.arange(cv_folds), n_buckets)[:n_samples]
 
-    # Optional: Shuffle the fold labels (if shuffle is enabled)
+    # Optional: Shuffle the fold labels within a bucket (if shuffle is enabled)
     if shuffle:
         rng = np.random.default_rng(random_seed)
-        rng.shuffle(fold_labels)
+        for i in range(0, n_samples, cv_folds):
+            rng.shuffle(fold_labels[i : min(i + cv_folds, n_samples)])
 
     # Step 3: Cross-validation splitting based on cv_type
     if cv_type == 'train_test':
