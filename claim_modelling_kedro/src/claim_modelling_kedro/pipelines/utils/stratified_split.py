@@ -1,170 +1,143 @@
 import logging
-from typing import Tuple
+from typing import Tuple, Union
 
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
 
 logger = logging.getLogger(__name__)
 
 
-def _interval_midpoint(interval):
-    """Helper function to calculate the midpoint of a pandas.Interval."""
-    return (interval.left + interval.right) / 2
-
-
-def _merge_infrequent_bins(stratified_bins, min_samples=2):
-    """ Merge bins with fewer than min_samples into adjacent bins based on midpoints. """
-    bin_counts = pd.Series(stratified_bins).value_counts()
-
-    # Identify infrequent bins (those with less than min_samples)
-    infrequent_bins = bin_counts[bin_counts < min_samples].index
-    frequent_bins = bin_counts[bin_counts >= min_samples].index
-
-    # Convert stratified_bins to DataFrame for easier manipulation
-    stratified_df = pd.DataFrame({'bins': stratified_bins})
-
-    # Get midpoints of all bins
-    bin_midpoints = pd.Series({bin: _interval_midpoint(bin) for bin in infrequent_bins.union(frequent_bins)})
-
-    for inf_bin in infrequent_bins:
-        # Get the midpoint of the infrequent bin
-        inf_bin_midpoint = bin_midpoints[inf_bin]
-
-        # Find the closest frequent bin by comparing midpoints
-        closest_bin = (bin_midpoints[frequent_bins] - inf_bin_midpoint).abs().idxmin()
-
-        # Merge the infrequent bin with the closest frequent bin
-        stratified_df['bins'].replace(inf_bin, closest_bin, inplace=True)
-
-    return stratified_df['bins']
-
-
-def _get_stratified_train_test_split_keys(target_df: pd.DataFrame, stratify_target_col: str, test_size: float,
-                                          shuffle: bool = True, random_seed: int = 0, verbose: bool = True,
-                                          split_type: str = 'train_test', calib_size: float = None):
+def get_stratified_sample_keys(target_df: pd.DataFrame, stratify_target_col: str, size: Union[int, float],
+                               shuffle: bool = True, random_seed: int = 0, verbose: bool = True) -> pd.Index:
     """
-    Splits the dataset into stratified train/test or train/calib/test sets using either a simple split or three-way split.
+    Performs a stratified sampling by dividing the data into buckets and selecting one observation from each bucket.
+
+    Args:
+        target_df (pd.DataFrame): The DataFrame containing the data to sample from.
+        stratify_target_col (str): The column to stratify on.
+        size (Union[int, float]): The number of buckets (int) or fraction of the dataset (float) to sample.
+        shuffle (bool): Whether to shuffle the data within each bucket before sampling. Default is True.
+        random_seed (int): The random seed for reproducibility. Default is 0.
+        verbose (bool): Whether to print information about the sampling process. Default is True.
+
+    Returns:
+        pd.Index: A Index containing the stratified sample keys.
+    """
+    # Ensure size is valid
+    if isinstance(size, float):
+        if not (0 < size <= 1):
+            raise ValueError("If size is a float, it must be in the range (0, 1].")
+        n_buckets = int(len(target_df) * size)
+    elif isinstance(size, int):
+        if size <= 0 or size > len(target_df):
+            raise ValueError("If size is an int, it must be in the range [1, len(target_df)].")
+        n_buckets = size
+    else:
+        raise TypeError("Size must be either an int or a float.")
+
+    # Sort the DataFrame by the stratify_target_col
+    sorted_df = target_df.sort_values(by=stratify_target_col, ascending=True)
+
+    # Divide the sorted DataFrame into buckets
+    bucket_size = len(sorted_df) // n_buckets
+    buckets = [sorted_df.iloc[i * bucket_size:(i + 1) * bucket_size] for i in range(n_buckets)]
+
+    # Handle any remaining samples (last bucket may be larger)
+    if len(sorted_df) % n_buckets != 0:
+        buckets[-1] = pd.concat([buckets[-1], sorted_df.iloc[n_buckets * bucket_size:]])
+
+    # Sample one observation from each bucket
+    sampled_indices = []
+    rng = np.random.default_rng(random_seed)
+    for bucket in buckets:
+        if shuffle:
+            sampled_indices.append(rng.choice(bucket.index, size=1, replace=False)[0])
+        else:
+            sampled_indices.append(bucket.index[0])  # Take the first observation if no shuffle
+
+    if verbose:
+        print(f"Stratified sampling completed. {len(sampled_indices)} samples selected from {n_buckets} buckets.")
+
+    return sampled_indices
+
+
+def get_stratified_train_calib_test_split_keys(target_df: pd.DataFrame, stratify_target_col: str,
+                                               test_size: Union[int, float], shuffle: bool = True,
+                                               random_seed: int = 0, verbose: bool = True,
+                                               calib_size: Union[int, float] = None) -> Tuple[
+    pd.Index, pd.Index, pd.Index]:
+    """
+    Splits the dataset into stratified train, calibration, and test sets.
 
     Args:
         target_df (pd.DataFrame): The DataFrame containing the target column.
-        stratify_target_col (str): The column in target_df to stratify on (e.g., a continuous variable like frequency/severity).
-        test_size (float): The test set size (as a fraction between 0 and 1).
-        shuffle (bool): Whether to shuffle the data before splitting. Default is True.
+        stratify_target_col (str): The column to stratify on.
+        test_size (Union[int, float]): The size of the test set (int for absolute, float for fraction).
+        shuffle (bool): Whether to shuffle the data before sampling. Default is True.
         random_seed (int): The random seed for reproducibility. Default is 0.
         verbose (bool): Whether to print information about the splits. Default is True.
-        split_type (str): The type of split. Either 'train_test' for a standard train/test split or 'train_calib_test' for a train/calib/test split.
-        calib_size (float, optional): The calibration set size (as a fraction between 0 and 1). If not provided, it will be set equal to test_size.
+        calib_size (Union[int, float], optional): The size of the calibration set (int for absolute, float for fraction).
 
     Returns:
-        Tuple[pd.Index, pd.Index, pd.Index]: Indices of the training set, calibration set (optional), and test set.
+        Tuple[pd.Index, pd.Index, pd.Index]: Indices for the train, calibration, and test sets.
     """
+    # Calculate the number of test samples
+    if isinstance(test_size, float):
+        n_test = int(target_df.shape[0] * test_size)
+    elif isinstance(test_size, int):
+        n_test = test_size
+    else:
+        raise ValueError("test_size must be either an int or a float.")
 
-    # Ensure calib_size is provided or defaults to test_size if using 'train_calib_test'
-    if split_type == 'train_calib_test' and calib_size is None:
-        calib_size = test_size
+    # Get test keys
+    test_keys = get_stratified_sample_keys(target_df, stratify_target_col, size=n_test,
+                                           shuffle=shuffle, random_seed=random_seed, verbose=verbose)
 
-    # Total number of samples
-    n_samples = target_df.shape[0]
+    # Exclude test keys from the dataset
+    remaining_df = target_df.drop(index=test_keys)
 
-    # Calculate the minimum number of samples per bin based on the test size or train size, whichever is smaller
-    min_ratio = np.min([test_size, calib_size, 1 - test_size - calib_size] if split_type == 'train_calib_test'
-                       else [test_size, 1 - test_size])
-    min_samples_per_bin = np.ceil(1 / min_ratio)
+    calib_keys = None
+    if calib_size is not None:
+        # Calculate the number of calibration samples
+        if isinstance(calib_size, float):
+            n_calib = int(target_df.shape[0] * calib_size)
+        elif isinstance(calib_size, int):
+            n_calib = calib_size
+        else:
+            raise ValueError("calib_size must be either an int or a float.")
 
-    # Calculate the number of bins to ensure at least `min_samples_per_bin` samples per bin
-    n_bins = max(2, int(np.floor(n_samples / min_samples_per_bin)))
+        # Get calibration keys
+        calib_keys = get_stratified_sample_keys(remaining_df, stratify_target_col, size=n_calib,
+                                                shuffle=shuffle, random_seed=random_seed, verbose=verbose)
 
-    # Ensure the number of bins does not exceed a reasonable limit
-    max_bins = int(n_samples * test_size / min_samples_per_bin)
-    n_bins = min(n_bins, max_bins)
+        # Exclude calibration keys from the dataset
+        remaining_df = remaining_df.drop(index=calib_keys)
 
-    # Bin the continuous variable using pandas.qcut to create quantile-based bins for fair stratification
-    stratified_bins = pd.qcut(target_df[stratify_target_col], q=n_bins, duplicates='drop')
+    # Remaining keys are for the train set
+    train_keys = remaining_df.index
 
-    # Merge infrequent bins into adjacent bins
-    stratified_bins = _merge_infrequent_bins(stratified_bins, min_samples=2)
+    if verbose:
+        print(
+            f"Split completed: {len(train_keys)} train, {len(calib_keys) if calib_keys is not None else 0} calibration, {len(test_keys)} test samples.")
 
-    stratified_labels, _ = pd.factorize(stratified_bins)
-
-    if split_type == 'train_test':
-        # Perform a simple train/test split
-        train_policies, test_policies = train_test_split(
-            target_df,
-            test_size=test_size,
-            stratify=stratified_labels,
-            random_state=random_seed,
-            shuffle=shuffle
-        )
-        train_keys = train_policies.index
-        test_keys = test_policies.index
-        if verbose:
-            logger.info(f"Stratified Train/Test Split. Data is split into:\n"
-                        f"    - train: {len(train_keys)} samples ({len(train_keys) / n_samples:.2%})\n"
-                        f"    - test: {len(test_keys)} samples  ({len(test_keys) / n_samples:.2%})")
-        return train_keys, None, test_keys  # Calibration set is None for 'train_test'
-
-    elif split_type == 'train_calib_test':
-        # Step 1: Perform a train/test split with the given test_size
-        train_policies, test_policies = train_test_split(
-            target_df,
-            test_size=test_size,
-            stratify=stratified_labels,
-            random_state=random_seed,
-            shuffle=shuffle
-        )
-
-        # Calculate calibration size relative to the remaining training set
-        test_size_actual = len(test_policies) / n_samples  # Test set size as a fraction
-        calib_size_relative = calib_size / (
-                1 - test_size_actual)  # Adjust calib_size relative to remaining training data
-
-        # Step 2: Split remaining train_policies into train and calibration sets
-
-        # Bin the continuous variable using pandas.qcut to create quantile-based bins for fair stratification
-        stratified_bins_train = pd.qcut(train_policies[stratify_target_col], q=n_bins, duplicates='drop')
-
-        # Merge infrequent bins into adjacent bins
-        stratified_bins_train = _merge_infrequent_bins(stratified_bins_train, min_samples=2)
-
-        stratified_labels_train, _ = pd.factorize(stratified_bins_train)
-
-        train_policies_final, calib_policies = train_test_split(
-            train_policies,
-            test_size=calib_size_relative,  # Adjusted calib_size
-            stratify=stratified_labels_train,
-            random_state=random_seed,
-            shuffle=shuffle
-        )
-
-        train_keys = train_policies_final.index
-        calib_keys = calib_policies.index
-        test_keys = test_policies.index
-
-        if verbose:
-            logger.info(f"Stratified Train/Calib/Test Split. Data is split into:\n"
-                        f"    – train: {len(train_keys)} samples ({len(train_keys) / n_samples:.2%})\n"
-                        f"    – calibration: {len(calib_keys)} samples ({len(calib_keys) / n_samples:.2%})\n"
-                        f"    – test: {len(test_keys)} samples ({len(test_keys) / n_samples:.2%})")
-        return train_keys, calib_keys, test_keys
+    if verbose:
+        n_samples = target_df.shape[0]
+        msg = (f"Stratified Train/Calib/Test Split. Data is split into:\n"
+               f"    – train: {len(train_keys)} samples ({len(train_keys) / n_samples:.2%})\n")
+        if calib_size is not None:
+            msg = f"{msg}\n    – calibration: {len(calib_keys)} samples ({len(calib_keys) / n_samples:.2%})\n"
+        msg = f"{msg}\n    – test: {len(test_keys)} samples ({len(test_keys) / n_samples:.2%})"
+        logger.info(msg)
+    return train_keys, calib_keys, test_keys
 
 
-def get_stratified_train_test_split_keys(target_df: pd.DataFrame, stratify_target_col: str, test_size: float,
+def get_stratified_train_test_split_keys(target_df: pd.DataFrame, stratify_target_col: str,
+                                         test_size: Union[int, float],
                                          shuffle: bool = True, random_seed: int = 0,
                                          verbose: bool = True) -> Tuple[pd.Index, pd.Index]:
-    train_keys, _, test_keys = _get_stratified_train_test_split_keys(target_df, stratify_target_col,
-                                                                     test_size=test_size,
-                                                                     shuffle=shuffle,
-                                                                     random_seed=random_seed,
-                                                                     verbose=verbose,
-                                                                     split_type='train_test')
+    train_keys, _, test_keys = get_stratified_train_calib_test_split_keys(target_df, stratify_target_col,
+                                                                          test_size=test_size,
+                                                                          shuffle=shuffle,
+                                                                          random_seed=random_seed,
+                                                                          verbose=verbose)
     return train_keys, test_keys
-
-
-def get_stratified_train_calib_test_split_keys(target_df: pd.DataFrame, stratify_target_col: str, test_size: float,
-                                               calib_size: float,
-                                               shuffle: bool = True, random_seed: int = 0, verbose: bool = True) -> \
-        Tuple[pd.Index, pd.Index, pd.Index]:
-    return _get_stratified_train_test_split_keys(target_df, stratify_target_col, test_size=test_size,
-                                                 calib_size=calib_size, shuffle=shuffle, random_seed=random_seed,
-                                                 verbose=verbose, split_type='train_calib_test')
