@@ -159,13 +159,13 @@ data_science:
                  # if empty, the model class is inferred from the parameter model.model
     const_hparams:
       StatsmodelsTweedieGLM:
-        link: log # 'log' (all families), 'inverse' (Famma), 'power' (Tweedie)
+        link: log # 'log' (all families), 'inverse' (Gamma), 'power' (Tweedie)
         power: 1.2
 #        variance: mu_squared # 'mu', 'mu_squared', 'power(p)', where p is a float number, e.g., 'power(1.5)'
         force_min_y_pred: False
         fit_intercept: True
       StatsmodelsGammaGLM:
-        link: log # 'log' (all families), 'inverse' (Famma), 'power' (Tweedie)
+        link: log # 'log' (all families), 'inverse' (Gamma), 'power' (Tweedie)
         force_min_y_pred: True
         fit_intercept: True
 #      SklearnPoissonGLM:
