@@ -12,9 +12,10 @@ TODO – programowanie i eksperymenty:
 8.    Napisać p09_train, który w analogii do p09_test, obliczy nieskalibrowane i skalibrowane predykcje na całym zbiorze treningowym (train_keys) - logować do mlflow
 9.    Napisać outlier_policy: keep, clip, drop - dla sample, calib i test (uwspólnić kod)
 10.   Dodać zmienne binarne dla przedziałów pojemności silnika itp.
-11.   Przeprowadzić eksperymenty – częstotliwość, średnia szkoda i pure premium - z cross walidacją
-12.   Model łączący modele na częstotliwość i średnią szkodę.
-13.   rozkłady średniej predykcji i średniego targetu w percentylach
+11.   Selekcja cech za pomocą GLM (Poisson, Gamma... zamiast Lasso)
+12.   Przeprowadzić eksperymenty – częstotliwość, średnia szkoda i pure premium - z cross walidacją
+13.   [CANCELED] Model łączący modele na częstotliwość i średnią szkodę.
+14.   rozkłady średniej predykcji i średniego targetu w percentylach
 
 TODO - tekst:
 0. Ewaluacja (gini, lorentz, CC, krzywa kalibracji)
