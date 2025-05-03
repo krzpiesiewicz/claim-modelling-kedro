@@ -1,0 +1,4 @@
+IDpol
+ClaimNb
+Exposure
+ClaimAmount
