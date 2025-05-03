@@ -2,7 +2,7 @@ import logging
 import time
 from datetime import timedelta
 from functools import partial
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 
 import hyperopt
 import mlflow
@@ -26,6 +26,21 @@ logger = logging.getLogger(__name__)
 _hypertune_artifact_path = "hyperopt"
 
 
+def get_hparams_from_trial(trial: Dict[str, Any], space: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Extract hyperparameters from a trial.
+    """
+    return space_eval(space, {k: v[0] if isinstance(v, list) else v for k, v in trial["misc"]["vals"].items()})
+
+
+def get_best_trial(trials: Trials) -> Dict[str, Any]:
+    """
+    Get the best trial from the trials.
+    """
+    best_index = np.argmin([trial["result"]["loss"] for trial in trials.trials])
+    return trials.trials[best_index]
+
+
 def log_trials_info_to_mlflow(
         trials: Trials,
         space: Dict[str, Any],
@@ -45,9 +60,8 @@ def log_trials_info_to_mlflow(
     trials_df = pd.concat([trials_df, pd.DataFrame([{
         **{k: round_decimal(v, 3) for k, v in ((trial.get("attachments") or {}).get("metrics") or {}).items()}
     } for trial in trials.trials])], axis=1)
-    trials_df = pd.concat([trials_df, pd.DataFrame([
-        {**space_eval(space, {k: v[0] if isinstance(v, list) else v for k, v in trial["misc"]["vals"].items()})
-         } for trial in trials.trials])], axis=1)
+    trials_df = pd.concat([trials_df,
+                           pd.DataFrame([get_hparams_from_trial(trial, space) for trial in trials.trials])], axis=1)
     save_pd_dataframe_as_csv_in_mlflow(trials_df, artifact_path, "trials.csv", index=False)
 
     if log_folds_metrics:
@@ -57,11 +71,62 @@ def log_trials_info_to_mlflow(
                 rows.append({
                     "trial_no": trial["tid"] + 1,
                     "dataset": dataset,
-                    **{fold: round_decimal(score, 3) for fold, score in
+                    **{fold: round_decimal(score, 4) for fold, score in
                        enumerate((trial.get("attachments") or {}).get(f"{dataset}_scores") or [])},
                 })
         trials_scores_df = pd.DataFrame(rows)
         save_pd_dataframe_as_csv_in_mlflow(trials_scores_df, artifact_path, "trials_folds_scores.csv", index=False)
+
+
+def create_hyperopt_result_message(trial: Dict[str, Any], is_best: bool = False) -> str:
+    """
+    Create a message summarizing the results of a hyperopt trial.
+
+    Args:
+        trial (Dict[str, Any]): A dictionary containing trial information.
+        is_best (bool): A flag indicating if this is the best trial.
+
+    Returns:
+        str: A formatted message summarizing the trial results.
+    """
+    trial_no = trial["tid"] + 1
+    eval_time = trial["result"].get("eval_time")
+    status = trial["result"].get("status")
+    loss = trial["result"].get("loss")
+    attachments = trial.get("attachments", {})
+    metrics = attachments.get("metrics", {})
+    metric_name = attachments.get("metric_name")
+    train_scores = attachments.get("train_scores", [])
+    val_scores = attachments.get("valid_scores", [])
+
+    if is_best:
+        msg = f"The best hyperopt trial {trial_no} – eval_time: {eval_time} - status: {status} - loss: {loss}"
+    else:
+        msg = f"Hyperopt trial {trial_no} – eval_time: {eval_time} - status: {status} - loss: {loss}"
+
+    if metrics:
+        train_mean = round_decimal(metrics.get(f"{metric_name}_train"), significant_digits=4)
+        valid_mean = round_decimal(metrics.get(f"{metric_name}_valid"), significant_digits=4)
+        train_std = round_decimal(metrics.get(f"{metric_name}_std_train"), significant_digits=4)
+        valid_std = round_decimal(metrics.get(f"{metric_name}_std_valid"), significant_digits=4)
+        scores_df = pd.DataFrame({
+            f"valid": map(partial(round_decimal, significant_digits=4), val_scores),
+            f"train": map(partial(round_decimal, significant_digits=4), train_scores)
+        })
+        scores_df.index.name = "fold"
+
+        if train_std is not None and valid_std is not None:
+            msg += (
+                f"\n{metric_name}_valid: {valid_mean} ± {valid_std} (std)\n"
+                f"{metric_name}_train: {train_mean} ± {train_std} (std)\n"
+                f"{metric_name}_scores:\n{scores_df}"
+            )
+        else:
+            msg += (
+                f"\n{metric_name}_valid: {valid_mean}\n"
+                f"{metric_name}_train: {train_mean}"
+            )
+    return msg
 
 
 def fit_model(hparams: Dict[str, any],
@@ -75,6 +140,7 @@ def fit_model(hparams: Dict[str, any],
               sample_train_keys: pd.Index,
               sample_val_keys: pd.Index,
               hyperopt_artifact_path: str) -> float:
+    trial = trials.trials[-1]
     trial_no = len(trials.trials)
     msg = f"Hyperopt trial {trial_no}. Hyperparameters:\n"
     for param, value in hparams.items():
@@ -150,7 +216,6 @@ def fit_model(hparams: Dict[str, any],
 
     eval_time = time.time() - start_time
     formatted_time = str(timedelta(seconds=eval_time))
-    msg = f"Hyperopt trial {trial_no} – eval_time: {formatted_time} - status: {status} - loss: {loss}"
     metrics_results = {
         f"{metric_name}_valid": val_score_mean,
         f"{metric_name}_train": train_score_mean,
@@ -160,26 +225,9 @@ def fit_model(hparams: Dict[str, any],
             f"{metric_name}_std_valid": val_score_std,
             f"{metric_name}_std_train": train_score_std,
         })
-        scores_df = pd.DataFrame({
-            f"valid": map(partial(round_decimal, significant_digits=3), val_scores),
-            f"train": map(partial(round_decimal, significant_digits=3), train_scores)
-        })
-        scores_df.index.name = "fold"
-        msg = (
-            f"{msg}\n"
-            f"{metric_name}_valid: {round_decimal(val_score_mean, 3)} ± {round_decimal(val_score_std, 3)} (std)\n"
-            f"{metric_name}_train: {round_decimal(train_score_mean, 3)} ± {round_decimal(train_score_std, 3)} (std)\n"
-            f"{metric_name}_scores:\n{scores_df}"
-        )
-    else:
-        msg = (
-            f"{msg}\n"
-            f"{metric_name}_valid: {round_decimal(val_score_mean, 3)}\n"
-            f"{metric_name}_train: {round_decimal(train_score_mean, 3)}"
-        )
-    logger.info(msg)
 
     attachments = {
+        "metric_name": metric_name,
         "metrics": metrics_results,
         "train_scores": train_scores,
         "valid_scores": val_scores,
@@ -191,8 +239,10 @@ def fit_model(hparams: Dict[str, any],
         "status": status,
         "loss": loss,
     }
-    trials.trials[-1]["attachments"] = attachments
-    trials.trials[-1]["result"] = trial_result
+    trial["attachments"] = attachments
+    trial["result"] = trial_result
+    msg = create_hyperopt_result_message(trial)
+    logger.info(msg)
     log_trials_info_to_mlflow(trials, space, log_folds_metrics=config.ds.hopt_cv_enabled,
                               artifact_path=hyperopt_artifact_path)
     return {
@@ -204,7 +254,7 @@ def fit_model(hparams: Dict[str, any],
 def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
                    sample_target_df: pd.DataFrame, sample_train_keys: pd.Index,
                    sample_val_keys: pd.Index, hyperopt_artifact_path: str,
-                   save_best_hparams_in_mlfow: bool = True) -> Dict[str, Any]:
+                   save_best_hparams_in_mlfow: bool = True) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     match config.ds.hopt_algo:
         case HyperoptAlgoEnum.TPE:
             hopt_algo = hyperopt.tpe.suggest
@@ -239,11 +289,12 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
         trials=trials,
         rstate=np.random.default_rng(config.ds.hopt_fmin_random_seed)
     )
-    best_hparams = space_eval(hparam_space, hp_assignment)
+    best_trial = get_best_trial(trials)
+    best_hparams = get_hparams_from_trial(best_trial, hparam_space)
 
     if save_best_hparams_in_mlfow:
         mlflow.log_dict(best_hparams, f"{_hypertune_artifact_path}/best_hparams.yml")
-    return best_hparams
+    return best_trial, best_hparams
 
 
 def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFrame],
@@ -260,10 +311,12 @@ def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFram
         logger.info(
             f"Tuning the hyper parameters of the predictive model on partition '{part}' of the sample dataset...")
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-            best_hparams_part = hypertune_part(config, selected_sample_features_part_df, sample_target_part_df,
+            best_trial_part, best_hparams_part = hypertune_part(config, selected_sample_features_part_df, sample_target_part_df,
                                                sample_train_keys_part, sample_val_keys_part,
-                                               hyperopt_artifact_path=f"{_hypertune_artifact_path}/{part}")
+                                               hyperopt_artifact_path=f"{_hypertune_artifact_path}")
             best_hparams[part] = best_hparams_part
+            msg = create_hyperopt_result_message(best_trial_part, is_best=True)
+            logger.info(msg)
             msg = f"The best hyperparameters for partition '{part}':\n"
             for param, value in best_hparams_part.items():
                 msg += f"    - {param}: {value}\n"

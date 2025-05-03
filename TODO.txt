@@ -5,11 +5,16 @@ TODO – programowanie i eksperymenty:
 1.5.  [DONE] Przepisać kalibrację tak, aby korzystała z modeli predykcyjnych z pipeline'u ds - może jakieś wielodziedziczenie (wystarczy coś zrobić z dwiema zmiennymi: target_col i pred_col).
 2.    [ZAWIESZONE] Dodać statsmodels.discrete.count_model.ZeroInflatedGeneralizedPoisson dla częstotliwości
 3.    [DONE] Ogarnąć wszystko dla TweediegoGLM (w przypadku Tweediego w kalibracji trzeba będzie zrobić mikro hyperopta – już nie trzeba, bo nie da się kalibrować dla powe linka - ujemne wartości w regresji -> wywala błąd)
-4.    Sprawdzić poprawność obliczania giniego (gini nie powinien być równy 1 dla trywialnego modelu - constant)
-5.    Wykres krzywej lorentza
-6.    Przeprowadzić eksperymenty – częstotliwość, średnia szkoda i pure premium - z cross walidacją
-7.    Model łączący modele na częstotliwość i średnią szkodę.
-8.    rozkłady średniej predykcji i średniego targetu w percentylach
+4.    [DONE] Sprawdzić poprawność obliczania giniego (gini nie powinien być równy 1 dla trywialnego modelu - constant)
+5.    [DONE] Wykres krzywej lorentza
+6.    [DONE] Zdebugować hyperopta dla parametru alpha
+7.    Rozdzielić w p07_ds zbiór próbkowy na train/val - logować metryki na tych dwóch zbiorach
+8.    Napisać p09_train, który w analogii do p09_test, obliczy nieskalibrowane i skalibrowane predykcje na całym zbiorze treningowym (train_keys) - logować do mlflow
+9.    Napisać outlier_policy: keep, clip, drop - dla sample, calib i test (uwspólnić kod)
+10.   Dodać zmienne binarne dla przedziałów pojemności silnika itp.
+11.   Przeprowadzić eksperymenty – częstotliwość, średnia szkoda i pure premium - z cross walidacją
+12.   Model łączący modele na częstotliwość i średnią szkodę.
+13.   rozkłady średniej predykcji i średniego targetu w percentylach
 
 TODO - tekst:
-0. Ewaluacja (gini)
+0. Ewaluacja (gini, lorentz, CC, krzywa kalibracji)
