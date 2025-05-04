@@ -14,9 +14,9 @@ from claim_modelling_kedro.pipelines.utils.utils import get_partition, save_pred
 logger = logging.getLogger(__name__)
 
 
-def test_model_and_compute_stats(config: Config, calibrated_calib_predictions_df: Dict[str, pd.DataFrame],
-                                 features_df: Dict[str, pd.DataFrame], target_df: Dict[str, pd.DataFrame],
-                                 test_keys: Dict[str, pd.Index]) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
+def eval_model_on_test_and_compute_stats(config: Config, calibrated_calib_predictions_df: Dict[str, pd.DataFrame],
+                                         features_df: Dict[str, pd.DataFrame], target_df: Dict[str, pd.DataFrame],
+                                         test_keys: Dict[str, pd.Index]) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
     """
     calibrated_calib_predictions_df is only used to force the pipeline order (p09 after p08)
     """
@@ -57,3 +57,48 @@ def test_model_and_compute_stats(config: Config, calibrated_calib_predictions_df
                          log_metrics_to_mlflow=True, save_metrics_table=True)
 
     return calibrated_test_predictions_df, test_target_df
+
+
+def eval_model_on_train_and_compute_stats(config: Config, calibrated_calib_predictions_df: Dict[str, pd.DataFrame],
+                                          features_df: Dict[str, pd.DataFrame], target_df: Dict[str, pd.DataFrame],
+                                          train_keys: Dict[str, pd.Index]) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
+    """
+    calibrated_calib_predictions_df is only used to force the pipeline order (p09 after p08)
+    """
+    logger.info("Prepare train dataset...")
+    train_target_df = {}
+    train_features_df = {}
+    for part in train_keys.keys():
+        train_part_keys = get_partition(train_keys, part)
+        train_target_df[part] = target_df.loc[train_part_keys, :]
+        train_features_df[part] = features_df.loc[train_part_keys, :]
+
+    # Remove outliers from the calibration dataset
+    train_features_df_without_outliers, train_trg_df_without_outliers = remove_test_outliers(
+        config=config,
+        features_df=train_features_df,
+        target_df=train_target_df
+    )
+    # Transform the features
+    transformed_train_features_df = transform_features_by_mlflow_model(config, train_features_df_without_outliers,
+                                                                       mlflow_run_id=config.de.mlflow_run_id)
+    # Select features by the MLflow model
+    selected_train_features_df = select_features_by_mlflow_model(config, transformed_train_features_df,
+                                                                mlflow_run_id=config.ds.mlflow_run_id)
+    # Predict by the pure MLflow model
+    pure_train_predictions_df = predict_by_mlflow_model(config, selected_train_features_df,
+                                                       mlflow_run_id=config.ds.mlflow_run_id)
+    # Transform predictions by the MLFlow calibration model
+    calibrated_train_predictions_df = calibrate_predictions_by_mlflow_model(config, pure_train_predictions_df,
+                                                                           mlflow_run_id=config.clb.mlflow_run_id)
+
+    # Save the predictions and the target in MLFlow
+    save_predictions_and_target_in_mlflow(calibrated_train_predictions_df, train_target_df, dataset="train")
+
+    # Evaluate the predictions
+    evaluate_predictions(config, pure_train_predictions_df, train_target_df, dataset="train", prefix="pure",
+                         log_metrics_to_mlflow=True, save_metrics_table=True)
+    evaluate_predictions(config, calibrated_train_predictions_df, train_target_df, dataset="train",
+                         log_metrics_to_mlflow=True, save_metrics_table=True)
+
+    return calibrated_train_predictions_df, train_target_df
