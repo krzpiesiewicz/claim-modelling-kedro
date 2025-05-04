@@ -1,4 +1,6 @@
 import logging
+import os
+import tempfile
 from typing import Dict
 
 import mlflow
@@ -21,6 +23,11 @@ from claim_modelling_kedro.pipelines.utils.utils import get_partition, get_mlflo
 
 logger = logging.getLogger(__name__)
 
+
+# Define the artifact path for transformed features
+_de_artifact_path = "model_de"
+_transformed_numerical_features_filename = "numerical_features.txt"
+_transformed_categorical_features_filename = "categorical_features.txt"
 
 def assert_features_dfs_have_same_indexes(features_df, transformed_features_df):
     assert features_df.index.equals(
@@ -59,6 +66,21 @@ def fit_transform_features_part(config: Config, features_df: pd.DataFrame) -> pd
     # One-hot encode categorical features
     if config.de.is_ohe_enabled:
         categorical_features_df = fit_transform_one_hot_encoder(config, categorical_features_df)
+
+    # Save the transformed features in MLFlow
+    for transformed_features_df, features_name, features_filename in zip(
+            [categorical_features_df, numerical_features_df],
+            ["categorical", "numerical"],
+            [_transformed_categorical_features_filename, _transformed_numerical_features_filename]):
+        logger.info(f"Saving the transformed {features_name} features in MLFlow...")
+        with tempfile.TemporaryDirectory() as tempdir:
+            file_path = os.path.join(tempdir, features_filename)
+            with open(file_path, "w") as f:
+                content = "\n".join(transformed_features_df.columns.tolist())
+                f.write(content)
+            mlflow.log_artifact(file_path, _de_artifact_path)
+        logger.info(
+            f"Successfully saved the {features_name} features to MLFlow path {os.path.join(_de_artifact_path, features_filename)}")
 
     # Join categorical and numerical features
     transformed_features_df = join_features_dfs([categorical_features_df, numerical_features_df])
