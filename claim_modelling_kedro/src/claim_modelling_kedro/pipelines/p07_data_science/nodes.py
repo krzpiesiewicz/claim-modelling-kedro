@@ -7,7 +7,7 @@ from claim_modelling_kedro.pipelines.p07_data_science.hypertune import hypertune
 from claim_modelling_kedro.pipelines.p07_data_science.model import fit_transform_predictive_model, \
     evaluate_predictions
 from claim_modelling_kedro.pipelines.p07_data_science.select import fit_transform_features_selector
-from claim_modelling_kedro.pipelines.utils.utils import save_predictions_and_target_in_mlflow
+from claim_modelling_kedro.pipelines.utils.dataframes import save_predictions_and_target_in_mlflow
 
 
 def fit_features_selector(config: Config, transformed_sample_features_df: Dict[str, pd.DataFrame],

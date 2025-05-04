@@ -13,7 +13,7 @@ from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveMod
 from claim_modelling_kedro.pipelines.p07_data_science.models import StatsmodelsGLM
 from claim_modelling_kedro.pipelines.p07_data_science.models.sklearn_model import SklearnModel
 from claim_modelling_kedro.pipelines.utils.metrics import Metric, RootMeanSquaredError
-from claim_modelling_kedro.pipelines.utils.utils import assert_pandas_no_lacking_indexes, trunc_target_index, \
+from claim_modelling_kedro.pipelines.utils.dataframes import assert_pandas_no_lacking_indexes, trunc_target_index, \
     preds_as_dataframe_with_col_name
 
 

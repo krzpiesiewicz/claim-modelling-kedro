@@ -8,7 +8,8 @@ from claim_modelling_kedro.pipelines.p06_data_engineering.utils import transform
 from claim_modelling_kedro.pipelines.p07_data_science.model import predict_by_mlflow_model, evaluate_predictions
 from claim_modelling_kedro.pipelines.p07_data_science.select import select_features_by_mlflow_model
 from claim_modelling_kedro.pipelines.p08_model_calibration.utils import calibrate_predictions_by_mlflow_model
-from claim_modelling_kedro.pipelines.utils.utils import get_partition, save_predictions_and_target_in_mlflow
+from claim_modelling_kedro.pipelines.utils.datasets import get_partition
+from claim_modelling_kedro.pipelines.utils.dataframes import save_predictions_and_target_in_mlflow
 
 logger = logging.getLogger(__name__)
 

@@ -19,7 +19,7 @@ from claim_modelling_kedro.pipelines.p06_data_engineering.utils.onehot_encoder i
 from claim_modelling_kedro.pipelines.p06_data_engineering.utils.scaler import fit_transform_scaler, \
     scale_features_by_mlflow_model
 from claim_modelling_kedro.pipelines.p06_data_engineering.utils.utils import split_categories_and_numerics, join_features_dfs
-from claim_modelling_kedro.pipelines.utils.utils import get_partition, get_mlflow_run_id_for_partition
+from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
 
 logger = logging.getLogger(__name__)
 

@@ -16,9 +16,10 @@ from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveMod
 from claim_modelling_kedro.pipelines.utils.metrics import Metric
 from claim_modelling_kedro.pipelines.utils.stratified_cv_split import get_stratified_train_test_cv
 from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_test_split_keys
-from claim_modelling_kedro.pipelines.utils.utils import get_partition, get_mlflow_run_id_for_partition, \
-    get_class_from_path, \
-    round_decimal, save_pd_dataframe_as_csv_in_mlflow
+from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
+from claim_modelling_kedro.pipelines.utils.utils import get_class_from_path, \
+    round_decimal
+from claim_modelling_kedro.pipelines.utils.dataframes import save_pd_dataframe_as_csv_in_mlflow
 
 logger = logging.getLogger(__name__)
 

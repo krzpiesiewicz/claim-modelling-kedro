@@ -1,7 +1,7 @@
 from kedro.framework.hooks import hook_impl
 from kedro.io import DataCatalog
 
-from claim_modelling_kedro.pipelines.utils.utils import remove_dataset
+from claim_modelling_kedro.pipelines.utils.datasets import remove_dataset
 
 
 _catolog = None

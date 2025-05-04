@@ -12,9 +12,12 @@ from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum
 from claim_modelling_kedro.pipelines.utils.metrics import Metric
 from claim_modelling_kedro.pipelines.utils.mlflow_model import MLFlowModelLogger, MLFlowModelLoader
-from claim_modelling_kedro.pipelines.utils.utils import get_class_from_path, assert_pandas_no_lacking_indexes, \
-    trunc_target_index, preds_as_dataframe_with_col_name, get_partition, get_mlflow_run_id_for_partition, \
+from claim_modelling_kedro.pipelines.utils.utils import get_class_from_path
+from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
+from claim_modelling_kedro.pipelines.utils.dataframes import (
+    assert_pandas_no_lacking_indexes, trunc_target_index, preds_as_dataframe_with_col_name,
     save_metrics_table_in_mlflow, save_metrics_cv_stats_in_mlflow
+)
 
 logger = logging.getLogger(__name__)
 
