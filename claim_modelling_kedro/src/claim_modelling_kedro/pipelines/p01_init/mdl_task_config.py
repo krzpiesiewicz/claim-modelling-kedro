@@ -65,9 +65,7 @@ class ModelTask:
                                            MetricEnum.MBD, MetricEnum.CLNB_WEIGHTED_MBD,
                                            MetricEnum.SPEARMAN, MetricEnum.CLNB_WEIGHTED_SPEARMAN,
                                            MetricEnum.GINI, MetricEnum.CLNB_WEIGHTED_GINI,
-                                           MetricEnum.CC, MetricEnum.CLNB_WEIGHTED_CC] + \
-                                          [TWEEDIE_DEV(p) for p in [1.2, 1.5, 1.7, 1.9]] + \
-                                          [CLNB_WEIGHTED_TWEEDIE_DEV(p) for p in [1.2, 1.5, 1.7, 1.9]]
+                                           MetricEnum.CC, MetricEnum.CLNB_WEIGHTED_CC]
             case Target.PURE_PREMIUM:
                 self.target_col = data.claims_pure_premium_target_col
                 self.prediction_col = data.claims_pure_premium_pred_col
