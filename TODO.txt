@@ -8,9 +8,9 @@ TODO – programowanie i eksperymenty:
 4.    [DONE] Sprawdzić poprawność obliczania giniego (gini nie powinien być równy 1 dla trywialnego modelu - constant)
 5.    [DONE] Wykres krzywej lorentza
 6.    [DONE] Zdebugować hyperopta dla parametru alpha
-7.    Rozdzielić w p07_ds zbiór próbkowy na train/val - logować metryki na tych dwóch zbiorach
-8.    Napisać p09_train, który w analogii do p09_test, obliczy nieskalibrowane i skalibrowane predykcje na całym zbiorze treningowym (train_keys) - logować do mlflow
-9.    Napisać outlier_policy: keep, clip, drop - dla sample, calib i test (uwspólnić kod)
+7.    [DONE] Rozdzielić w p07_ds zbiór próbkowy na train/val - logować metryki na tych dwóch zbiorach
+8.    [DONE] Napisać p09_train, który w analogii do p09_test, obliczy nieskalibrowane i skalibrowane predykcje na całym zbiorze treningowym (train_keys) - logować do mlflow
+9.    [DONE] Napisać outlier_policy: keep, clip, drop - dla sample, calib i test (uwspólnić kod)
 10.   Dodać zmienne binarne dla przedziałów pojemności silnika itp.
 11.   Selekcja cech za pomocą GLM (Poisson, Gamma... zamiast Lasso)
 12.   Przeprowadzić eksperymenty – częstotliwość, średnia szkoda i pure premium - z cross walidacją

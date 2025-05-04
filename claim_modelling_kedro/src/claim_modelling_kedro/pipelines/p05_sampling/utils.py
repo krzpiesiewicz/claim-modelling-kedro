@@ -19,22 +19,22 @@ def return_none() -> None:
     return None
 
 
-def remove_outliers(
+def handle_outliers(
         config: Config,
         train_keys: pd.Index,
         target_df: pd.DataFrame
-) -> Tuple[pd.Index, pd.DataFrame]:
-    from claim_modelling_kedro.pipelines.utils.outliers import remove_outliers as _remove_outliers
+) -> pd.DataFrame:
+    from claim_modelling_kedro.pipelines.utils.outliers import handle_outliers as _handle_outliers
 
-    train_keys_without_outliers, train_trg_df_without_outliers = _remove_outliers(
+    train_trg_df_handled_outliers, *_ = _handle_outliers(
         keys=train_keys,
         target_df=target_df,
         target_col=config.mdl_task.target_col,
-        lower_bound=config.smpl.lower_bound,
-        upper_bound=config.smpl.upper_bound,
-        dataset_name="sample"
+        outliers_conf=config.smpl.outliers,
+        dataset_name="sample",
+        verbose=True
     )
-    return train_keys_without_outliers, train_trg_df_without_outliers
+    return train_trg_df_handled_outliers
 
 
 def assert_train_size_gte_given_config_sample_size(config: Config, train_trg_df: pd.DataFrame) -> pd.DataFrame:
@@ -60,7 +60,7 @@ def get_actual_target_ratio(config: Config, sample_trg_df: pd.DataFrame,
 
 def get_all_samples(config: Config, target_df: pd.DataFrame, train_keys: pd.Index) -> pd.Index:
     train_size = len(train_keys)
-    logger.info(f"""No sampling. All train observations except outliers will be used => sample size: ({train_size})""")
+    logger.info(f"""No sampling. All train observations (except outliers if policy is drop) will be used => sample size: ({train_size})""")
     return train_keys
 
 

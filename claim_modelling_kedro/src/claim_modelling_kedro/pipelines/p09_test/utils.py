@@ -14,44 +14,42 @@ from claim_modelling_kedro.pipelines.utils.dataframes import save_predictions_an
 logger = logging.getLogger(__name__)
 
 
-def remove_test_outliers_part(
+def handle_outliers_part(
         config: Config,
         features_df: pd.DataFrame,
         target_df: pd.DataFrame
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    from claim_modelling_kedro.pipelines.utils.outliers import remove_outliers as _remove_outliers
+    from claim_modelling_kedro.pipelines.utils.outliers import handle_outliers as _handle_outliers
 
-    # Remove outliers from the test dataset
-    logger.info("Removing outliers from the test dataset...")
-    keys_without_outliers, trg_df_without_outliers = _remove_outliers(
+    # Handle outliers in the test dataset
+    trg_df_handled_outliers, *_ = _handle_outliers(
         target_df=target_df,
         target_col=config.mdl_task.target_col,
-        lower_bound=config.test.lower_bound,
-        upper_bound=config.test.upper_bound,
-        dataset_name="test"
+        outliers_conf=config.test.outliers,
+        dataset_name="test",
+        verbose=True
     )
-    features_df_without_outliers = features_df.loc[keys_without_outliers, :]
-    logger.info("Removed the outliers.")
-    return features_df_without_outliers, trg_df_without_outliers
+    features_df_handled_outliers = features_df.loc[trg_df_handled_outliers.index, :]
+    return features_df_handled_outliers, trg_df_handled_outliers
 
 
-def remove_test_outliers(
+def handle_outliers(
         config: Config,
         features_df: Dict[str, pd.DataFrame],
         target_df: Dict[str, pd.DataFrame]
 ) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
-    features_df_without_outliers = {}
-    target_df_without_outliers = {}
-    logger.info("Removing outliers from the test dataset...")
+    features_df_handled_outliers = {}
+    target_df_handled_outliers = {}
+    logger.info("Handling outliers in the test dataset...")
     for part in features_df.keys():
         features_part_df = get_partition(features_df, part)
         target_part_df = get_partition(target_df, part)
-        logger.info(f"Removing outliers from partition '{part}' of the test dataset...")
-        features_df_without_outliers[part], target_df_without_outliers[part] = remove_test_outliers_part(
+        logger.info(f"Handling outliers in partition '{part}' of the test dataset...")
+        features_df_handled_outliers[part], target_df_handled_outliers[part] = handle_outliers_part(
             config, features_part_df, target_part_df
         )
-    logger.info("Removed the outliers.")
-    return features_df_without_outliers, target_df_without_outliers
+    logger.info("Handled the outliers in the test dataset.")
+    return features_df_handled_outliers, target_df_handled_outliers
 
 
 def run_eval_pipeline(
@@ -69,7 +67,7 @@ def run_eval_pipeline(
         part_target_df[part] = target_df.loc[part_keys, :]
         part_features_df[part] = features_df.loc[part_keys, :]
 
-    features_wo_outliers, target_wo_outliers = remove_test_outliers(
+    features_wo_outliers, target_wo_outliers = handle_outliers(
         config=config,
         features_df=part_features_df,
         target_df=part_target_df

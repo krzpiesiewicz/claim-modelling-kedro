@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Dict, Any
 
 from claim_modelling_kedro.pipelines.p01_init.mdl_task_config import ModelTask
+from claim_modelling_kedro.pipelines.p01_init.outliers_config import OutliersConfig
 
 
 class CalibrationMethod(Enum):
@@ -23,8 +24,7 @@ class CalibrationConfig:
     method: CalibrationMethod
     model_class: str
     model_const_hparams: Dict[str, Any]
-    lower_bound: float
-    upper_bound: float
+    outliers: OutliersConfig
     pure_prediction_col: str
     calibrated_prediction_col: str
 
@@ -33,8 +33,6 @@ class CalibrationConfig:
         self.mlflow_run_id = params["mlflow_run_id"]
         self.enabled = params["enabled"]
         self.method = CalibrationMethod(params["method"])
-        self.lower_bound = params["lower_bound"]
-        self.upper_bound = params["upper_bound"]
         self.pure_prediction_col = "pure_" + mdl_task.prediction_col
         self.calibrated_prediction_col = "calibrated_" + mdl_task.prediction_col
         match self.method:
@@ -63,3 +61,4 @@ class CalibrationConfig:
             self.model_const_hparams = {k: v for k, v in params["const_hparams"][self.method.value].items() if v is not None}
         else:
             self.model_const_hparams = {}
+        self.outliers = OutliersConfig(params["outliers"])

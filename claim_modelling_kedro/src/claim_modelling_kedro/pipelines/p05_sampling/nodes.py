@@ -8,7 +8,7 @@ from pandera.typing import Series
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p05_sampling.utils import sample_with_no_condition, \
-    sample_with_target_ratio, get_all_samples, remove_outliers, get_actual_target_ratio, return_none
+    sample_with_target_ratio, get_all_samples, handle_outliers, get_actual_target_ratio, return_none
 from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_test_split_keys
 from claim_modelling_kedro.pipelines.utils.datasets import get_mlflow_run_id_for_partition, get_partition
 
@@ -27,24 +27,23 @@ def sample_part(
     if config.smpl.use_calib_data:
         train_keys = train_keys.union(calib_keys)
         logger.info(f"Using also the calibration data for sampling.")
-    # Remove outliers from the train dataset
-    train_keys_without_outliers, train_trg_df_without_outliers = remove_outliers(config=config, train_keys=train_keys,
-                                                                                 target_df=target_df)
+    # Handle outliers in the train dataset
+    train_trg_df_handled_outliers = handle_outliers(config=config, train_keys=train_keys, target_df=target_df)
     if config.smpl.target_ratio is not None and is_event is not return_none:
         # Sample with target ratio condition
         sample_keys = sample_with_target_ratio(config=config,
-                                               target_df=train_trg_df_without_outliers,
-                                               train_keys=train_keys_without_outliers,
+                                               target_df=train_trg_df_handled_outliers,
+                                               train_keys=train_trg_df_handled_outliers.index,
                                                is_event=is_event)
     elif config.smpl.n_obs is not None:
         # Sample without any condition
         sample_keys = sample_with_no_condition(config=config,
-                                               target_df=train_trg_df_without_outliers,
-                                               train_keys=train_keys_without_outliers)
+                                               target_df=train_trg_df_handled_outliers,
+                                               train_keys=train_trg_df_handled_outliers.index)
     else:  # No sampling
         sample_keys = get_all_samples(config=config,
-                                      target_df=train_trg_df_without_outliers,
-                                      train_keys=train_keys_without_outliers)
+                                      target_df=train_trg_df_handled_outliers,
+                                      train_keys=train_trg_df_handled_outliers.index)
 
     sample_features_df = features_df.loc[sample_keys, :]
     sample_target_df = target_df.loc[sample_keys, :]

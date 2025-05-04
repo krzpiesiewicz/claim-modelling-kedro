@@ -7,7 +7,7 @@ from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p06_data_engineering.utils import transform_features_by_mlflow_model
 from claim_modelling_kedro.pipelines.p07_data_science.model import predict_by_mlflow_model, evaluate_predictions
 from claim_modelling_kedro.pipelines.p07_data_science.select import select_features_by_mlflow_model
-from claim_modelling_kedro.pipelines.p08_model_calibration.utils import remove_calib_outliers, \
+from claim_modelling_kedro.pipelines.p08_model_calibration.utils import handle_outliers, \
     fit_transform_calibration_model
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition
 from claim_modelling_kedro.pipelines.utils.dataframes import save_predictions_and_target_in_mlflow
@@ -30,15 +30,15 @@ def fit_calibration_model(config: Config, pure_sample_predictions_df: Dict[str, 
             calib_target_df[part] = target_df.loc[calib_part_keys, :]
             calib_features_df[part] = features_df.loc[calib_part_keys, :]
 
-        # Remove outliers from the calibration dataset
-        calib_features_df_without_outliers, calib_trg_df_without_outliers = remove_calib_outliers(
+        # Handle outliers in the calibration dataset
+        calib_features_df_handled_outliers, calib_trg_df_handled_outliers = handle_outliers(
             config=config,
             features_df=calib_features_df,
             target_df=calib_target_df
         )
         # Transform the features
         transformed_calib_features_df = transform_features_by_mlflow_model(config,
-                                                                           calib_features_df_without_outliers,
+                                                                           calib_features_df_handled_outliers,
                                                                            mlflow_run_id=config.de.mlflow_run_id)
         # Select features by the MLflow model
         selected_calib_features_df = select_features_by_mlflow_model(config, transformed_calib_features_df,
@@ -48,7 +48,7 @@ def fit_calibration_model(config: Config, pure_sample_predictions_df: Dict[str, 
                                                             mlflow_run_id=config.ds.mlflow_run_id)
         # Fit the calibration model and transform the predictions
         calibrated_calib_predictions_df = fit_transform_calibration_model(config, pure_calib_predictions_df,
-                                                                          calib_trg_df_without_outliers)
+                                                                          calib_trg_df_handled_outliers)
         # Save the predictions and the target in MLFlow
         save_predictions_and_target_in_mlflow(calibrated_calib_predictions_df, calib_target_df, dataset="calib")
 
@@ -69,15 +69,15 @@ def fit_calibration_model(config: Config, pure_sample_predictions_df: Dict[str, 
     #         # Get calib target
     #         calib_target_df = target_df.loc[calib_part_keys, :]
     #         calib_features_df = features_df.loc[calib_part_keys, :]
-    #         # Remove outliers from the calibration dataset
-    #         calib_features_df_without_outliers, calib_trg_df_without_outliers = remove_calib_outliers(
+    #         # Handle outliers in the calibration dataset
+    #         calib_features_df_handled_outliers, calib_trg_df_handled_outliers = remove_calib_outliers(
     #             config=config,
     #             features_df=calib_features_df,
     #             target_df=calib_target_df
     #         )
     #         # Transform the features
     #         transformed_calib_features_df = transform_features_by_mlflow_model_part(config,
-    #                                                                             calib_features_df_without_outliers,
+    #                                                                             calib_features_df_handled_outliers,
     #                                                                             mlflow_run_id=config.de.mlflow_run_id)
     #         # Select features by the MLflow model
     #         selected_calib_features_df = select_features_by_mlflow_model_part(config, transformed_calib_features_df,
@@ -87,7 +87,7 @@ def fit_calibration_model(config: Config, pure_sample_predictions_df: Dict[str, 
     #                                                             mlflow_run_id=config.ds.mlflow_run_id)
     #         # Fit the calibration model and transform the predictions
     #         calibrated_calib_predictions_df = fit_transform_calibration_model_part(config, pure_calib_predictions_df,
-    #                                                                           calib_trg_df_without_outliers)
+    #                                                                           calib_trg_df_handled_outliers)
     #     return calibrated_calib_predictions_df
     # else:
     #     return pure_sample_predictions_df

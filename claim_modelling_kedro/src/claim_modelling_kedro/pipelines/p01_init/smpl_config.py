@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Dict
 
+from claim_modelling_kedro.pipelines.p01_init.outliers_config import OutliersConfig
+
 
 @dataclass
 class SamplingConfig:
@@ -10,8 +12,7 @@ class SamplingConfig:
     target_ratio: float
     allow_lower_ratio: bool
     include_zeros: bool
-    lower_bound: float
-    upper_bound: float
+    outliers: OutliersConfig
 
     def __init__(self, parameters: Dict):
         params = parameters["sampling"]
@@ -21,5 +22,4 @@ class SamplingConfig:
         self.target_ratio = params["target_ratio"]
         self.allow_lower_ratio = params["allow_lower_ratio"]
         self.include_zeros = params["include_zeros"]
-        self.lower_bound = params["lower_bound"]
-        self.upper_bound = params["upper_bound"]
+        self.outliers = OutliersConfig(params["outliers"])
