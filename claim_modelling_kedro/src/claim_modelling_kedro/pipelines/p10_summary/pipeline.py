@@ -1,6 +1,6 @@
 from kedro.pipeline import Pipeline, pipeline, node
 
-from claim_modelling_kedro.pipelines.p10_executive_summary.nodes import load_test_predictions, create_stats_tables
+from claim_modelling_kedro.pipelines.p10_summary.nodes import load_test_predictions, create_stats_tables
 
 
 
