@@ -43,7 +43,9 @@ class AllCustomFeaturesCreatorModel():
 
     def fit(self, features_df: pd.DataFrame) -> None:
         for model in self.models:
+            logger.info(f"Fitting {model.ftr_config.model_class} for a new feature {model.ftr_config.name}...")
             model.fit(features_df)
+            logger.info(f"Fitted {model.ftr_config.model_class}.")
 
     def transform(self, features_df: pd.DataFrame) -> pd.DataFrame:
         custom_features_dfs = [model.transform(features_df) for model in self.models]
@@ -76,7 +78,37 @@ def fit_transform_custom_features_creator(config: Config, features_df: pd.DataFr
     return _create_custom_features(features_df, creator=creator)
 
 
-class DrivAgeCategoryCreatorModel(CustomFeatureCreatorModel):
+def create_category_feature(
+    features_df: pd.DataFrame,
+    column: str,
+    intervals: list,
+    labels: list = None,
+    right: bool = False,
+    new_column: str = None
+) -> pd.DataFrame:
+    # Generowanie etykiet, jeśli nie podano
+    if labels is None:
+        labels = []
+        for i in range(len(intervals) - 1):
+            left = intervals[i]
+            right_ = intervals[i + 1]
+            left_str = "-infty" if left == float("-inf") else str(left)
+            right_str = "infty" if right_ == float("inf") else str(right_)
+            if right:
+                label = f"({left_str},{right_str}]"
+            else:
+                label = f"[{left_str},{right_str})"
+            labels.append(label)
+    # Kategoryzacja
+    category = pd.cut(features_df[column], bins=intervals, labels=labels, right=right)
+    # Zamiana NaN na None
+    category = category.where(~category.isna(), None)
+    category_df = pd.DataFrame()
+    category_df[new_column or f"{column}Category"] = category
+    return category_df
+
+
+class DrivAgeCreatorModel(CustomFeatureCreatorModel):
     def __init__(self, ftr_config: CustomFeatureConfig):
         super().__init__(ftr_config)
 
@@ -84,19 +116,28 @@ class DrivAgeCategoryCreatorModel(CustomFeatureCreatorModel):
         pass
 
     def _transform(self, features_df: pd.DataFrame) -> pd.DataFrame:
-        return self._age_category(features_df)
-
-    def _age_category(self, features_df: pd.DataFrame) -> pd.DataFrame:
-        # Define the age intervals
         age_intervals = [18, 21, 26, 31, 41, 51, 71, float("inf")]
+        return create_category_feature(
+            features_df,
+            column="DrivAge",
+            intervals=age_intervals,
+            right=False,
+            new_column=self.ftr_config.name # we replace the original column with the new one
+        )
 
-        # Generate age_labels based on age_intervals
-        age_labels = [f"{age_intervals[i]}-{age_intervals[i + 1] - 1}" for i in range(len(age_intervals) - 1)]
-        # Replace '-inf' with '-infty' in the last label
-        age_labels[-1] = age_labels[-1].replace("inf", "infty")
+class VehAgeCreatorModel(CustomFeatureCreatorModel):
+    def __init__(self, ftr_config: CustomFeatureConfig):
+        super().__init__(ftr_config)
 
-        # Create a new DataFrame 'DrivAgeCategory' by cutting the 'DrivAge' column into intervals
-        driv_age_category_df = pd.DataFrame()
-        driv_age_category_df["DrivAgeCategory"] = pd.cut(features_df["DrivAge"], bins=age_intervals, labels=age_labels,
-                                                         right=False)
-        return driv_age_category_df
+    def fit(self, features_df: pd.DataFrame) -> None:
+        pass
+
+    def _transform(self, features_df: pd.DataFrame) -> pd.DataFrame:
+        veh_age_intervals = [0, 1, 10, float("inf")]
+        return create_category_feature(
+            features_df,
+            column="VehAge",
+            intervals=veh_age_intervals,
+            right=False,
+            new_column=self.ftr_config.name # we replace the original column with the new one
+        )

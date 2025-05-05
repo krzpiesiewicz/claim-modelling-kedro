@@ -42,7 +42,7 @@ data:
     # test_size has to be greater than 0.
     # => train_size = 1 - calib_data_size - calib_data_size (train_size has to be greater than 0)
   cross_validation:
-    enabled: True # whether to use cross-validation
+    enabled: False # whether to use cross-validation
     folds: 5 # the number of folds in cross-validation (repetitions of data splitting)
     # minimum number of folds is 3
     # test_size = 1 / folds
@@ -70,11 +70,16 @@ data_engineering:
   custom_features:
     enabled: True # whether to use custom features
     features: # the list of custom features
-      - name: "DrivAgeCategory"
+      - name: "DrivAge"
         type: "categorical"
         single_column: False
         description: "The category of driver's age"
-        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.DrivAgeCategoryCreatorModel
+        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.DrivAgeCreatorModel
+      - name: "VehAge"
+        type: "categorical"
+        single_column: False
+        description: "The category of driver's age"
+        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.VehAgeCreatorModel
       # Example entry below
 #      - name: str # e.g. "MyCustomFeature"
 #        type: str # "categorical" or "numerical"
