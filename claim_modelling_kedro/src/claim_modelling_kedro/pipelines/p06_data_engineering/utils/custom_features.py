@@ -1,8 +1,8 @@
-import importlib
 import logging
 from abc import ABC, abstractmethod
 from typing import List
 
+import numpy as np
 import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
@@ -49,7 +49,9 @@ class AllCustomFeaturesCreatorModel():
 
     def transform(self, features_df: pd.DataFrame) -> pd.DataFrame:
         custom_features_dfs = [model.transform(features_df) for model in self.models]
-        return pd.concat([features_df] + custom_features_dfs, axis=1)
+        custom_columns = [col for df in custom_features_dfs for col in df.columns]
+        features_df_wo_custom = features_df.drop(columns=custom_columns, errors="ignore")
+        return pd.concat([features_df_wo_custom] + custom_features_dfs, axis=1)
 
 
 def _create_custom_features(features_df: pd.DataFrame, creator) -> pd.DataFrame:
@@ -171,3 +173,14 @@ class BonusMalusCreatorModel(CustomFeatureCreatorModel):
 
     def _transform(self, features_df: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame({self.ftr_config.name: features_df.BonusMalus.clip(upper=150)})
+
+
+class DensityCreatorModel(CustomFeatureCreatorModel):
+    def __init__(self, ftr_config: CustomFeatureConfig):
+        super().__init__(ftr_config)
+
+    def fit(self, features_df: pd.DataFrame) -> None:
+        pass
+
+    def _transform(self, features_df: pd.DataFrame) -> pd.DataFrame:
+        return pd.DataFrame({self.ftr_config.name: np.log(features_df.Density)})
