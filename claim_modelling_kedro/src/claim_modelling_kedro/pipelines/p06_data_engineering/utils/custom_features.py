@@ -160,3 +160,14 @@ class VehPowerCreatorModel(CustomFeatureCreatorModel):
             right=False,
             new_column=self.ftr_config.name # we replace the original column with the new one
         )
+
+
+class BonusMalusCreatorModel(CustomFeatureCreatorModel):
+    def __init__(self, ftr_config: CustomFeatureConfig):
+        super().__init__(ftr_config)
+
+    def fit(self, features_df: pd.DataFrame) -> None:
+        pass
+
+    def _transform(self, features_df: pd.DataFrame) -> pd.DataFrame:
+        return pd.DataFrame({self.ftr_config.name: features_df.BonusMalus.clip(upper=150)})
