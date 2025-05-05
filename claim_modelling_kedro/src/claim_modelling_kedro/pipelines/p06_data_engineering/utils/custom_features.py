@@ -125,6 +125,7 @@ class DrivAgeCreatorModel(CustomFeatureCreatorModel):
             new_column=self.ftr_config.name # we replace the original column with the new one
         )
 
+
 class VehAgeCreatorModel(CustomFeatureCreatorModel):
     def __init__(self, ftr_config: CustomFeatureConfig):
         super().__init__(ftr_config)
@@ -138,6 +139,24 @@ class VehAgeCreatorModel(CustomFeatureCreatorModel):
             features_df,
             column="VehAge",
             intervals=veh_age_intervals,
+            right=False,
+            new_column=self.ftr_config.name # we replace the original column with the new one
+        )
+
+
+class VehPowerCreatorModel(CustomFeatureCreatorModel):
+    def __init__(self, ftr_config: CustomFeatureConfig):
+        super().__init__(ftr_config)
+
+    def fit(self, features_df: pd.DataFrame) -> None:
+        pass
+
+    def _transform(self, features_df: pd.DataFrame) -> pd.DataFrame:
+        veh_power_intervals = list(range(4, 10)) + [float("inf")]
+        return create_category_feature(
+            features_df,
+            column="VehAge",
+            intervals=veh_power_intervals,
             right=False,
             new_column=self.ftr_config.name # we replace the original column with the new one
         )
