@@ -78,8 +78,13 @@ data_engineering:
       - name: "VehAge"
         type: "categorical"
         single_column: False
-        description: "The category of driver's age"
+        description: "The category of vehicle's age"
         model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.VehAgeCreatorModel
+      - name: "VehPower"
+        type: "categorical"
+        single_column: False
+        description: "The category of vehicle's power"
+        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.VehPowerCreatorModel
       # Example entry below
 #      - name: str # e.g. "MyCustomFeature"
 #        type: str # "categorical" or "numerical"
