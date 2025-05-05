@@ -1,12 +1,14 @@
 import logging
 import os
 import tempfile
-from typing import Dict
+from typing import Dict, List
 
 import mlflow
 import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
+from claim_modelling_kedro.pipelines.p06_data_engineering.utils.blacklist import remove_features_from_blacklist, \
+    remove_features_from_mlflow_blacklist, save_features_blacklist_to_mlflow, parse_features_blacklist
 from claim_modelling_kedro.pipelines.p06_data_engineering.utils.cat_reducer import fit_transform_categories_reducer, \
     reduce_categories_by_mlflow_model
 from claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features import fit_transform_custom_features_creator, \
@@ -29,12 +31,13 @@ _de_artifact_path = "model_de"
 _transformed_numerical_features_filename = "numerical_features.txt"
 _transformed_categorical_features_filename = "categorical_features.txt"
 
+
 def assert_features_dfs_have_same_indexes(features_df, transformed_features_df):
     assert features_df.index.equals(
         transformed_features_df.index), "Indexes of the transformed features do not match the originals."
 
 
-def fit_transform_features_part(config: Config, features_df: pd.DataFrame) -> pd.DataFrame:
+def fit_transform_features_part(config: Config, features_df: pd.DataFrame, features_blacklist_text: str) -> pd.DataFrame:
     logger.debug(f"features_df:\n{features_df}")
     # Add custom features
     if config.de.is_custom_features_creator_enabled:
@@ -84,6 +87,13 @@ def fit_transform_features_part(config: Config, features_df: pd.DataFrame) -> pd
 
     # Join categorical and numerical features
     transformed_features_df = join_features_dfs([categorical_features_df, numerical_features_df])
+
+    # Remove features from the blacklist and log the blacklist to MLFlow
+    features_blacklist = parse_features_blacklist(features_blacklist_text)
+    transformed_features_df = remove_features_from_blacklist(transformed_features_df, features_blacklist)
+    save_features_blacklist_to_mlflow(features_blacklist_text)
+
+    # Check that the indexes of the transformed features match the original features
     assert_features_dfs_have_same_indexes(features_df, transformed_features_df)
     return transformed_features_df
 
@@ -119,11 +129,16 @@ def transform_features_by_mlflow_model_part(config: Config, features_df: pd.Data
 
     # Join categorical and numerical features
     transformed_features_df = join_features_dfs([categorical_features_df, numerical_features_df])
+
+    # Remove features from the blacklist
+    transformed_features_df = remove_features_from_mlflow_blacklist(transformed_features_df, mlflow_run_id)
+
+    # Check that the indexes of the transformed features match the original features
     assert_features_dfs_have_same_indexes(features_df, transformed_features_df)
     return transformed_features_df
 
 
-def fit_transform_features(config: Config, features_df: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+def fit_transform_features(config: Config, features_df: Dict[str, pd.DataFrame], features_blacklist_text: str) -> Dict[str, pd.DataFrame]:
     logger.info(f"Fitting features transformers on the sample dataset...")
     transformed_features_df = {}
     for part in features_df.keys():
@@ -131,7 +146,7 @@ def fit_transform_features(config: Config, features_df: Dict[str, pd.DataFrame])
         mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
         logger.info(f"Fitting transformers on partition '{part}' of the sample dataset...")
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-            transformed_features_df[part] = fit_transform_features_part(config, features_part_df)
+            transformed_features_df[part] = fit_transform_features_part(config, features_part_df, features_blacklist_text)
     return transformed_features_df
 
 

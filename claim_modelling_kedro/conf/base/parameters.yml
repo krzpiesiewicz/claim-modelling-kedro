@@ -90,7 +90,7 @@ data_engineering:
         single_column: True
         description: "The capped bonus-malus value"
         model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.BonusMalusCreatorModel
-      - name: "Density"
+      - name: "LogDensity"
         type: "numerical"
         single_column: True
         description: "The logged value for density"
@@ -150,7 +150,7 @@ data_science:
           fit_kwargs:
             max_iter: 10
   hyperopt:
-    enabled: True # whether to use the hyperopt
+    enabled: False # whether to use the hyperopt
     metric: claim_nb_weighted_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
       # 'gamma_deviance', 'exposure_weighted_gamma_deviance', 'claim_nb_weighted_gamma_deviance',
       # 'rmse', 'exposure_weighted_rmse', 'claim_nb_weighted_rmse', 'r2', 'exposure_weighted_r2', 'claim_nb_weighted_r2',

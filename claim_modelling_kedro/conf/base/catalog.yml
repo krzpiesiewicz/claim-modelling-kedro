@@ -52,7 +52,7 @@ raw_severities_df:
   type: pandas.CSVDataset
   filepath: data/01_raw/freMTLP2sev.csv
 
-feature_blacklist:
+features_blacklist_text:
   type: text.TextDataset
   filepath: data/01_raw/features_blacklist.txt
 
