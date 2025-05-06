@@ -12,10 +12,10 @@ TODO – programowanie i eksperymenty:
 8.    [DONE] Napisać p09_train, który w analogii do p09_test, obliczy nieskalibrowane i skalibrowane predykcje na całym zbiorze treningowym (train_keys) - logować do mlflow
 9.    [DONE] Napisać outlier_policy: keep, clip, drop - dla sample, calib i test (uwspólnić kod)
 10.   [DONE] Dodać zmienne binarne dla przedziałów pojemności silnika itp.
-10.1. [TODO!!!] Transformować feature Area: we choose a continuous (log-linear) feature component for {A, . . . , F} → {1, . . . , 6}
+10.1. TODO Transformować feature Area: we choose a continuous (log-linear) feature component for {A, . . . , F} --> {1, . . . , 6}
 10.2. [DONE] Napisać onehot encoder, w którym będzie można wybrać kategorie do usunięcia
-11.   [TODO] Selekcja cech za pomocą GLM (Poisson, Gamma... zamiast Lasso) - użyć https://glm-tools.github.io/pyglmnet/api.html
-12.   [TODO] Przeprowadzić eksperymenty – częstotliwość, średnia szkoda i pure premium - z cross walidacją
+11.   TODO Selekcja cech za pomocą GLM (Poisson, Gamma... zamiast Lasso) - użyć https://glm-tools.github.io/pyglmnet/api.html
+12.   TODO Przeprowadzić eksperymenty – częstotliwość, średnia szkoda i pure premium - z cross walidacją
 13.   [CANCELED] Model łączący modele na częstotliwość i średnią szkodę.
 14.   rozkłady średniej predykcji i średniego targetu w percentylach
 
