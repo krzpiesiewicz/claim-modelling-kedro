@@ -56,6 +56,10 @@ features_blacklist_text:
   type: text.TextDataset
   filepath: data/01_raw/features_blacklist.txt
 
+reference_categories:
+  type: yaml.YAMLDataset
+  filepath: data/01_raw/reference_categories.yml
+
 features_df:
   type: pandas.ParquetDataset
   filepath: data/03_primary/features.pq

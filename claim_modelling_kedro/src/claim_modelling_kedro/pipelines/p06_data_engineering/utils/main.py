@@ -37,7 +37,8 @@ def assert_features_dfs_have_same_indexes(features_df, transformed_features_df):
         transformed_features_df.index), "Indexes of the transformed features do not match the originals."
 
 
-def fit_transform_features_part(config: Config, features_df: pd.DataFrame, features_blacklist_text: str) -> pd.DataFrame:
+def fit_transform_features_part(config: Config, features_df: pd.DataFrame, features_blacklist_text: str,
+                                reference_categories: Dict[str, str]) -> pd.DataFrame:
     logger.debug(f"features_df:\n{features_df}")
     # Add custom features
     if config.de.is_custom_features_creator_enabled:
@@ -68,7 +69,7 @@ def fit_transform_features_part(config: Config, features_df: pd.DataFrame, featu
         categorical_features_df = fit_transform_categories_imputer(config, categorical_features_df)
     # One-hot encode categorical features
     if config.de.is_ohe_enabled:
-        categorical_features_df = fit_transform_one_hot_encoder(config, categorical_features_df)
+        categorical_features_df = fit_transform_one_hot_encoder(config, categorical_features_df, reference_categories)
 
     # Save the transformed features in MLFlow
     for transformed_features_df, features_name, features_filename in zip(
@@ -138,7 +139,8 @@ def transform_features_by_mlflow_model_part(config: Config, features_df: pd.Data
     return transformed_features_df
 
 
-def fit_transform_features(config: Config, features_df: Dict[str, pd.DataFrame], features_blacklist_text: str) -> Dict[str, pd.DataFrame]:
+def fit_transform_features(config: Config, features_df: Dict[str, pd.DataFrame],
+                           features_blacklist_text: str, reference_categories: Dict[str, str]) -> Dict[str, pd.DataFrame]:
     logger.info(f"Fitting features transformers on the sample dataset...")
     transformed_features_df = {}
     for part in features_df.keys():
@@ -146,7 +148,8 @@ def fit_transform_features(config: Config, features_df: Dict[str, pd.DataFrame],
         mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
         logger.info(f"Fitting transformers on partition '{part}' of the sample dataset...")
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-            transformed_features_df[part] = fit_transform_features_part(config, features_part_df, features_blacklist_text)
+            transformed_features_df[part] = fit_transform_features_part(config, features_part_df,
+                                                                        features_blacklist_text, reference_categories)
     return transformed_features_df
 
 

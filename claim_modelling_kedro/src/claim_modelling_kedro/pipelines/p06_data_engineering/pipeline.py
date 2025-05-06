@@ -8,7 +8,7 @@ def create_pipeline(**kwargs) -> Pipeline:
         [
             node(
                 func=fit_features_transformer,
-                inputs=["config", "sample_features_df", "features_blacklist_text"],
+                inputs=["config", "sample_features_df", "features_blacklist_text", "reference_categories"],
                 outputs="transformed_sample_features_df",
                 name="fit_features_transformer",
             ),

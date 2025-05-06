@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict
 
 import pandas as pd
 
@@ -9,6 +9,7 @@ from claim_modelling_kedro.pipelines.p06_data_engineering.utils import fit_trans
 def fit_features_transformer(
     config: Config,
     sample_features_df: Dict[str, pd.DataFrame],
-    features_blacklist_text: str
+    features_blacklist_text: str,
+    reference_categories: Dict[str, str]
 ) -> Dict[str, pd.DataFrame]:
-    return fit_transform_features(config, sample_features_df, features_blacklist_text)
+    return fit_transform_features(config, sample_features_df, features_blacklist_text, reference_categories)

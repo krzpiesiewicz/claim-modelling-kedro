@@ -39,7 +39,9 @@ class DataEngineeringConfig:
     num_imputer_strategy: str
     num_imputer_fill_value: float
     is_ohe_enabled: bool
-    ohe_drop: str
+    ohe_drop_reference_cat: bool
+    ohe_drop_first: bool
+    ohe_drop_binary: bool
     ohe_max_categories: int
     ohe_min_frequency: int
     is_scaler_enabled: bool
@@ -74,7 +76,9 @@ class DataEngineeringConfig:
         self.num_imputer_strategy = params["num_ftrs_imputer"]["strategy"]
         self.num_imputer_fill_value = params["num_ftrs_imputer"]["fill_value"]
         self.is_ohe_enabled = params["ohe"]["enabled"]
-        self.ohe_drop = params["ohe"]["drop"]
+        self.ohe_drop_reference_cat = params["ohe"]["drop_reference_cat"]
+        self.ohe_drop_first = params["ohe"]["drop_first"]
+        self.ohe_drop_binary = params["ohe"]["drop_binary"]
         self.ohe_max_categories = params["ohe"]["max_categories"]
         self.ohe_min_frequency = params["ohe"]["min_frequency"]
         self.is_scaler_enabled = params["scaler"]["enabled"]
