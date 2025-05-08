@@ -95,6 +95,11 @@ data_engineering:
         single_column: True
         description: "The logged value for density"
         model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.DensityCreatorModel
+      - name: "LogLinearArea"
+        type: "numerical"
+        single_column: True
+        description: "Log-linear scale of area-density level {A,...,F} -> {1,...,6}"
+        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.LogLinearAreaCreatorModel
       # Example entry below
 #      - name: str # e.g. "MyCustomFeature"
 #        type: str # "categorical" or "numerical"

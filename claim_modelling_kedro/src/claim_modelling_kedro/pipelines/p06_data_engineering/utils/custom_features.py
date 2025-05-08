@@ -184,3 +184,26 @@ class DensityCreatorModel(CustomFeatureCreatorModel):
 
     def _transform(self, features_df: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame({self.ftr_config.name: np.log(features_df.Density)})
+
+
+class LogLinearAreaCreatorModel(CustomFeatureCreatorModel):
+    def __init__(self, ftr_config: CustomFeatureConfig):
+        super().__init__(ftr_config)
+
+    def fit(self, features_df: pd.DataFrame) -> None:
+        pass
+
+    def _transform(self, features_df: pd.DataFrame) -> pd.DataFrame:
+        # Define allowed categories and mapping
+        allowed_areas = ['A', 'B', 'C', 'D', 'E', 'F']
+        area_to_num = {area: i + 1 for i, area in enumerate(allowed_areas)}
+
+        # Check if all values in Area are allowed
+        unique_areas = features_df.Area.dropna().unique()
+        invalid_areas = set(unique_areas) - set(allowed_areas)
+        if invalid_areas:
+            raise ValueError(f"Area column contains invalid values: {invalid_areas}")
+
+        # Map Area to numeric values
+        area_numeric = features_df.Area.map(area_to_num)
+        return pd.DataFrame({self.ftr_config.name: area_numeric})
