@@ -368,7 +368,7 @@ class NormalizedGiniCoefficient(Metric):
         data = np.asarray(np.c_[y_true, y_pred, sample_weight], dtype=float)
 
         # Sort by predicted values and ensure stable sorting
-        data_sorted =  data[np.argsort(-data[:, 1], kind="stable")]
+        data_sorted =  data[np.argsort(data[:, 1], kind="stable")]
 
         # Compute cumulative sums
         cum_true = np.cumsum(data_sorted[:, 0] * data_sorted[:, 2]) # cumulative sums of true * weight
@@ -376,9 +376,7 @@ class NormalizedGiniCoefficient(Metric):
         total_true = np.sum(data_sorted[:, 0] * data_sorted[:, 2]) # sum of all true * weight
         sum_of_weights = cum_weight[-1]
 
-        # Compute Gini sum
-        gini_sum = np.sum(cum_true / total_true) - (sum_of_weights + 1) / 2
-        return gini_sum / sum_of_weights
+        return 1 / 2 - np.sum(cum_true) / total_true / sum_of_weights
 
     @staticmethod
     def _weighted_normalized_gini(y_true: np.ndarray, y_pred: np.ndarray, sample_weight: np.ndarray = None):
