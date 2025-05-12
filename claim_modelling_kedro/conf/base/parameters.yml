@@ -170,8 +170,8 @@ data_science:
         alpha: 0.001 # the regularization parameter
       rfe: # applies when method is 'rfe'
         estimator_kwargs: # the dictionary of parameters for the estimator
-          fit_kwargs:
-            max_iter: 10
+          max_iter: 100
+          alpha: 0.01 # the regularization parameter
   hyperopt:
     enabled: False # whether to use the hyperopt
     metric: claim_nb_weighted_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
