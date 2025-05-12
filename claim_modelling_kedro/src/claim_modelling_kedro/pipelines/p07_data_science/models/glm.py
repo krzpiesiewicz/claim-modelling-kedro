@@ -343,16 +343,20 @@ class PyGLMNetGLM(PredictiveModel):
         self._fit_intercept = self._hparams.get("fit_intercept")
         self._max_iter = self._hparams.get("max_iter")
         self._tol = self._hparams.get("tol")
-        match self.config.mdl_info.model:
-            case ModelEnum.PYGLMNET_POISSON_GLM:
-                self._distr = "poisson"
-            case ModelEnum.PYGLMNET_GAMMA_GLM:
-                self._distr = "gamma"
-            case _:
-                raise ValueError(
-                    f"""Distribution for model {self.config.mdl_info.model} not supported in PyGLMNet. Supported distributions are:
-            - \"poisson\" for {ModelEnum.PYGLMNET_POISSON_GLM},
-            - \"gamma\" for {ModelEnum.PYGLMNET_GAMMA_GLM}.""")
+        self._distr = self._hparams.get("distr")
+        if self._distr is None:
+            match self.config.mdl_info.model:
+                case ModelEnum.PYGLMNET_POISSON_GLM:
+                    self._distr = "poisson"
+                case ModelEnum.PYGLMNET_GAMMA_GLM:
+                    self._distr = "gamma"
+                case _:
+                    raise ValueError(
+                        f"""Distribution for model {self.config.mdl_info.model} not supported in PyGLMNet. Supported distributions are:
+                - \"poisson\" for {ModelEnum.PYGLMNET_POISSON_GLM},
+                - \"gamma\" for {ModelEnum.PYGLMNET_GAMMA_GLM}.""")
+        elif self._distr not in ["poisson", "gamma"]:
+            raise ValueError(f"Distribution '{self._distr}' not supported in PyGLMNet. Supported are: \"poisson\", \"gamma\".")
 
     def _fit(self, features_df: Union[pd.DataFrame, np.ndarray], target_df: Union[pd.DataFrame, np.ndarray], **kwargs):
         logger.debug("PyGLMNetGLM _fit called")
@@ -389,7 +393,12 @@ class PyGLMNetGLM(PredictiveModel):
         )
         self.model.fit(x, y)
         logger.debug(f"Model fitted - {self.summary()}")
-        self._set_features_importances(np.abs(self.model.beta_))
+        importances = np.abs(self.model.beta_)
+        logger.debug(f"{importances=}")
+        if isinstance(features_df, pd.DataFrame):
+            importances = pd.Series(importances, index=features_df.columns)
+            logger.debug(f"{importances=}")
+        self._set_features_importances(importances)
 
     def _predict(self, features_df: pd.DataFrame) -> pd.Series:
         x = features_df.values if isinstance(features_df, pd.DataFrame) else features_df

@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 class FeatureSelectionMethod(Enum):
     MODEL: str = "model"
+    PYGLMNET: str = "pyglmnet"
     LASSO: str = "lasso"
     RFE: str = "rfe"
 
@@ -64,10 +65,11 @@ class DataScienceConfig:
             self.fs_params = fs_params["params"][fs_params["method"]]
         else:
             self.fs_params = {}
-        self.fs_params = fs_params["params"]
         match self.fs_method:
             case FeatureSelectionMethod.MODEL:
                 self.fs_model_class = "claim_modelling_kedro.pipelines.p07_data_science.selectors.ModelWrapperFeatureSelector"
+            case FeatureSelectionMethod.PYGLMNET:
+                self.fs_model_class = "claim_modelling_kedro.pipelines.p07_data_science.selectors.PyGLMNetFeatureSelector"
             case FeatureSelectionMethod.LASSO:
                 self.fs_model_class = "claim_modelling_kedro.pipelines.p07_data_science.selectors.LassoFeatureSelector"
             case FeatureSelectionMethod.RFE:
@@ -88,7 +90,7 @@ class DataScienceConfig:
                 case Target.TOTAL_AMOUNT:
                     self.hopt_metric = None     # each model class has a method metric_function(self)
                                                 # e.g. TweedieRegressor has a method tweedie_deviance where the parameter p
-                                                # is extracted from hyper parameters
+                                                # is extracted from hyperparameters
                 case Target.POSITIVE_AMOUNT:
                     self.hopt_metric = MetricEnum.GAMMA_DEV
                 case Target.AVG_CLAIM_AMOUNT:
