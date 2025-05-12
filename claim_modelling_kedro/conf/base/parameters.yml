@@ -10,7 +10,7 @@ model:
                            # 'pure_premium' – the total amount of claims (including zeros) per unit of exposure (total_claims_amount / exposure)
   type: GLM
   model: SklearnGammaGLM # 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
-    # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM'
+    # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM', 'PyGLMNetPoissonGLM', 'PyGLMNetGammaGLM',
 
 
 data:

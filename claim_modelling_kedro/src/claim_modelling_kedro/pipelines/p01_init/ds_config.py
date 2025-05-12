@@ -134,6 +134,10 @@ class DataScienceConfig:
                     model_class_name = "SklearnGammaGLM"
                 case ModelEnum.SKLEARN_TWEEDIE_GLM:
                     model_class_name = "SklearnTweedieGLM"
+                case ModelEnum.PYGLMNET_POISSON_GLM:
+                    model_class_name = "PyGLMNetGLM"
+                case ModelEnum.PYGLMNET_GAMMA_GLM:
+                    model_class_name = "PyGLMNetGLM"
                 case _:
                     raise ValueError(f"Model {mdl_info.model} not supported.")
             self.model_class = f"claim_modelling_kedro.pipelines.p07_data_science.models.{model_class_name}"
