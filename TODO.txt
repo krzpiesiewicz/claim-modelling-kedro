@@ -14,10 +14,18 @@ TODO – programowanie i eksperymenty:
 10.   [DONE] Dodać zmienne binarne dla przedziałów pojemności silnika itp.
 10.1. [DONE] Transformować feature Area: we choose a continuous (log-linear) feature component for {A, . . . , F} --> {1, . . . , 6}
 10.2. [DONE] Napisać onehot encoder, w którym będzie można wybrać kategorie do usunięcia
-11.   TODO Selekcja cech za pomocą GLM (Poisson, Gamma... zamiast Lasso) - użyć https://glm-tools.github.io/pyglmnet/api.html
-12.   TODO Przeprowadzić eksperymenty – częstotliwość, średnia szkoda i pure premium - z cross walidacją
-13.   [CANCELED] Model łączący modele na częstotliwość i średnią szkodę.
-14.   rozkłady średniej predykcji i średniego targetu w percentylach
+11.1. [DONE] NormalizedConcentrationIndex - pozmnieniać nazwy
+11.2. TODO Uruchomić dobry eksperyment, bo potrzeba sprawdzić CI i mieć dobre dane do innych wykresów i indeksów
+12.   TODO Policzyć średni target w kubełkach cross walidacji - trzeba coś z tym zrobić
+13.1  TODO Dodać wykres Concentraion Curve (ordered lorentz) do mlflow
+13.2  TODO Zrobić wykres uśredniający wszystkie Concentraion Curves dla foldów cross walidacji
+14.   TODO Zestawić na wykresie krzywą lorentza (tę z samą predykcją bez true values) i Concentraion Curve
+15.   TODO Zaimplementować ABC i ICC z artykułu Testing for auto-calibration
+16.   TODO Dodać RGLMNet - bo tam jest L1 dla Poisson i obsługa wag (wagi nie są obsługiwne w pyglmnet)
+17.   TODO Selekcja cech za pomocą GLM (Poisson, Gamma... zamiast Lasso) - użyć https://glm-tools.github.io/pyglmnet/api.html
+18.   TODO Przeprowadzić eksperymenty – częstotliwość, średnia szkoda i pure premium - z cross walidacją
+19.   [CANCELED] Model łączący modele na częstotliwość i średnią szkodę.
+20.   rozkłady średniej predykcji i średniego targetu w percentylach
 
 TODO - tekst:
 0. Ewaluacja (gini, lorentz, CC, krzywa kalibracji)
