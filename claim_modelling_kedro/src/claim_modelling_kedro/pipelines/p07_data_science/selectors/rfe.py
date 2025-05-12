@@ -14,17 +14,20 @@ logger = logging.getLogger(__name__)
 class RecursiveFeatureEliminationSelector(SelectorModel):
     def __init__(self, config: Config):
         super().__init__(config=config)
-        if "rfe" in config.ds.fs_params and "estimator_kwargs" in config.ds.fs_params["rfe"]:
-            self.estimator_kwargs = config.ds.fs_params["rfe"]["estimator_kwargs"]
+        if "estimator_kwargs" in config.ds.fs_params:
+            self.estimator_kwargs = config.ds.fs_params["estimator_kwargs"]
         if self.estimator_kwargs is None:
             self.estimator_kwargs = {}
-        self.estimator = get_class_from_path(config.ds.model_class)(config=config, **self.estimator_kwargs)
+        self.estimator = get_class_from_path(config.ds.model_class)(config=config,
+                                                                    target_col=self.config.mdl_task.target_col,
+                                                                    pred_col=self.config.mdl_task.prediction_col,
+                                                                    **self.estimator_kwargs)
         self.selector = None
 
     def fit(self, features_df, target_df, **kwargs):
         X = features_df
         y = target_df[self.target_col]
-        self.selector = RFE(self.estimator, n_features_to_select=self.max_n_features,
+        self.selector = RFE(self.estimator, n_features_to_select=self.max_n_features or len(features_df.columns),
                             importance_getter=(lambda estimator: estimator.get_features_importances()))
         sample_weight = get_sample_weight(self.config, target_df)
         if sample_weight is not None:

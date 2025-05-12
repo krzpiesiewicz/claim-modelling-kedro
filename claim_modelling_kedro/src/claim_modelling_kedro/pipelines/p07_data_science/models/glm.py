@@ -169,7 +169,7 @@ class StatsmodelsGLM(PredictiveModel):
 
 class SklearnGLM(SklearnModel, ABC):
     def __init__(self, config: Config, model_class, **kwargs):
-        SklearnModel.__init__(self, config, model_class, **kwargs)
+        SklearnModel.__init__(self, config=config, model_class=model_class, **kwargs)
 
     def _fit(self, features_df: Union[pd.DataFrame, np.ndarray], target_df: Union[pd.DataFrame, np.ndarray], **kwargs):
         super()._fit(features_df, target_df, **kwargs)
@@ -181,7 +181,7 @@ class SklearnGLM(SklearnModel, ABC):
 
 class SklearnPoissonGLM(SklearnGLM):
     def __init__(self, config: Config, **kwargs):
-        SklearnGLM.__init__(self, config, model_class=PoissonRegressor, **kwargs)
+        SklearnGLM.__init__(self, config=config, model_class=PoissonRegressor, **kwargs)
 
     def metric(self) -> Metric:
         return MeanPoissonDeviance(self.config, pred_col=self.pred_col)
@@ -225,7 +225,8 @@ class SklearnPoissonGLM(SklearnGLM):
 
 class SklearnGammaGLM(SklearnGLM):
     def __init__(self, config: Config, **kwargs):
-        SklearnGLM.__init__(self, config, model_class=GammaRegressor, **kwargs)
+        logger.debug(f"{kwargs=}")
+        SklearnGLM.__init__(self, config=config, model_class=GammaRegressor, **kwargs)
 
     def metric(self) -> Metric:
         return MeanGammaDeviance(self.config, pred_col=self.pred_col)
@@ -269,7 +270,7 @@ class SklearnGammaGLM(SklearnGLM):
 
 class SklearnTweedieGLM(SklearnGLM):
     def __init__(self, config: Config, **kwargs):
-        SklearnGLM.__init__(self, config, model_class=TweedieRegressor, **kwargs)
+        SklearnGLM.__init__(self, config=config, model_class=TweedieRegressor, **kwargs)
 
     def metric(self) -> Metric:
         hparams = self.get_hparams()

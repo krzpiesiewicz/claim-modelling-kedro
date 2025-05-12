@@ -147,18 +147,25 @@ data_science:
     max_n_features: 45 # the number of features used in the model; if empty, "auto" is used
     min_importance: 0.0001 # the minimum importance of a feature
     max_iter: 100 # the maximum number of iterations
-    method: lasso # 'lasso', 'rfe'
-      # Recursive Feature Elimination (rfe) uses the model from parameter model.model as a base model,
-      # e.g., PoissonGLM.
-    method: model # 'model', 'lasso', 'rfe'
+    method: rfe # 'model', 'lasso', 'rfe'
       # 'model' – uses the model from parameter model.model as a base model, e.g., PoissonGLM
       # 'rfe'   - Recursive Feature Elimination (rfe) uses the model from parameter model.model as a base model,
       #           e.g., PoissonGLM.
+      # 'pyglmnet' - PyGLMNet GLM is used with the distribution that corresponds to the model from parameter model.model, e.g., PoissonGLM, GammaGLM.
       # 'lasso' - Lasso uses the model from parameter model.model as a base model, e.g., PoissonGLM.
     random_seed: 0
     params:
       model: # applies when method is 'model'. Put parameters for the model.model used for feature selection
         alpha: 0.001 # the regularization parameter
+      pyglmnet: # applies when method is 'pyglmnet'
+        alpha: 1 # the weighting between L1 penalty and L2 penalty term of the loss function
+        reg_lambda: 0.1 # the regularization parameter
+        solver: 'batch-gradient' # optimization method, can be one of the following:
+                                 # 'batch-gradient' (vanilla batch gradient descent) 'cdfast' (Newton coordinate gradient descent)
+        learning_rate: 0.01 # the learning rate
+        max_iter: 1000 # the maximum number of iterations
+        tol: 0.001 # the tolerance for convergence
+        fit_intercept: True # whether to fit the intercept
       lasso: # applies when method is 'lasso'
         alpha: 0.001 # the regularization parameter
       rfe: # applies when method is 'rfe'

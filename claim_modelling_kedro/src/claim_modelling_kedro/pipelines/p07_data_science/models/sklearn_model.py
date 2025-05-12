@@ -13,11 +13,15 @@ logger = logging.getLogger(__name__)
 
 
 class SklearnModel(PredictiveModel, ABC):
-    def __init__(self, config: Config, model_class, hparams: Dict[str, Any] = None,
+    def __init__(self, config: Config, target_col: str, pred_col: str, model_class, hparams: Dict[str, Any] = None,
                  fit_kwargs: Dict[str, Any] = None, **kwargs):
         logger.debug(f"SklearnModel.__init__ with model_class: {model_class}")
-        PredictiveModel.__init__(self, config=config, fit_kwargs=fit_kwargs, call_updated_hparams=False, **kwargs)
+        PredictiveModel.__init__(self, config=config, target_col=target_col, pred_col=pred_col, fit_kwargs=fit_kwargs,
+                                 call_updated_hparams=False)
         self.model_class = model_class
+        if kwargs is not None and len(kwargs) > 0:
+            hparams = hparams.copy() if hparams is not None else {}
+            hparams.update(kwargs)
         self.update_hparams(hparams)
         logger.debug(f"hparams: {self._hparams}")
 
@@ -37,14 +41,19 @@ class SklearnModel(PredictiveModel, ABC):
     def _updated_hparams(self):
         sklearn_hparams_names = self.__class__._sklearn_hparams_names()
         sklearn_params = {key: val for key, val in self.get_hparams().items() if key in sklearn_hparams_names}
+        logger.debug(f"{sklearn_params=}")
         self.model = self.model_class(**sklearn_params)
 
     def get_params(self, deep: bool = True) -> Dict[str, Any]:
         params = self.model.get_params(deep)
+        logger.debug(f"self.model.get_params(deep={deep}): {params}")
         if deep:
             params["config"] = copy.deepcopy(self.config)
         else:
             params["config"] = self.config
+        params["target_col"] = self.target_col
+        params["pred_col"] = self.pred_col
+        params["fit_kwargs"] = self._fit_kwargs
         return params
 
     def summary(self) -> str:

@@ -59,9 +59,9 @@ class DataScienceConfig:
         self.fs_max_iter = fs_params["max_iter"]
         self.fs_random_seed = fs_params["random_seed"]
         if (fs_params["params"] is not None
-                and mdl_info.model.value in fs_params["params"]
-                and fs_params["params"][mdl_info.model.value] is not None):
-            self.fs_params = fs_params["params"][mdl_info.model.value]
+                and fs_params["method"] in fs_params["params"]
+                and fs_params["params"][fs_params["method"]] is not None):
+            self.fs_params = fs_params["params"][fs_params["method"]]
         else:
             self.fs_params = {}
         self.fs_params = fs_params["params"]
