@@ -66,9 +66,12 @@ def get_mlflow_run_id_for_partition(config: Config, partition: str, parent_mflow
         return parent_run.info.run_id
 
 
-def save_partitioned_dataset_in_mlflow(df: Dict[str, pd.DataFrame], artifact_path: str):
+def save_partitioned_dataset_in_mlflow(df: Dict[str, pd.DataFrame], artifact_path: str, keys: Dict[str, pd.Index] = None):
     for part in df.keys():
         df_part = get_partition(df, part)
+        if keys is not None:
+            keys_part = get_partition(keys, part)
+            df_part = df_part.loc[keys_part, :]
         with tempfile.TemporaryDirectory() as temp_dir:
             pq_path = os.path.join(temp_dir, f"{part}.pq")
             df_part.to_parquet(pq_path, index=True)

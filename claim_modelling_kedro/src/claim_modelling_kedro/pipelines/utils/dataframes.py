@@ -53,10 +53,10 @@ def preds_as_dataframe_with_col_name(source_df: Union[pd.DataFrame, pd.Series, n
 
 
 def save_predictions_and_target_in_mlflow(predictions_df: Dict[str, pd.DataFrame], target_df: Dict[str, pd.DataFrame],
-                                          dataset: str):
+                                          dataset: str, keys: Dict[str, pd.Index] = None):
     logger.info(f"Saving the predictions and the target from {dataset} dataset to MLFlow...")
-    save_partitioned_dataset_in_mlflow(predictions_df, artifact_path=f"predictions/{dataset}/prediction")
-    save_partitioned_dataset_in_mlflow(target_df, artifact_path=f"predictions/{dataset}/target")
+    save_partitioned_dataset_in_mlflow(predictions_df, artifact_path=f"predictions/{dataset}/prediction", keys=keys)
+    save_partitioned_dataset_in_mlflow(target_df, artifact_path=f"predictions/{dataset}/target", keys=keys)
     logger.info(f"Saved the predictions and the target from {dataset} dataset to MLFlow.")
 
 

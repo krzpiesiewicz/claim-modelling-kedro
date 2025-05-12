@@ -40,7 +40,10 @@ def fit_predictive_model(config: Config, selected_sample_features_df: Dict[str, 
         best_hparams
     )
     # Save the predictions and the target in MLFlow
-    save_predictions_and_target_in_mlflow(sample_predictions_df, sample_target_df, dataset="sample")
+    save_predictions_and_target_in_mlflow(sample_predictions_df, sample_target_df, dataset="sample_train",
+                                          keys=sample_train_keys)
+    save_predictions_and_target_in_mlflow(sample_predictions_df, sample_target_df, dataset="sample_valid",
+                                          keys=sample_val_keys)
     # Evaluate the predictions
     evaluate_predictions(config, sample_predictions_df, sample_target_df, dataset="sample_train_pure",
                          log_metrics_to_mlflow=True, keys=sample_train_keys)
