@@ -14,7 +14,7 @@ from claim_modelling_kedro.pipelines.p01_init.mdl_info_config import ModelEnum
 from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel
 from claim_modelling_kedro.pipelines.p07_data_science.models.sklearn_model import SklearnModel
 from claim_modelling_kedro.pipelines.utils.metrics import Metric, RootMeanSquaredError, MeanPoissonDeviance, \
-    MeanGammaDeviance, NormalizedGiniCoefficient, MeanTweedieDeviance
+    MeanGammaDeviance, NormalizedConcentrationIndex, MeanTweedieDeviance
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ class StatsmodelsGLM(PredictiveModel):
             case ModelEnum.STATSMODELS_POISSON_GLM:
                 return MeanPoissonDeviance(self.config, pred_col=self.pred_col)
             case ModelEnum.STATSMODELS_TWEEDIE_GLM:
-                return NormalizedGiniCoefficient(self.config, pred_col=self.pred_col)
+                return NormalizedConcentrationIndex(self.config, pred_col=self.pred_col)
             case _:
                 raise ValueError(
                     f"""Family for model {self.config.mdl_info.model} not supported in Stastsmodels GLM. Supported are:
@@ -275,7 +275,7 @@ class SklearnTweedieGLM(SklearnGLM):
         hparams = self.get_hparams()
         if "power" in hparams:
             return MeanTweedieDeviance(self.config, pred_col=self.pred_col, power=hparams["power"])
-        return NormalizedGiniCoefficient(self.config)
+        return NormalizedConcentrationIndex(self.config)
 
     @classmethod
     def _get_solver_options(cls) -> List[str]:
