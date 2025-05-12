@@ -32,12 +32,9 @@ class MetricEnum(MetricType, Enum):
     SPEARMAN: str = "spearman_correlation"
     EXP_WEIGHTED_SPEARMAN: str = "exposure_weighted_spearman_correlation"
     CLNB_WEIGHTED_SPEARMAN: str = "claim_nb_weighted_spearman_correlation"
-    GINI: str = "gini"
-    EXP_WEIGHTED_GINI: str = "exposure_weighted_gini"
-    CLNB_WEIGHTED_GINI: str = "claim_nb_weighted_gini"
-    CC: str = "concentration_coefficient"
-    EXP_WEIGHTED_CC: str = "exposure_weighted_cc"
-    CLNB_WEIGHTED_CC: str = "claim_nb_weighted_cc"
+    CI: str = "concentration_index"
+    EXP_WEIGHTED_CI: str = "exposure_weighted_concentration_index"
+    CLNB_WEIGHTED_CI: str = "claim_nb_weighted_concentration_index"
 
 
 @dataclass

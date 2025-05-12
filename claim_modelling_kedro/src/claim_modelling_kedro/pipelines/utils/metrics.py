@@ -69,18 +69,12 @@ class Metric(ABC):
                 return SpearmanCorrelation(config, pred_col=pred_col, exposure_weighted=True)
             case MetricEnum.CLNB_WEIGHTED_SPEARMAN:
                 return SpearmanCorrelation(config, pred_col=pred_col, claim_nb_weighted=True)
-            case MetricEnum.GINI:
-                return NormalizedGiniCoefficient(config, pred_col=pred_col)
-            case MetricEnum.EXP_WEIGHTED_GINI:
-                return NormalizedGiniCoefficient(config, pred_col=pred_col, exposure_weighted=True)
-            case MetricEnum.CLNB_WEIGHTED_GINI:
-                return NormalizedGiniCoefficient(config, pred_col=pred_col, claim_nb_weighted=True)
-            case MetricEnum.CC:
-                return NormalizedConcentrationCoefficient(config, pred_col=pred_col)
-            case MetricEnum.EXP_WEIGHTED_CC:
-                return NormalizedConcentrationCoefficient(config, pred_col=pred_col, exposure_weighted=True)
-            case MetricEnum.CLNB_WEIGHTED_CC:
-                return NormalizedConcentrationCoefficient(config, pred_col=pred_col, claim_nb_weighted=True)
+            case MetricEnum.CI:
+                return NormalizedConcentrationIndex(config, pred_col=pred_col)
+            case MetricEnum.EXP_WEIGHTED_CI:
+                return NormalizedConcentrationIndex(config, pred_col=pred_col, exposure_weighted=True)
+            case MetricEnum.CLNB_WEIGHTED_CI:
+                return NormalizedConcentrationIndex(config, pred_col=pred_col, claim_nb_weighted=True)
             # Handle the parametrized cases with TweedieDev(p)
             case TWEEDIE_DEV(p):
                 return MeanTweedieDeviance(config, pred_col=pred_col, power=p)
@@ -343,14 +337,14 @@ class SpearmanCorrelation(Metric):
         return True
 
 
-class NormalizedGiniCoefficient(Metric):
+class NormalizedConcentrationIndex(Metric):
     def __init__(self, config: Config, **kwargs):
-        super().__init__(config, sklearn_like_metric=self._weighted_normalized_gini, **kwargs)
+        super().__init__(config, sklearn_like_metric=self._weighted_normalized_concentration_index, **kwargs)
 
     @staticmethod
-    def _weighted_gini(y_true: np.ndarray, y_pred: np.ndarray, sample_weight: np.ndarray = None):
+    def _weighted_concentration_index(y_true: np.ndarray, y_pred: np.ndarray, sample_weight: np.ndarray = None):
         """
-        Compute the weighted Gini coefficient.
+        Compute the weighted Concentration Index.
 
         Args:
             y_true (np.ndarray): Array of true values.
@@ -358,7 +352,7 @@ class NormalizedGiniCoefficient(Metric):
             sample_weight (np.ndarray): Array of sample weights. If None, all weights are set to 1.
 
         Returns:
-            float: Weighted Gini coefficient.
+            float: Weighted Concentration Index.
         """
         assert len(y_true) == len(y_pred), "y_true and y_pred must have the same length"
         if sample_weight is None:
@@ -368,20 +362,20 @@ class NormalizedGiniCoefficient(Metric):
         data = np.asarray(np.c_[y_true, y_pred, sample_weight], dtype=float)
 
         # Sort by predicted values and ensure stable sorting
-        data_sorted =  data[np.argsort(data[:, 1], kind="stable")]
+        data_sorted = data[np.argsort(data[:, 1], kind="stable")]
 
         # Compute cumulative sums
-        cum_true = np.cumsum(data_sorted[:, 0] * data_sorted[:, 2]) # cumulative sums of true * weight
-        cum_weight = np.cumsum(data_sorted[:, 2]) # cumulative sums of weights
-        total_true = np.sum(data_sorted[:, 0] * data_sorted[:, 2]) # sum of all true * weight
+        cum_true = np.cumsum(data_sorted[:, 0] * data_sorted[:, 2])  # cumulative sums of true * weight
+        cum_weight = np.cumsum(data_sorted[:, 2])  # cumulative sums of weights
+        total_true = np.sum(data_sorted[:, 0] * data_sorted[:, 2])  # sum of all true * weight
         sum_of_weights = cum_weight[-1]
 
         return 1 / 2 - np.sum(cum_true) / total_true / sum_of_weights
 
     @staticmethod
-    def _weighted_normalized_gini(y_true: np.ndarray, y_pred: np.ndarray, sample_weight: np.ndarray = None):
+    def _weighted_normalized_concentration_index(y_true: np.ndarray, y_pred: np.ndarray, sample_weight: np.ndarray = None):
         """
-        Compute the normalized weighted Gini coefficient.
+        Compute the normalized weighted Concentration Index.
 
         Args:
             y_true (np.ndarray): Array of true values.
@@ -389,112 +383,29 @@ class NormalizedGiniCoefficient(Metric):
             sample_weight (np.ndarray): Array of sample weights. If None, all weights are set to 1.
 
         Returns:
-            float: Normalized weighted Gini coefficient.
+            float: Normalized weighted Concentration Index.
         """
-        gini_pred = NormalizedGiniCoefficient._weighted_gini(y_true, y_pred, sample_weight)
-        gini_true = NormalizedGiniCoefficient._weighted_gini(y_true, y_true, sample_weight)
+        concentration_index_pred = NormalizedConcentrationIndex._weighted_concentration_index(y_true, y_pred, sample_weight)
+        concentration_index_true = NormalizedConcentrationIndex._weighted_concentration_index(y_true, y_true, sample_weight)
 
         # Avoid division by zero
-        if gini_true == 0:
+        if concentration_index_true == 0:
             return 0.0
 
-        return gini_pred / gini_true
+        return concentration_index_pred / concentration_index_true
 
     def _get_name(self) -> str:
-        return "Normalized Gini Coefficient"
+        return "Normalized Concentration Index"
 
     def _get_short_name(self) -> str:
-        return "GINI"
+        return "NCI"
 
     def get_enum(self) -> MetricType:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_GINI
+            return MetricEnum.EXP_WEIGHTED_CONCENTRATION_INDEX
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_GINI
-        return MetricEnum.GINI
-
-    def is_larger_better(self) -> bool:
-        return True
-
-    import numpy as np
-class NormalizedConcentrationCoefficient(Metric):
-    def __init__(self, config: Config, **kwargs):
-        super().__init__(config, sklearn_like_metric=self._weighted_normalized_cc, **kwargs)
-
-    @staticmethod
-    def _weighted_cc(y_true: np.ndarray, y_pred: np.ndarray, sample_weight: np.ndarray = None):
-        """
-        Compute the Concentration Coefficient, which measures the inequality of claims distribution
-        relative to premium.
-
-        Args:
-            y_true (np.ndarray or pd.Series): True values (e.g., claim amounts).
-            exposure (np.ndarray or pd.Series): premium values.
-            sample_weight (np.ndarray or pd.Series, optional): Weights for observations. Defaults to None.
-
-        Returns:
-            float: Concentration Coefficient (C).
-        """
-        assert len(y_true) == len(y_pred), "y_true and y_pred must have the same length"
-        if sample_weight is None:
-            sample_weight = np.ones_like(y_true)
-
-        # Combine all data into a single array
-        data = np.asarray(np.c_[y_true, y_pred, sample_weight], dtype=float)
-
-        # Sort by predicted values and ensure stable sorting
-        data_sorted = data[np.argsort(-data[:, 1], kind="stable")]
-
-        # Weighted cumulative sums
-        weighted_true = data_sorted[:, 0] * data_sorted[:, 2]  # y_true * sample_weight
-        weighted_pred = data_sorted[:, 1] * data_sorted[:, 2]  # exposure * sample_weight
-
-        # Normalize by total
-        total_weighted_true = np.sum(weighted_true)
-        total_weighted_pred = np.sum(weighted_pred)
-
-        # Compute cumulative proportions
-        cum_true = np.cumsum(weighted_true) / total_weighted_true
-        cum_exposure = np.cumsum(weighted_pred) / total_weighted_pred
-
-        # Compute concentration coefficient (area between the curves)
-        C = 2 * np.trapz(cum_true, cum_exposure) - 1
-        return C
-
-    @staticmethod
-    def _weighted_normalized_cc(y_true: np.ndarray, y_pred: np.ndarray, sample_weight: np.ndarray = None):
-        """
-        Compute the normalized weighted concentration coefficient.
-
-        Args:
-            y_true (np.ndarray): Array of true values.
-            y_pred (np.ndarray): Array of predicted values.
-            sample_weight (np.ndarray): Array of sample weights. If None, all weights are set to 1.
-
-        Returns:
-            float: Normalized weighted concentration coefficient.
-        """
-        cc_pred = NormalizedConcentrationCoefficient._weighted_cc(y_true, y_pred, sample_weight)
-        cc_true = NormalizedConcentrationCoefficient._weighted_cc(y_true, y_true, sample_weight)
-
-        # Avoid division by zero
-        if cc_true == 0:
-            return 0.0
-
-        return cc_pred / cc_true
-
-    def _get_name(self) -> str:
-        return "Normalized Concentration Coefficient"
-
-    def _get_short_name(self) -> str:
-        return "CC"
-
-    def get_enum(self) -> MetricType:
-        if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_CC
-        if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_CC
-        return MetricEnum.CC
+            return MetricEnum.CLNB_WEIGHTED_CONCENTRATION_INDEX
+        return MetricEnum.CONCENTRATION_INDEX
 
     def is_larger_better(self) -> bool:
         return True
