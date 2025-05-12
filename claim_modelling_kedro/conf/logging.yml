@@ -92,6 +92,18 @@ loggers:
     formatter: simple
     level: INFO
 
+  claim_modelling_kedro.pipelines.p07_data_science.selectors.model_wrapper:
+    formatter: simple
+    level: INFO
+
+  claim_modelling_kedro.pipelines.p07_data_science.selectors.rfe:
+    formatter: simple
+    level: INFO
+
+  claim_modelling_kedro.pipelines.p07_data_science.models.sklearn_model:
+    formatter: simple
+    level: INFO
+
   claim_modelling_kedro.pipelines.p07_data_science.models.glm:
     formatter: simple
     level: INFO
