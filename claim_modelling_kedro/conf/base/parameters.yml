@@ -161,9 +161,10 @@ data_science:
   hyperopt:
     enabled: False # whether to use the hyperopt
     metric: claim_nb_weighted_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
+    metric: claim_nb_weighted_concentration_index # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
       # 'gamma_deviance', 'exposure_weighted_gamma_deviance', 'claim_nb_weighted_gamma_deviance',
       # 'rmse', 'exposure_weighted_rmse', 'claim_nb_weighted_rmse', 'r2', 'exposure_weighted_r2', 'claim_nb_weighted_r2',
-      # 'gini', 'exposure_weighted_gini', 'claim_nb_weighted_gini',
+      # 'concentration_index', 'exposure_weighted_concentration_index', 'claim_nb_weighted_concentration_index',
       # 'spearman_correlation', 'exposure_weighted_spearman_correlation', 'claim_nb_weighted_spearman_correlation'
       # tweedie_deviance(p), where p is a float number, e.g., tweedie_deviance(1.5)
       # exposure_weighted_tweedie_deviance(p) or claim_nb_weighted_tweedie_deviance(p), where p is a float number, e.g., weighted_tweedie_deviance(1.5)
