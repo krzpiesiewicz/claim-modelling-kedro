@@ -150,8 +150,15 @@ data_science:
     method: lasso # 'lasso', 'rfe'
       # Recursive Feature Elimination (rfe) uses the model from parameter model.model as a base model,
       # e.g., PoissonGLM.
+    method: model # 'model', 'lasso', 'rfe'
+      # 'model' – uses the model from parameter model.model as a base model, e.g., PoissonGLM
+      # 'rfe'   - Recursive Feature Elimination (rfe) uses the model from parameter model.model as a base model,
+      #           e.g., PoissonGLM.
+      # 'lasso' - Lasso uses the model from parameter model.model as a base model, e.g., PoissonGLM.
     random_seed: 0
     params:
+      model: # applies when method is 'model'. Put parameters for the model.model used for feature selection
+        alpha: 0.001 # the regularization parameter
       lasso: # applies when method is 'lasso'
         alpha: 0.001 # the regularization parameter
       rfe: # applies when method is 'rfe'

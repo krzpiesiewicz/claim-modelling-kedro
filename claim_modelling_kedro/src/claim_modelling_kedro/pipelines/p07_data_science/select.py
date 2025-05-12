@@ -84,12 +84,23 @@ def fit_transform_features_selector_part(config: Config, transformed_sample_feat
     logger.info("Fitted the features selector.")
     # Save the selector
     MLFlowModelLogger(selector, f"features selector model").log_model(_selector_artifact_path)
+    selected_features = selector.get_selected_features()
+    features_importances = selector.get_features_importances()
+    # Log info about the features importances and selected features
+    logger.info(f"Features importances:\n{features_importances.reset_index()}")
+    logger.info(f"Selected {len(selected_features)} / {len(features_importances)} features:\n" + \
+                ",\n".join(f"    - {ftr}" for ftr in selected_features))
+    sel_ftrs_imp = features_importances[selected_features]
+    logger.info(f"""Importances of the selected features:
+    - min: {sel_ftrs_imp.min()}
+    - mean: {sel_ftrs_imp.mean()}
+    - max: {sel_ftrs_imp.max()}""")
     # Save the selected features
     logger.info("Saving the selected features...")
     with tempfile.TemporaryDirectory() as tempdir:
         file_path = os.path.join(tempdir, _selected_features_filename)
         with open(file_path, "w") as f:
-            content = "\n".join(selector.get_selected_features().tolist())
+            content = "\n".join(selected_features.tolist())
             f.write(content)
         mlflow.log_artifact(file_path, _select_artifact_path)
     logger.info(
@@ -98,7 +109,7 @@ def fit_transform_features_selector_part(config: Config, transformed_sample_feat
     logger.info("Saving the features importances...")
     with tempfile.TemporaryDirectory() as tempdir:
         file_path = os.path.join(tempdir, _features_importances_filename)
-        selector.get_features_importances().to_csv(file_path)
+        features_importances.to_csv(file_path)
         mlflow.log_artifact(file_path, _select_artifact_path)
     logger.info(
         f"Successfully saved the features importances to MLFlow path {os.path.join(_select_artifact_path, _features_importances_filename)}")
