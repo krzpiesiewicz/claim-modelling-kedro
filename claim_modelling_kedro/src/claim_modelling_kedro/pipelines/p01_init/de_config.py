@@ -45,6 +45,7 @@ class DataEngineeringConfig:
     ohe_max_categories: int
     ohe_min_frequency: int
     is_scaler_enabled: bool
+    scaler_method: str
     join_exceeding_and_join_infrequent_values_warning: str = None
 
     def __init__(self, parameters: Dict):
@@ -81,4 +82,12 @@ class DataEngineeringConfig:
         self.ohe_drop_binary = params["ohe"]["drop_binary"]
         self.ohe_max_categories = params["ohe"]["max_categories"]
         self.ohe_min_frequency = params["ohe"]["min_frequency"]
-        self.is_scaler_enabled = params["scaler"]["enabled"]
+        scaler_params = params["scaler"]
+        self.is_scaler_enabled = scaler_params["enabled"]
+        self.scaler_method = scaler_params["method"]
+        self.scaler_params = scaler_params["params"]
+        if (scaler_params["method"] in scaler_params["params"]
+                and scaler_params["params"][scaler_params["method"]] is not None):
+            self.scaler_params = scaler_params["params"][scaler_params["method"]]
+        else:
+            self.scaler_params = {}
