@@ -1,5 +1,6 @@
 import logging
 from typing import Tuple, Dict
+from tabulate import tabulate
 
 import pandas as pd
 
@@ -60,5 +61,40 @@ def split_train_calib_test(
         train_keys = {one_part_key: train_keys}
         calib_keys = {one_part_key: calib_keys}
         test_keys = {one_part_key: test_keys}
+
+    # Log the distribution of the target variable in each partition
+    for dataset, keys_dct in zip(
+            ["train", "calib", "test"],
+            [train_keys, calib_keys, test_keys]
+    ):
+        top_n = 6
+        stats_cols = ["mean", "min", "q_0.1", "q_0.25", "q_0.5", "q_0.75", "q_0.9", "q_0.95", "q_0.99", "q_0.995",
+                "q_0.999"] + [f"top_{top_n - k}" for k in range(top_n)]
+        table = pd.DataFrame({col: {} for col in ["dataset", "part"] + stats_cols}, index=range(len(keys_dct)))
+        table[["dataset", "part"]] = table[["dataset", "part"]].astype(str)
+        for row_idx, (part, keys) in enumerate(keys_dct.items()):
+            target_values = target_df.loc[keys, stratify_target_col]
+            row = {
+                "dataset": dataset,
+                "part": part,
+                "mean": target_values.mean(),
+                "min": target_values.min(),
+                "q_0.1": target_values.quantile(0.1),
+                "q_0.25": target_values.quantile(0.25),
+                "q_0.5": target_values.quantile(0.5),
+                "q_0.75": target_values.quantile(0.75),
+                "q_0.9": target_values.quantile(0.9),
+                "q_0.95": target_values.quantile(0.95),
+                "q_0.99": target_values.quantile(0.99),
+                "q_0.995": target_values.quantile(0.995),
+                "q_0.999": target_values.quantile(0.999),
+            }
+            largest_values = target_values.nlargest(top_n)
+            for k in range(1, top_n + 1):
+                row[f"top_{top_n + 1 - k}"] = round(largest_values.iloc[top_n - k])
+            table.iloc[row_idx,:] = pd.Series(row)
+        table[stats_cols] = table[stats_cols].round().astype(int)
+        table.to_csv(f"data/03_primary/{dataset}_distribution_table.csv", index=False)
+        logger.info("\n" + tabulate(table, headers=table.columns, tablefmt="grid", showindex=False))
 
     return train_policies, calib_policies, test_policies, train_keys, calib_keys, test_keys

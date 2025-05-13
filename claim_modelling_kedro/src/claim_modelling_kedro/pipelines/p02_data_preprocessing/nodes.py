@@ -61,6 +61,14 @@ def preprocess_data(config: Config, raw_features_and_claims_numbers_df: pd.DataF
             np.fmax(filtered_joined_df[config.data.claims_number_target_col], 1))
     # Set index to policy_id_col
     filtered_joined_df.set_index(config.data.policy_id_col, inplace=True)
+    # Handle outliers
+    from claim_modelling_kedro.pipelines.utils.outliers import handle_outliers
+    filtered_joined_df, _, _ = handle_outliers(
+        target_df=filtered_joined_df,
+        target_col=config.data.stratify_target_col,
+        outliers_conf=config.data.outliers,
+        verbose=True
+    )
     logger.info("All done. Created filtered joined dataframe.")
     return filtered_joined_df
 

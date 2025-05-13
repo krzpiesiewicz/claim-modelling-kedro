@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import List, Dict
 
+from claim_modelling_kedro.pipelines.p01_init.outliers_config import OutliersConfig
+
 
 @dataclass
 class DataConfig:
@@ -76,3 +78,4 @@ class DataConfig:
             if self.test_size <= 0:
                 raise ValueError("test_size should be greater than 0.")
             self.one_part_key = "0"
+        self.outliers = OutliersConfig(params["outliers"])

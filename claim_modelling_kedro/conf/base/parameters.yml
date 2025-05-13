@@ -48,6 +48,10 @@ data:
     # test_size = 1 / folds
     # calib_size = 1 / folds
     # train_size = 1 - calib_size - test_size
+  outliers:
+    policy: clip # 'keep', 'drop', 'clip'
+    lower_bound:
+    upper_bound: 300000
 
 
 
