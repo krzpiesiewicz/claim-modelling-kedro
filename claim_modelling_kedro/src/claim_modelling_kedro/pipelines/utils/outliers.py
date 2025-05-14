@@ -25,7 +25,7 @@ def handle_outliers(
         keys = target_df.index
     else:
         target_df = target_df.loc[keys, :]
-    msg = f"Handling outliers from the {dataset_name}dataset before sampling..."
+    msg = f"Handling outliers from the {dataset_name}dataset..."
     if outliers_conf.lower_bound is None:
         lower_outliers_idx = pd.Index([])
         lower_outliers = None
