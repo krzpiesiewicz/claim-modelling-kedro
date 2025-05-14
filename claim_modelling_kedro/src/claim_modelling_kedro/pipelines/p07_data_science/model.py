@@ -220,17 +220,49 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
     return scores
 
 
+def process_predict_partition(config: Config, part: str, selected_features_df: Dict[str, pd.DataFrame],
+                              mlflow_run_id: str) -> Tuple[str, pd.DataFrame]:
+    selected_features_part_df = get_partition(selected_features_df, part)
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mflow_run_id=mlflow_run_id)
+    logger.info(f"Predicting the target on partition '{part}' of the dataset by the MLFlow model...")
+    predictions_part_df = predict_by_mlflow_model_part(config, selected_features_part_df, mlflow_subrun_id)
+    return part, predictions_part_df
+
+
 def predict_by_mlflow_model(config: Config, selected_features_df: Dict[str, pd.DataFrame],
                             mlflow_run_id: str = None) -> Dict[str, pd.DataFrame]:
     predictions_df = {}
     logger.info("Predicting the target by the MLFlow model...")
-    for part in selected_features_df.keys():
-        selected_features_part_df = get_partition(selected_features_df, part)
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mflow_run_id=mlflow_run_id)
-        logger.info(f"Predicting the target on partition '{part}' of the dataset by the MLFlow model...")
-        predictions_df[part] = predict_by_mlflow_model_part(config, selected_features_part_df, mlflow_subrun_id)
+
+    parts_cnt = len(selected_features_df)
+    with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
+        futures = {
+            executor.submit(process_predict_partition, config, part, selected_features_df, mlflow_run_id): part
+            for part in selected_features_df.keys()
+        }
+        for future in as_completed(futures):
+            part, predictions_part_df = future.result()
+            predictions_df[part] = predictions_part_df
+
     return predictions_df
 
+
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
+def process_part(config: Config, part: str, selected_sample_features_df: Dict[str, pd.DataFrame],
+                 sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
+                 sample_val_keys: Dict[str, pd.Index], best_hparams: Dict[str, Dict[str, Any]]) -> Tuple[str, pd.DataFrame]:
+    selected_sample_features_part_df = get_partition(selected_sample_features_df, part)
+    sample_target_part_df = get_partition(sample_target_df, part)
+    sample_train_keys_part = get_partition(sample_train_keys, part)
+    sample_val_keys_part = get_partition(sample_val_keys, part)
+    best_hparams_part = best_hparams[part] if best_hparams is not None else None
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
+    logger.info(f"Fitting and transforming the predictive model on partition '{part}' of the sample dataset...")
+    with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
+        return part, fit_transform_predictive_model_part(config, selected_sample_features_part_df,
+                                                         sample_target_part_df, sample_train_keys_part,
+                                                         sample_val_keys_part, best_hparams_part)
 
 def fit_transform_predictive_model(config: Config, selected_sample_features_df: Dict[str, pd.DataFrame],
                                    sample_target_df: Dict[str, pd.DataFrame],
@@ -238,16 +270,16 @@ def fit_transform_predictive_model(config: Config, selected_sample_features_df: 
                                    best_hparams: Dict[str, Dict[str, Any]]) -> Dict[str, pd.DataFrame]:
     predictions_df = {}
     logger.info("Fitting and transforming the predictive model...")
-    for part in selected_sample_features_df.keys():
-        selected_sample_features_part_df = get_partition(selected_sample_features_df, part)
-        sample_target_part_df = get_partition(sample_target_df, part)
-        sample_train_keys_part = get_partition(sample_train_keys, part)
-        sample_val_keys_part = get_partition(sample_val_keys, part)
-        best_hparams_part = best_hparams[part] if best_hparams is not None else None
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
-        logger.info(f"Fitting and transforming the predictive model on partition '{part}' of the sample dataset...")
-        with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-            predictions_df[part] = fit_transform_predictive_model_part(config, selected_sample_features_part_df, sample_target_part_df, sample_train_keys_part, sample_val_keys_part, best_hparams_part)
+
+    parts_cnt = len(selected_sample_features_df)
+    with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
+        futures = {executor.submit(process_part, config, part, selected_sample_features_df, sample_target_df,
+                                   sample_train_keys, sample_val_keys, best_hparams): part
+                   for part in selected_sample_features_df.keys()}
+        for future in as_completed(futures):
+            part, result = future.result()
+            predictions_df[part] = result
+
     return predictions_df
 
 

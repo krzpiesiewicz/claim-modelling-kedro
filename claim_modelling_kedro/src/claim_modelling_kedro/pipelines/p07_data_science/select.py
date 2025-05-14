@@ -2,7 +2,8 @@ import logging
 import os
 import tempfile
 from abc import ABC, abstractmethod
-from typing import Sequence, Dict
+from typing import Sequence, Dict, Tuple
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import mlflow
 import pandas as pd
@@ -63,15 +64,31 @@ class SelectorModel(ABC):
         self._features_importances = features_importances.sort_values(ascending=False)
 
 
-def select_features_by_mlflow_model_part(config: Config, transformed_features_df: pd.DataFrame,
-                                         mlflow_run_id: str = None) -> pd.DataFrame:
+def process_select_features_partition(config: Config, part: str, transformed_features_df: Dict[str, pd.DataFrame],
+                                      mlflow_run_id: str) -> Tuple[str, pd.DataFrame]:
+    logger.info(f"Selecting features for partition '{part}' by the MLFlow model...")
+    features_part_df = get_partition(transformed_features_df, part)
+    selector = MLFlowModelLoader("features selector model").load_model(path=_selector_artifact_path, run_id=mlflow_run_id)
+    selected_features_part_df = selector.transform(features_part_df)
+    logger.info(f"Selected features for partition '{part}'.")
+    return part, selected_features_part_df
+
+def select_features_by_mlflow_model(config: Config, transformed_features_df: Dict[str, pd.DataFrame],
+                                    mlflow_run_id: str = None) -> Dict[str, pd.DataFrame]:
     logger.info("Selecting features by the MLFlow model...")
-    # Load the selector model from the MLflow model registry
-    selector = MLFlowModelLoader("features selector model").load_model(path=_selector_artifact_path,
-                                                                       run_id=mlflow_run_id)
-    # Select the features
-    selected_features_df = selector.transform(transformed_features_df)
-    logger.info("Selected the features.")
+    selected_features_df = {}
+
+    parts_cnt = len(transformed_features_df)
+    with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
+        futures = {
+            executor.submit(process_select_features_partition, config, part, transformed_features_df, mlflow_run_id): part
+            for part in transformed_features_df.keys()
+        }
+        for future in as_completed(futures):
+            part, selected_features_part_df = future.result()
+            selected_features_df[part] = selected_features_part_df
+
+    logger.info("Selected features for all partitions.")
     return selected_features_df
 
 
@@ -118,22 +135,48 @@ def fit_transform_features_selector_part(config: Config, transformed_sample_feat
     return selected_features_df
 
 
+def process_fit_transform_partition(config: Config, part: str, sample_features_df: Dict[str, pd.DataFrame],
+                                    sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
+                                    sample_val_keys: Dict[str, pd.Index]) -> Tuple[str, pd.DataFrame]:
+    features_part_df = get_partition(sample_features_df, part)
+    target_part_df = get_partition(sample_target_df, part)
+    sample_train_keys_part = get_partition(sample_train_keys, part)
+    sample_val_keys_part = get_partition(sample_val_keys, part)
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
+    logger.info(f"Fitting selector on partition '{part}' of the sample dataset...")
+    with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
+        selected_part_df = fit_transform_features_selector_part(config, features_part_df, target_part_df,
+                                                                sample_train_keys_part, sample_val_keys_part)
+    return part, selected_part_df
+
+
 def fit_transform_features_selector(config: Config, sample_features_df: Dict[str, pd.DataFrame],
                                     sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
                                     sample_val_keys: Dict[str, pd.Index]) -> Dict[str, pd.DataFrame]:
     logger.info(f"Fitting features selector on the sample dataset...")
     selected_features_df = {}
-    for part in sample_features_df.keys():
-        features_part_df = get_partition(sample_features_df, part)
-        target_part_df = get_partition(sample_target_df, part)
-        sample_train_keys_part = get_partition(sample_train_keys, part)
-        sample_val_keys_part = get_partition(sample_val_keys, part)
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
-        logger.info(f"Fitting selector on partition '{part}' of the sample dataset...")
-        with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-            selected_features_df[part] = fit_transform_features_selector_part(config, features_part_df, target_part_df,
-                                                                              sample_train_keys_part, sample_val_keys_part)
+
+    parts_cnt = len(sample_features_df)
+    with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
+        futures = {
+            executor.submit(process_fit_transform_partition, config, part, sample_features_df, sample_target_df,
+                            sample_train_keys, sample_val_keys): part
+            for part in sample_features_df.keys()
+        }
+        for future in as_completed(futures):
+            part, selected_part_df = future.result()
+            selected_features_df[part] = selected_part_df
+
     return selected_features_df
+
+
+def process_select_partition(config: Config, part: str, features_df: Dict[str, pd.DataFrame],
+                             mlflow_run_id: str) -> Tuple[str, pd.DataFrame]:
+    features_part_df = get_partition(features_df, part)
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mflow_run_id=mlflow_run_id)
+    logger.info(f"Selecting partition '{part}' of the sample dataset...")
+    selected_part_df = select_features_by_mlflow_model_part(config, features_part_df, mlflow_subrun_id)
+    return part, selected_part_df
 
 
 def select_features_by_mlflow_model(config: Config, features_df: Dict[str, pd.DataFrame],
@@ -143,9 +186,15 @@ def select_features_by_mlflow_model(config: Config, features_df: Dict[str, pd.Da
         return features_df
     selected_features_df = {}
     logger.info(f"Selecting features of the sample dataset...")
-    for part in features_df.keys():
-        features_part_df = get_partition(features_df, part)
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mflow_run_id=mlflow_run_id)
-        logger.info(f"Selecting partition '{part}' of the sample dataset...")
-        selected_features_df[part] = select_features_by_mlflow_model_part(config, features_part_df, mlflow_subrun_id)
+
+    parts_cnt = len(features_df)
+    with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
+        futures = {
+            executor.submit(process_select_partition, config, part, features_df, mlflow_run_id): part
+            for part in features_df.keys()
+        }
+        for future in as_completed(futures):
+            part, selected_part_df = future.result()
+            selected_features_df[part] = selected_part_df
+
     return selected_features_df

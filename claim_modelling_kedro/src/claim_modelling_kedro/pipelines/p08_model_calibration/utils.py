@@ -3,6 +3,7 @@ from typing import Tuple, Dict
 
 import mlflow
 import pandas as pd
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p08_model_calibration.calibration_models import CalibrationModel
@@ -104,29 +105,59 @@ def handle_outliers(
     return features_df_handled_outliers, target_df_handled_outliers
 
 
+def process_calibrate_partition(config: Config, part: str, pure_predictions_df: Dict[str, pd.DataFrame],
+                                mlflow_run_id: str) -> Tuple[str, pd.DataFrame]:
+    pure_predictions_part_df = get_partition(pure_predictions_df, part)
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mflow_run_id=mlflow_run_id)
+    logger.info(f"Calibrating the pure predictions on partition '{part}' of the dataset by the MLFlow model...")
+    calibrated_part_df = calibrate_predictions_by_mlflow_model_part(config, pure_predictions_part_df, mlflow_subrun_id)
+    return part, calibrated_part_df
+
+
 def calibrate_predictions_by_mlflow_model(config: Config, pure_predictions_df: Dict[str, pd.DataFrame],
                                           mlflow_run_id: str) -> Dict[str, pd.DataFrame]:
     calibrated_predictions_df = {}
     logger.info("Calibrating the pure predictions by the MLFlow model...")
-    for part in pure_predictions_df.keys():
-        pure_predictions_part_df = get_partition(pure_predictions_df, part)
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mflow_run_id=mlflow_run_id)
-        logger.info(f"Calibrating the pure predictions on partition '{part}' of the dataset by the MLFlow model...")
-        calibrated_predictions_df[part] = calibrate_predictions_by_mlflow_model_part(config, pure_predictions_part_df, mlflow_subrun_id)
+
+    parts_cnt = len(pure_predictions_df)
+    with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
+        futures = {
+            executor.submit(process_calibrate_partition, config, part, pure_predictions_df, mlflow_run_id): part
+            for part in pure_predictions_df.keys()
+        }
+        for future in as_completed(futures):
+            part, calibrated_part_df = future.result()
+            calibrated_predictions_df[part] = calibrated_part_df
+
     logger.info("Calibrated the predictions.")
     return calibrated_predictions_df
+
+
+def process_fit_transform_partition(config: Config, part: str, pure_calib_predictions_df: Dict[str, pd.DataFrame],
+                                    target_calib_df: Dict[str, pd.DataFrame]) -> Tuple[str, pd.DataFrame]:
+    pure_calib_predictions_part_df = get_partition(pure_calib_predictions_df, part)
+    target_calib_part_df = get_partition(target_calib_df, part)
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
+    logger.info(f"Fitting and transforming the calibration model on partition '{part}' of the calibration dataset...")
+    with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
+        calibrated_part_df = fit_transform_calibration_model_part(config, pure_calib_predictions_part_df, target_calib_part_df)
+    return part, calibrated_part_df
 
 
 def fit_transform_calibration_model(config: Config, pure_calib_predictions_df: Dict[str, pd.DataFrame],
                                     target_calib_df: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
     calibrated_predictions_df = {}
     logger.info("Fitting and transforming the calibration model...")
-    for part in pure_calib_predictions_df.keys():
-        pure_calib_predictions_part_df = get_partition(pure_calib_predictions_df, part)
-        target_calib_part_df = get_partition(target_calib_df, part)
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
-        logger.info(f"Fitting and transforming the calibration model on partition '{part}' of the calibration dataset...")
-        with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-            calibrated_predictions_df[part] = fit_transform_calibration_model_part(config, pure_calib_predictions_part_df, target_calib_part_df)
+
+    parts_cnt = len(pure_calib_predictions_df)
+    with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
+        futures = {
+            executor.submit(process_fit_transform_partition, config, part, pure_calib_predictions_df, target_calib_df): part
+            for part in pure_calib_predictions_df.keys()
+        }
+        for future in as_completed(futures):
+            part, calibrated_part_df = future.result()
+            calibrated_predictions_df[part] = calibrated_part_df
+
     logger.info("Fitted and transformed the calibration model.")
     return calibrated_predictions_df

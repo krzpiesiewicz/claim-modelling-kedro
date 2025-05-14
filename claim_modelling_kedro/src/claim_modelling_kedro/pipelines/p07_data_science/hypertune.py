@@ -9,6 +9,7 @@ import mlflow
 import numpy as np
 import pandas as pd
 from hyperopt import fmin, Trials, space_eval, STATUS_OK, STATUS_FAIL
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.ds_config import HyperoptAlgoEnum
@@ -130,6 +131,28 @@ def create_hyperopt_result_message(trial: Dict[str, Any], is_best: bool = False)
     return msg
 
 
+def process_fold(fold: str, train_keys_cv: Dict[str, pd.Index], val_keys_cv: Dict[str, pd.Index],
+                 selected_sample_features_df: pd.DataFrame, sample_target_df: pd.DataFrame,
+                 hparams: Dict[str, Any], model: PredictiveModel, metric: Metric) -> Tuple[float, float]:
+    train_keys = train_keys_cv[fold]
+    val_keys = val_keys_cv[fold]
+    train_features_df = selected_sample_features_df.loc[train_keys]
+    val_features_df = selected_sample_features_df.loc[val_keys]
+    train_target_df = sample_target_df.loc[train_keys]
+    val_target_df = sample_target_df.loc[val_keys]
+
+    model.update_hparams(hparams)
+    model.fit(train_features_df, train_target_df)
+
+    train_predictions_df = model.predict(train_features_df)
+    val_predictions_df = model.predict(val_features_df)
+
+    train_score = metric.eval(train_target_df, train_predictions_df)
+    val_score = metric.eval(val_target_df, val_predictions_df)
+
+    return train_score, val_score
+
+
 def fit_model(hparams: Dict[str, any],
               model: PredictiveModel,
               config: Config,
@@ -174,30 +197,19 @@ def fit_model(hparams: Dict[str, any],
     start_time = time.time()
 
     try:
-        for fold in train_keys_cv.keys():
-            train_keys = train_keys_cv[fold]
-            val_keys = val_keys_cv[fold]
-            train_features_df = selected_sample_features_df.loc[train_keys]
-            val_features_df = selected_sample_features_df.loc[val_keys]
-            train_target_df = sample_target_df.loc[train_keys]
-            val_target_df = sample_target_df.loc[val_keys]
-
-            model.update_hparams(hparams)
-            logger.debug(f"Hyperopt fold: {fold}. Fitting the predictive model...")
-            model.fit(train_features_df, train_target_df)
-            logger.debug(f"Hyperopt fold: {fold}. Fitted the predictive model.")
-
-            train_predictions_df = model.predict(train_features_df)
-            val_predictions_df = model.predict(val_features_df)
-
-            train_score = metric.eval(train_target_df, train_predictions_df)
-            val_score = metric.eval(val_target_df, val_predictions_df)
-
-            train_scores.append(train_score)
-            val_scores.append(val_score)
-
-            logger.debug(
-                f"Hyperopt fold: {fold}. Train score ({metric_name}): {train_score}, Validation score ({metric_name}): {val_score}.")
+        with ProcessPoolExecutor(max_workers=5) as executor:  # Ustaw odpowiednią liczbę procesów
+            futures = {
+                executor.submit(process_fold, fold, train_keys_cv, val_keys_cv,
+                                selected_sample_features_df, sample_target_df,
+                                hparams, model, metric): fold
+                for fold in train_keys_cv.keys()
+            }
+            for future in as_completed(futures):
+                train_score, val_score = future.result()
+                train_scores.append(train_score)
+                val_scores.append(val_score)
+                logger.debug(
+                    f"Hyperopt fold: {futures[future]}. Train score ({metric_name}): {train_score}, Validation score ({metric_name}): {val_score}.")
 
         train_score_mean = np.mean(train_scores)
         val_score_mean = np.mean(val_scores)
@@ -298,30 +310,47 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
     return best_trial, best_hparams
 
 
+def process_hypertune_part(config: Config, part: str, selected_sample_features_df: Dict[str, pd.DataFrame],
+                           sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
+                           sample_val_keys: Dict[str, pd.Index], save_best_hparams_in_mlfow: bool) -> Tuple[str, Dict[str, Any]]:
+    selected_sample_features_part_df = get_partition(selected_sample_features_df, part)
+    sample_target_part_df = get_partition(sample_target_df, part)
+    sample_train_keys_part = get_partition(sample_train_keys, part)
+    sample_val_keys_part = get_partition(sample_val_keys, part)
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
+    logger.info(f"Tuning the hyper parameters of the predictive model on partition '{part}' of the sample dataset...")
+    with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
+        best_trial_part, best_hparams_part = hypertune_part(
+            config, selected_sample_features_part_df, sample_target_part_df,
+            sample_train_keys_part, sample_val_keys_part,
+            hyperopt_artifact_path=f"{_hypertune_artifact_path}"
+        )
+        msg = create_hyperopt_result_message(best_trial_part, is_best=True)
+        logger.info(msg)
+        msg = f"The best hyperparameters for partition '{part}':\n"
+        for param, value in best_hparams_part.items():
+            msg += f"    - {param}: {value}\n"
+        logger.info(msg)
+    return part, best_hparams_part
+
 def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFrame],
               sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
               sample_val_keys: Dict[str, pd.Index], save_best_hparams_in_mlfow: bool = True) -> Dict[str, Dict[str, Any]]:
     logger.info(f"Tuning the hyper parameters of the predictive model {config.ds.model_class}...")
     best_hparams = {}
-    for part in selected_sample_features_df.keys():
-        selected_sample_features_part_df = get_partition(selected_sample_features_df, part)
-        sample_target_part_df = get_partition(sample_target_df, part)
-        sample_train_keys_part = get_partition(sample_train_keys, part)
-        sample_val_keys_part = get_partition(sample_val_keys, part)
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
-        logger.info(
-            f"Tuning the hyper parameters of the predictive model on partition '{part}' of the sample dataset...")
-        with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-            best_trial_part, best_hparams_part = hypertune_part(config, selected_sample_features_part_df, sample_target_part_df,
-                                               sample_train_keys_part, sample_val_keys_part,
-                                               hyperopt_artifact_path=f"{_hypertune_artifact_path}")
+
+    parts_cnt = len(selected_sample_features_df)
+    with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
+        futures = {
+            executor.submit(process_hypertune_part, config, part, selected_sample_features_df, sample_target_df,
+                            sample_train_keys, sample_val_keys, save_best_hparams_in_mlfow): part
+            for part in selected_sample_features_df.keys()
+        }
+        for future in as_completed(futures):
+            part, best_hparams_part = future.result()
             best_hparams[part] = best_hparams_part
-            msg = create_hyperopt_result_message(best_trial_part, is_best=True)
-            logger.info(msg)
-            msg = f"The best hyperparameters for partition '{part}':\n"
-            for param, value in best_hparams_part.items():
-                msg += f"    - {param}: {value}\n"
-            logger.info(msg)
+
     if save_best_hparams_in_mlfow:
         mlflow.log_dict(best_hparams, f"{_hypertune_artifact_path}/best_hparams.yml")
     return best_hparams
+

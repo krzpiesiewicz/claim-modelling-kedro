@@ -1,7 +1,8 @@
 import logging
 import os
 import tempfile
-from typing import Dict, List
+from typing import Dict, Tuple
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import mlflow
 import pandas as pd
@@ -139,27 +140,57 @@ def transform_features_by_mlflow_model_part(config: Config, features_df: pd.Data
     return transformed_features_df
 
 
+def process_partition(config: Config, part: str, features_df: Dict[str, pd.DataFrame],
+                      features_blacklist_text: str, reference_categories: Dict[str, str]) -> Tuple[str, pd.DataFrame]:
+    features_part_df = get_partition(features_df, part)
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
+    logger.info(f"Fitting transformers on partition '{part}' of the sample dataset...")
+    with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
+        transformed_part_df = fit_transform_features_part(config, features_part_df,
+                                                          features_blacklist_text, reference_categories)
+    return part, transformed_part_df
+
+
 def fit_transform_features(config: Config, features_df: Dict[str, pd.DataFrame],
                            features_blacklist_text: str, reference_categories: Dict[str, str]) -> Dict[str, pd.DataFrame]:
     logger.info(f"Fitting features transformers on the sample dataset...")
     transformed_features_df = {}
-    for part in features_df.keys():
-        features_part_df = get_partition(features_df, part)
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
-        logger.info(f"Fitting transformers on partition '{part}' of the sample dataset...")
-        with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-            transformed_features_df[part] = fit_transform_features_part(config, features_part_df,
-                                                                        features_blacklist_text, reference_categories)
+
+    parts_cnt = len(features_df)
+    with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
+        futures = {
+            executor.submit(process_partition, config, part, features_df, features_blacklist_text, reference_categories): part
+            for part in features_df.keys()
+        }
+        for future in as_completed(futures):
+            part, transformed_part_df = future.result()
+            transformed_features_df[part] = transformed_part_df
+
     return transformed_features_df
+
+
+def process_transform_partition(config: Config, part: str, features_df: Dict[str, pd.DataFrame],
+                                mlflow_run_id: str) -> Tuple[str, pd.DataFrame]:
+    features_part_df = get_partition(features_df, part)
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mflow_run_id=mlflow_run_id)
+    logger.info(f"Transforming features on partition '{part}'...")
+    transformed_part_df = transform_features_by_mlflow_model_part(config, features_part_df, mlflow_subrun_id)
+    return part, transformed_part_df
 
 
 def transform_features_by_mlflow_model(config: Config, features_df: Dict[str, pd.DataFrame],
                                        mlflow_run_id: str = None) -> Dict[str, pd.DataFrame]:
     logger.info(f"Transforming features...")
     transformed_features_df = {}
-    for part in features_df.keys():
-        features_part_df = get_partition(features_df, part)
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mflow_run_id=mlflow_run_id)
-        logger.info(f"Transforming features on partition '{part}'...")
-        transformed_features_df[part] = transform_features_by_mlflow_model_part(config, features_part_df, mlflow_subrun_id)
+
+    parts_cnt = len(features_df)
+    with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
+        futures = {
+            executor.submit(process_transform_partition, config, part, features_df, mlflow_run_id): part
+            for part in features_df.keys()
+        }
+        for future in as_completed(futures):
+            part, transformed_part_df = future.result()
+            transformed_features_df[part] = transformed_part_df
+
     return transformed_features_df
