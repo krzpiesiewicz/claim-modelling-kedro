@@ -8,7 +8,6 @@ import pandas as pd
 from claim_modelling_kedro.pipelines.utils.concentration_curve import plot_mean_concentration_curve, \
     plot_concentration_curve
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition
-from claim_modelling_kedro.pipelines.p10_summary.utils.uitls import get_file_name
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +15,20 @@ FILE_NAME_MEAN_CC_WITH_ORACLE = "{dataset}_mean_cc_with_oracle.jpg"
 FILE_NAME_MEAN_CC_AND_LORENZ = "{dataset}_mean_cc_and_lorenz.jpg"
 FILE_NAME_CC_WITH_ORACLE = "{dataset}_cc_with_oracle.jpg"
 FILE_NAME_CC_WITH_LORENZ = "{dataset}_cc_with_lorenz.jpg"
+
+
+def get_file_name(file_template: str, dataset: str) -> str:
+    """
+    Returns the file name based on the template and dataset name.
+
+    Args:
+        file_template (str): Template for the file name.
+        dataset (str): Name of the dataset (e.g., "train" or "test").
+
+    Returns:
+        str: Formatted file name.
+    """
+    return file_template.format(dataset=dataset)
 
 
 def create_mean_concentration_curves_figs(
