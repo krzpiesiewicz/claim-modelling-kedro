@@ -6,7 +6,7 @@ import logging
 import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p10_summary.uitls import (
+from claim_modelling_kedro.pipelines.p10_summary.utils.cc_lorenz import (
     create_mean_concentration_curves_figs,
     create_concentration_curves_figs_part
 )
