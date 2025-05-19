@@ -179,6 +179,18 @@ calibrated_calib_predictions_df:
   path: data/05_calib/calibrated_predictions/
   filename_suffix: ".pq"
 
+pure_train_predictions_df:
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/06_test/pure_predictions/
+  filename_suffix: ".pq"
+
+calibrated_train_predictions_df:
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/06_test/calibrated_predictions/
+  filename_suffix: ".pq"
+
 pure_test_predictions_df:
   type: partitions.PartitionedDataset
   dataset: pandas.ParquetDataset
@@ -191,8 +203,44 @@ calibrated_test_predictions_df:
   path: data/06_test/calibrated_predictions/
   filename_suffix: ".pq"
 
+train_target_df:
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/06_test/summary/train_target/
+  filename_suffix: ".pq"
+
 test_target_df:
   type: partitions.PartitionedDataset
   dataset: pandas.ParquetDataset
-  path: data/06_test/target/
+  path: data/06_test/summary/test_target/
   filename_suffix: ".pq"
+
+train_predictions_df:
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/06_test/summary/train_predictions/
+  filename_suffix: ".pq"
+
+test_predictions_df:
+  type: partitions.PartitionedDataset
+  dataset: pandas.ParquetDataset
+  path: data/06_test/summary/test_predictions/
+  filename_suffix: ".pq"
+
+dummy_test_1_df:
+  type: pandas.ParquetDataset
+  filepath: data/06_test/summary/dummy_test_1_df.pq
+  save_args:
+    index: True
+
+dummy_test_2_df:
+  type: pandas.ParquetDataset
+  filepath: data/06_test/summary/dummy_test_2_df.pq
+  save_args:
+    index: True
+
+dummy_summary_1_df:
+  type: pandas.ParquetDataset
+  filepath: data/06_test/summary/dummy_summary_1_df.pq
+  save_args:
+    index: True

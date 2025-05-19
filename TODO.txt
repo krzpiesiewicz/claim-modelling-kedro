@@ -17,15 +17,17 @@ TODO – programowanie i eksperymenty:
 11.1. [DONE] NormalizedConcentrationIndex - pozmnieniać nazwy
 11.2. [DONE] Uruchomić dobry eksperyment, bo potrzeba sprawdzić CI i mieć dobre dane do innych wykresów i indeksów
 12.   [DONE] Policzyć średni target w kubełkach cross walidacji - capping do do 300 tys.
-13.1  TODO Dodać wykres Concentraion Curve (ordered lorentz) do mlflow
-13.2  TODO Zrobić wykres uśredniający wszystkie Concentraion Curves dla foldów cross walidacji
-14.   TODO Zestawić na wykresie krzywą lorentza (tę z samą predykcją bez true values) i Concentraion Curve
-15.   TODO Zaimplementować ABC i ICC z artykułu Testing for auto-calibration
-16.   TODO Dodać RGLMNet - bo tam jest L1 dla Poisson i obsługa wag (wagi nie są obsługiwne w pyglmnet)
-17.   [DONE] Selekcja cech za pomocą GLM (Poisson, Gamma... zamiast Lasso) - użyć https://glm-tools.github.io/pyglmnet/api.html
-18.   TODO Przeprowadzić eksperymenty – częstotliwość, średnia szkoda i pure premium - z cross walidacją
-19.   [CANCELED] Model łączący modele na częstotliwość i średnią szkodę.
-20.   rozkłady średniej predykcji i średniego targetu w percentylach
+13.1  [DONE] Dodać wykres Concentraion Curve (ordered lorentz) do mlflow
+13.2  [DONE] Zrobić wykres uśredniający wszystkie Concentraion Curves dla foldów cross walidacji
+14.   [DONE] Zestawić na wykresie krzywą lorentza (tę z samą predykcją bez true values) i Concentraion Curve
+14.1  [DONE] Zrobić to samo dla pure predictions (tak jak ewaluacja w p09_test)
+15.   TODO Dodać wykresy krzywej kalibracji
+16.   TODO Opracować wykres średniego targetu w percentylach / predykcji
+17.   TODO Zaimplementować ABC i ICC z artykułu Testing for auto-calibration
+18.   TODO Dodać RGLMNet - bo tam jest L1 dla Poisson i obsługa wag (wagi nie są obsługiwne w pyglmnet)
+19.   [DONE] Selekcja cech za pomocą GLM (Poisson, Gamma... zamiast Lasso) - użyć https://glm-tools.github.io/pyglmnet/api.html
+20.   TODO Przeprowadzić eksperymenty – częstotliwość, średnia szkoda i pure premium - z cross walidacją
+21.   [CANCELED] Model łączący modele na częstotliwość i średnią szkodę.
 
 TODO - tekst:
 0. Ewaluacja (gini, lorentz, CC, krzywa kalibracji)

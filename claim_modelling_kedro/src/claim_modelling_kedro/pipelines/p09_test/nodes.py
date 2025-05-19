@@ -15,7 +15,10 @@ def eval_model_on_test_and_compute_stats(config: Config, calibrated_calib_predic
     """
     calibrated_calib_predictions_df is only used to force the pipeline order (p09 after p08)
     """
-    return run_eval_pipeline(config, features_df, target_df, test_keys, "test")
+    run_eval_pipeline(config, features_df, target_df, test_keys, "test")
+
+    dummy_test_1_df = pd.DataFrame({})
+    return dummy_test_1_df
 
 
 def eval_model_on_train_and_compute_stats(config: Config, calibrated_calib_predictions_df: Dict[str, pd.DataFrame],
@@ -24,4 +27,6 @@ def eval_model_on_train_and_compute_stats(config: Config, calibrated_calib_predi
     """
     calibrated_calib_predictions_df is only used to force the pipeline order (p09 after p08)
     """
-    return run_eval_pipeline(config, features_df, target_df, train_keys, "train")
+    run_eval_pipeline(config, features_df, target_df, train_keys, "train")
+    dummy_test_1_df = pd.DataFrame({})
+    return dummy_test_1_df
