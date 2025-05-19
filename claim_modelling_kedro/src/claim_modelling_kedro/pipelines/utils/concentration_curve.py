@@ -180,7 +180,7 @@ def plot_mean_concentration_curve(
     show_cc: bool = True,
     show_oracle: bool = False,
     fill_between_cc_and_oracle: bool = False,
-    fill_between_equity_and_cc: bool = True,
+    fill_between_equity_and_cc: bool = False,
     show_std_band: bool = True,
     show_all_curves: bool = False,
     show_lorenz: bool = False,

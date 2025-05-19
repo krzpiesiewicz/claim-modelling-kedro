@@ -69,7 +69,6 @@ def create_mean_concentration_curves_figs(
         show_cc=True,
         show_oracle=True,
         show_std_band=True,
-        fill_between_equity_and_cc=True
     )
     logger.info("Generated the mean concentration curve with the oracle curve.")
 
@@ -91,7 +90,6 @@ def create_mean_concentration_curves_figs(
         show_cc=True,
         show_lorenz=True,
         show_std_band=True,
-        fill_between_cc_and_lorenz=True
     )
     logger.info("Generated the mean concentration curve with the Lorenz curve.")
 
