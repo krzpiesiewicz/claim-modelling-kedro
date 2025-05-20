@@ -163,7 +163,7 @@ def create_concentration_curves_figs_part(
         artifact_path = ARTIFACT_PATH_CC_ORACLE
         fig1_path = os.path.join(temp_dir, filename)
         fig1.savefig(fig1_path, format="jpg")
-        mlflow.log_artifact(fig1_path, artifact_path="summary")
+        mlflow.log_artifact(fig1_path, artifact_path=artifact_path)
         logger.info(f"Concentration curve with the oracle curve logged to MLflow under artifact path 'summary' as {os.path.join(artifact_path, filename)}.")
 
     # Generate the concentration curve with the Lorenz curve
@@ -185,5 +185,5 @@ def create_concentration_curves_figs_part(
         artifact_path = ARTIFACT_PATH_CC_LORENZ
         fig2_path = os.path.join(temp_dir, filename)
         fig2.savefig(fig2_path, format="jpg")
-        mlflow.log_artifact(fig2_path, artifact_path="summary")
+        mlflow.log_artifact(fig2_path, artifact_path=artifact_path)
         logger.info(f"Concentration curve with the Lorenz curve logged to MLflow under artifact path 'summary' as {os.path.join(artifact_path, filename)}.")
