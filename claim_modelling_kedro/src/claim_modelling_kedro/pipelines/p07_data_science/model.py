@@ -10,7 +10,7 @@ import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum
-from claim_modelling_kedro.pipelines.utils.metrics import Metric
+from claim_modelling_kedro.pipelines.utils.metrics import get_metric_from_enum, Metric
 from claim_modelling_kedro.pipelines.utils.mlflow_model import MLFlowModelLogger, MLFlowModelLoader
 from claim_modelling_kedro.pipelines.utils.utils import get_class_from_path
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
@@ -196,7 +196,7 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
     logger.info("Evaluating the predictions:")
     scores = {}
     for metric_enum in config.mdl_task.evaluation_metrics:
-        metric = Metric.from_enum(config, metric_enum, pred_col=config.mdl_task.prediction_col)
+        metric = get_metric_from_enum(config, metric_enum, pred_col=config.mdl_task.prediction_col)
         try:
             if keys is not None:
                 predictions_df = predictions_df.loc[keys, :]

@@ -14,7 +14,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.ds_config import HyperoptAlgoEnum
 from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel
-from claim_modelling_kedro.pipelines.utils.metrics import Metric
+from claim_modelling_kedro.pipelines.utils.metrics import get_metric_from_enum, Metric
 from claim_modelling_kedro.pipelines.utils.stratified_cv_split import get_stratified_train_test_cv
 from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_test_split_keys
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
@@ -278,7 +278,7 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
     model = get_class_from_path(config.ds.model_class)(config=config, target_col=config.mdl_task.target_col,
                                                        pred_col=config.mdl_task.prediction_col)
     model.update_hparams(config.ds.model_const_hparams)
-    metric = model.metric() if config.ds.hopt_metric is None else Metric.from_enum(config, config.ds.hopt_metric,
+    metric = model.metric() if config.ds.hopt_metric is None else get_metric_from_enum(config, config.ds.hopt_metric,
                                                                                    pred_col=config.mdl_task.prediction_col)
     hparam_space = model.get_hparams_space()
     for hparam in config.ds.hopt_excluded_params + list(config.ds.model_const_hparams.keys()):

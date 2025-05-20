@@ -13,8 +13,9 @@ from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.mdl_info_config import ModelEnum
 from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel
 from claim_modelling_kedro.pipelines.p07_data_science.models.sklearn_model import SklearnModel
-from claim_modelling_kedro.pipelines.utils.metrics import Metric, RootMeanSquaredError, MeanPoissonDeviance, \
-    MeanGammaDeviance, NormalizedConcentrationIndex, MeanTweedieDeviance
+from claim_modelling_kedro.pipelines.utils.metrics.metric import Metric, RootMeanSquaredError, MeanPoissonDeviance, \
+    MeanGammaDeviance, MeanTweedieDeviance
+from claim_modelling_kedro.pipelines.utils.metrics.cc_index import NormalizedConcentrationIndex
 
 logger = logging.getLogger(__name__)
 

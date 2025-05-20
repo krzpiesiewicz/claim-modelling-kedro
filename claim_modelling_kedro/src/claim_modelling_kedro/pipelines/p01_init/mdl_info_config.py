@@ -11,6 +11,7 @@ class ModelEnum(Enum):
     SKLEARN_POISSON_GLM: str = "SklearnPoissonGLM"
     SKLEARN_GAMMA_GLM: str = "SklearnGammaGLM"
     SKLEARN_TWEEDIE_GLM: str = "SklearnTweedieGLM"
+    RGLMNET_POISSON_GLM: str = "RGLMNetPoissonGLM"
     PYGLMNET_POISSON_GLM: str = "PyGLMNetPoissonGLM"
     PYGLMNET_GAMMA_GLM: str = "PyGLMNetGammaGLM"
 
