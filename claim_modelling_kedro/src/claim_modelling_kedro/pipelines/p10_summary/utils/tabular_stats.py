@@ -71,8 +71,11 @@ def create_prediction_group_summary_strict_bins(
     # Add sample weights if available
     df["weight"] = get_sample_weight(config, target_df)
 
-    # Stable argsort to break ties
-    sorted_indices = np.argsort(df["y_pred"].values, kind="stable")
+    # Stable sort: primary by y_pred (ascending), secondary by hash(index) to break ties
+    primary_key = df["y_pred"].values
+    secondary_key = df.index.to_series().apply(lambda x: hash(x)).values
+    sorted_indices = np.lexsort((secondary_key, primary_key))
+
     group_numbers = np.zeros(len(df), dtype=int)
     for i, idx in enumerate(sorted_indices):
         group_numbers[idx] = (i * n_bins) // len(df) + 1  # 1-based group index
