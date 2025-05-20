@@ -19,12 +19,12 @@ from claim_modelling_kedro.pipelines.utils.datasets import get_mlflow_run_id_for
 logger = logging.getLogger(__name__)
 
 
-def load_train_and_test_predictions(
+def load_target_and_predictions(
     dummy_test_1_df: pd.DataFrame,
     dummy_test_2_df: pd.DataFrame,
-) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame], Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
+) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame], Dict[str, pd.DataFrame], Dict[str, pd.DataFrame], Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
     """
-    Loads train and test predictions and targets from MLflow for the current active run.
+    Loads calib, train and test predictions and targets from MLflow for the current active run.
 
     Args:
         dummy_test_1_df (pd.DataFrame): Placeholder DataFrame for test dataset 1.
@@ -32,11 +32,15 @@ def load_train_and_test_predictions(
 
     Returns:
         Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
+            - Calibrated predictions and targets as a dictionary of DataFrames.
             - Train predictions and targets as a dictionary of DataFrames.
             - Test predictions and targets as a dictionary of DataFrames.
     """
     # Get the current MLflow run ID
     mlflow_run_id = active_run().info.run_id
+
+    # Load calibrated predictions and targets
+    calib_predictions_df, calib_target_df = load_predictions_and_target_from_mlflow(dataset="calib", mlflow_run_id=mlflow_run_id)
 
     # Load train predictions and targets
     train_predictions_df, train_target_df = load_predictions_and_target_from_mlflow(dataset="train", mlflow_run_id=mlflow_run_id)
@@ -44,11 +48,13 @@ def load_train_and_test_predictions(
     # Load test predictions and targets
     test_predictions_df, test_target_df = load_predictions_and_target_from_mlflow(dataset="test", mlflow_run_id=mlflow_run_id)
 
-    return train_predictions_df, train_target_df, test_predictions_df, test_target_df
+    return calib_predictions_df, calib_target_df, train_predictions_df, train_target_df, test_predictions_df, test_target_df
 
 
 def create_concentration_curves(
         config: Config,
+        calib_predictions_df: Dict[str, pd.DataFrame],
+        calib_target_df: Dict[str, pd.DataFrame],
         train_predictions_df: Dict[str, pd.DataFrame],
         train_target_df: Dict[str, pd.DataFrame],
         test_predictions_df: Dict[str, pd.DataFrame],
@@ -71,8 +77,9 @@ def create_concentration_curves(
         test_target_df (Dict[str, pd.DataFrame]): Dictionary of test targets for each partition.
     """
     # Iterate over train and test datasets
-    for dataset, predictions_df, target_df in zip(["train", "test"], [train_predictions_df, test_predictions_df],
-                                                  [train_target_df, test_target_df]):
+    for dataset, predictions_df, target_df in zip(["calib", "train", "test"],
+                                                  [calib_predictions_df, train_predictions_df, test_predictions_df],
+                                                  [calib_target_df, train_target_df, test_target_df]):
         target_col = config.mdl_task.target_col
         for prefix, prediction_col in zip(["pure", None], [config.clb.pure_prediction_col, config.clb.calibrated_prediction_col]):
             dataset_name = f"{prefix}_{dataset}" if prefix is not None else dataset
@@ -121,6 +128,8 @@ def create_concentration_curves(
 
 def create_prediction_groups_stats_tables(
         config: Config,
+        calib_predictions_df: Dict[str, pd.DataFrame],
+        calib_target_df: Dict[str, pd.DataFrame],
         train_predictions_df: Dict[str, pd.DataFrame],
         train_target_df: Dict[str, pd.DataFrame],
         test_predictions_df: Dict[str, pd.DataFrame],
@@ -137,8 +146,9 @@ def create_prediction_groups_stats_tables(
         test_target_df (Dict[str, pd.DataFrame]): Dictionary of test targets for each partition.
     """
     # Iterate over train and test datasets
-    for dataset, predictions_df, target_df in zip(["train", "test"], [train_predictions_df, test_predictions_df],
-                                                  [train_target_df, test_target_df]):
+    for dataset, predictions_df, target_df in zip(["calib", "train", "test"],
+                                                  [calib_predictions_df, train_predictions_df, test_predictions_df],
+                                                  [calib_target_df, train_target_df, test_target_df]):
         target_col = config.mdl_task.target_col
         for prefix, prediction_col in zip(["pure", None], [config.clb.pure_prediction_col, config.clb.calibrated_prediction_col]):
             dataset_name = f"{prefix}_{dataset}" if prefix is not None else dataset
