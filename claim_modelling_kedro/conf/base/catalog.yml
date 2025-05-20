@@ -244,3 +244,9 @@ dummy_summary_1_df:
   filepath: data/06_test/summary/dummy_summary_1_df.pq
   save_args:
     index: True
+
+dummy_summary_2_df:
+  type: pandas.ParquetDataset
+  filepath: data/06_test/summary/dummy_summary_2_df.pq
+  save_args:
+    index: True
