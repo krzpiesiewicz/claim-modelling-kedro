@@ -10,7 +10,8 @@ from claim_modelling_kedro.pipelines.p10_summary.utils.cc_lorenz import (
     create_mean_concentration_curves_figs,
     create_concentration_curves_figs_part
 )
-from claim_modelling_kedro.pipelines.p10_summary.utils.tabular_stats import prediction_group_summary_strict_bins
+from claim_modelling_kedro.pipelines.p10_summary.utils.tabular_stats import create_prediction_group_summary_strict_bins, \
+    create_average_prediction_group_summary
 from claim_modelling_kedro.pipelines.utils.dataframes import load_predictions_and_target_from_mlflow
 from claim_modelling_kedro.pipelines.utils.datasets import get_mlflow_run_id_for_partition, get_partition
 
@@ -142,6 +143,8 @@ def create_prediction_groups_stats_tables(
         for prefix, prediction_col in zip(["pure", None], [config.clb.pure_prediction_col, config.clb.calibrated_prediction_col]):
             dataset_name = f"{prefix}_{dataset}" if prefix is not None else dataset
             for n_bins in [10, 20, 30, 50, 100]:
+                # Collect stats for each partition
+                summary_df = {}
                 # Iterate over each partition in the dataset
                 for part in predictions_df.keys():
                     logger.info(f"Processing partition: {part} for dataset: {dataset_name}...")
@@ -156,7 +159,7 @@ def create_prediction_groups_stats_tables(
 
                     # Start a nested MLflow run and generate individual concentration curves
                     with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-                        stats_df = prediction_group_summary_strict_bins(
+                        stats_df = create_prediction_group_summary_strict_bins(
                             config=config,
                             predictions_df=part_predictions_df,
                             target_df=part_target_df,
@@ -166,7 +169,16 @@ def create_prediction_groups_stats_tables(
                             n_bins=n_bins,
                             prefix=prefix,
                         )
+                        summary_df[part] = stats_df
                     logger.info(
                         f"Table of statistics for {n_bins} groups from partition: {part} in dataset: {dataset_name} has been generated and logged.")
+                # Average the statistics across partitions
+                create_average_prediction_group_summary(
+                    config=config,
+                    summary_df=summary_df,
+                    dataset=dataset,
+                    n_bins=n_bins,
+                    prefix=prefix
+                )
     dummy_summary_2_df = pd.DataFrame({})
     return dummy_summary_2_df

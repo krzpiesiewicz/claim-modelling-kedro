@@ -12,6 +12,7 @@ from claim_modelling_kedro.pipelines.p07_data_science.model import get_sample_we
 logger = logging.getLogger(__name__)
 
 FILE_NAME_PRED_GROUPS_SUMMARY = "{dataset}_prediction_{n_bins}_group_summary.csv"
+FILE_NAME_AVERAGE_PRED_GROUPS_SUMMARY = "{dataset}_prediction_{n_bins}_group_summary_means.csv"
 
 ARTIFACT_PATH_PRED_GROUPS_SUMMARY = "summary/prediction_group_summary"
 
@@ -27,7 +28,7 @@ def get_file_name(file_template: str, dataset: str, n_bins: int) -> str:
     return file_template.format(dataset=dataset, n_bins=n_bins)
 
 
-def prediction_group_summary_strict_bins(
+def create_prediction_group_summary_strict_bins(
     config: Config,
     predictions_df: pd.DataFrame,
     target_df: pd.DataFrame,
@@ -143,3 +144,34 @@ def prediction_group_summary_strict_bins(
         logger.info(f"Prediction group summary for dataset: {dataset} logged to MLflow as {os.path.join(artifact_path, filename)}.")
 
     return summary_df
+
+
+def create_average_prediction_group_summary(
+    config: Config,
+    summary_df: Dict[str, pd.DataFrame],
+    dataset: str,
+    n_bins: int,
+    prefix: str = None
+) -> None:
+    """
+    Averages the prediction group summary statistics across partitions and logs the result to MLflow.
+
+    Args:
+        config (Config): Configuration object containing settings and parameters.
+        stats_df (pd.DataFrame): DataFrame containing the prediction group summary statistics.
+        dataset (str): Name of the dataset (e.g., "train" or "test").
+        n_bins (int): Number of bins used in the summary.
+        prefix (str, optional): Prefix for the dataset ('pure' or None). Defaults to None.
+    """
+    dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
+    logger.info(f"Averaging prediction group summary for dataset: {dataset} with {n_bins} bins over partitions...")
+    avg_stats_df = pd.concat(summary_df.values()).groupby(level=0).mean()
+
+    # Save and log the averaged summary DataFrame as a CSV file to MLflow
+    with tempfile.TemporaryDirectory() as temp_dir:
+        filename = get_file_name(FILE_NAME_AVERAGE_PRED_GROUPS_SUMMARY, dataset, n_bins)
+        artifact_path = ARTIFACT_PATH_PRED_GROUPS_SUMMARY
+        csv_path = os.path.join(temp_dir, filename)
+        avg_stats_df.to_csv(csv_path, index=False)
+        mlflow.log_artifact(csv_path, artifact_path=artifact_path)
+        logger.info(f"Averaged prediction group summary for dataset: {dataset} over partitions logged to MLflow as {os.path.join(artifact_path, filename)}.")
