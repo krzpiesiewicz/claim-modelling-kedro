@@ -5,6 +5,8 @@ from typing import Dict
 import mlflow
 import pandas as pd
 
+from claim_modelling_kedro.pipelines.p01_init.config import Config
+from claim_modelling_kedro.pipelines.p07_data_science.model import get_sample_weight
 from claim_modelling_kedro.pipelines.utils.concentration_curve import plot_mean_concentration_curve, \
     plot_concentration_curve
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition
@@ -32,6 +34,7 @@ def get_file_name(file_template: str, dataset: str) -> str:
 
 
 def create_mean_concentration_curves_figs(
+    config: Config,
     predictions_df: Dict[str, pd.DataFrame],
     target_df: Dict[str, pd.DataFrame],
     prediction_col: str,
@@ -58,6 +61,7 @@ def create_mean_concentration_curves_figs(
     """
     y_true_dict = {part: get_partition(target_df, part)[target_col] for part in target_df.keys()}
     y_pred_dict = {part: get_partition(predictions_df, part)[prediction_col] for part in predictions_df.keys()}
+    sample_weight_dict = {part: get_sample_weight(config, get_partition(target_df, part)) for part in target_df.keys()}
 
     # Generate the mean concentration curve with the oracle curve
     dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
@@ -65,6 +69,7 @@ def create_mean_concentration_curves_figs(
     fig1 = plot_mean_concentration_curve(
         y_true_dict=y_true_dict,
         y_pred_dict=y_pred_dict,
+        sample_weight_dict=sample_weight_dict,
         title=f"Mean Concentration Curve ({dataset.replace('_', ' ').title()}) with Oracle",
         show_cc=True,
         show_oracle=True,
@@ -104,6 +109,7 @@ def create_mean_concentration_curves_figs(
 
 
 def create_concentration_curves_figs_part(
+    config: Config,
     predictions_df: pd.DataFrame,
     target_df: pd.DataFrame,
     prediction_col: str,
@@ -131,9 +137,11 @@ def create_concentration_curves_figs_part(
     # Generate the concentration curve with the oracle curve
     dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
     logger.info(f"Generating the concentration curve with the oracle curve for dataset: {dataset}...")
+    sample_weight = get_sample_weight(config, target_df)
     fig1 = plot_concentration_curve(
         y_true=target_df[target_col],
         y_pred=predictions_df[prediction_col],
+        sample_weight=sample_weight,
         title=f"Concentration Curve ({dataset.replace('_', ' ').title()}) with Oracle",
         show_cc=True,
         show_oracle=True,

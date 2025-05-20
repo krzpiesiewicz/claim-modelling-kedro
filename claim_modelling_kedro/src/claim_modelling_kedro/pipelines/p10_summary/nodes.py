@@ -79,6 +79,7 @@ def create_concentration_curves(
 
             # Generate and log mean concentration curves
             create_mean_concentration_curves_figs(
+                config=config,
                 predictions_df=predictions_df,
                 target_df=target_df,
                 prediction_col=prediction_col,
@@ -103,6 +104,7 @@ def create_concentration_curves(
                 # Start a nested MLflow run and generate individual concentration curves
                 with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
                     create_concentration_curves_figs_part(
+                        config=config,
                         predictions_df=part_predictions_df,
                         target_df=part_target_df,
                         prediction_col=prediction_col,
