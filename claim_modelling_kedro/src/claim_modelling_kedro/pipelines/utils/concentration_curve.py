@@ -4,6 +4,8 @@ from matplotlib import pyplot as plt
 import pandas as pd
 import numpy as np
 
+from claim_modelling_kedro.pipelines.utils.dataframes import ordered_by_pred_and_hashed_index
+
 
 def calculate_concentration_curve(y_true: pd.Series, y_pred: pd.Series, sample_weight: pd.Series = None) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -18,21 +20,7 @@ def calculate_concentration_curve(y_true: pd.Series, y_pred: pd.Series, sample_w
         tuple: (x_points, y_points) for the weighted Lorentz curve.
     """
     # Ensure inputs are Series
-    y_true = pd.Series(y_true)
-    y_pred = pd.Series(y_pred)
-    if sample_weight is None:
-        sample_weight = pd.Series(np.ones_like(y_true), index=y_true.index)
-    else:
-        sample_weight = pd.Series(sample_weight)
-
-    # Sort inputs stably by y_pred, then by hash(index)
-    secondary_key = y_pred.index.to_series().apply(lambda x: hash(x)).values
-    primary_key = y_pred.values
-    sorted_idx = np.lexsort((secondary_key, primary_key))
-
-    y_true = y_true.iloc[sorted_idx].reset_index(drop=True)
-    y_pred = y_pred.iloc[sorted_idx].reset_index(drop=True)
-    sample_weight = sample_weight.iloc[sorted_idx].reset_index(drop=True)
+    y_true, y_pred, sample_weight = ordered_by_pred_and_hashed_index(y_true, y_pred, sample_weight)
 
     # Weighted cumulative sum of true values
     weighted_true = y_true * sample_weight

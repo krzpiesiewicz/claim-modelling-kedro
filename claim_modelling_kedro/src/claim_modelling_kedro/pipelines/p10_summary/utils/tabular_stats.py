@@ -8,6 +8,7 @@ from typing import List, Optional, Dict
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p07_data_science.model import get_sample_weight
+from claim_modelling_kedro.pipelines.utils.dataframes import ordered_by_pred_and_hashed_index
 
 logger = logging.getLogger(__name__)
 
@@ -64,12 +65,15 @@ def create_prediction_group_summary_strict_bins(
     logger.info(f"Generating prediction group summary for dataset: {dataset} with {n_bins} bins...")
 
     # Combine predictions and targets into a single DataFrame
+    y_true = target_df[target_col]
+    y_pred = predictions_df[prediction_col]
+    sample_weight = get_sample_weight(config, target_df)
+    y_true, y_pred, sample_weight = ordered_by_pred_and_hashed_index(y_true, y_pred, sample_weight)
     df = pd.DataFrame({
-        "y_true": target_df[target_col],
-        "y_pred": predictions_df[prediction_col]
+        "y_true": y_true,
+        "y_pred": y_pred,
+        "weight": sample_weight
     })
-    # Add sample weights if available
-    df["weight"] = get_sample_weight(config, target_df)
 
     # Stable sort: primary by y_pred (ascending), secondary by hash(index) to break ties
     primary_key = df["y_pred"].values

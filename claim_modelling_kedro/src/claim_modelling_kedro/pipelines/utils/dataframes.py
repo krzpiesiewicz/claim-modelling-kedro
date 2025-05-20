@@ -13,6 +13,30 @@ from claim_modelling_kedro.pipelines.utils.datasets import save_partitioned_data
 logger = logging.getLogger(__name__)
 
 
+def ordered_by_pred_and_hashed_index(
+        y_true: Union[pd.Series, np.ndarray],
+        y_pred: Union[pd.Series, np.ndarray],
+        sample_weight: Union[pd.Series, np.ndarray] = None
+) -> Tuple[pd.Series, pd.Series, pd.Series]:
+    y_true = pd.Series(y_true)
+    y_pred = pd.Series(y_pred)
+    if sample_weight is None:
+        sample_weight = pd.Series(np.ones_like(y_true), index=y_true.index)
+    else:
+        sample_weight = pd.Series(sample_weight)
+
+    # Sort inputs stably by y_pred, then by hash(index)
+    secondary_key = y_pred.index.to_series().apply(lambda x: hash(x)).values
+    primary_key = y_pred.values
+    sorted_idx = np.lexsort((secondary_key, primary_key))
+
+    y_true = y_true.iloc[sorted_idx].reset_index(drop=True)
+    y_pred = y_pred.iloc[sorted_idx].reset_index(drop=True)
+    sample_weight = sample_weight.iloc[sorted_idx].reset_index(drop=True)
+
+    return y_true, y_pred, sample_weight
+
+
 def assert_pandas_no_lacking_indexes(source_df: Union[pd.DataFrame, pd.Series, np.ndarray],
                                      target_df: Union[pd.DataFrame, pd.Series, np.ndarray],
                                      source_df_name: str,

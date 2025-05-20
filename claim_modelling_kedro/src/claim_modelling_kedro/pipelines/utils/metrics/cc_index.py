@@ -3,6 +3,7 @@ import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum, MetricType
+from claim_modelling_kedro.pipelines.utils.dataframes import ordered_by_pred_and_hashed_index
 from claim_modelling_kedro.pipelines.utils.metrics.metric import Metric
 
 
@@ -25,21 +26,7 @@ class NormalizedConcentrationIndex(Metric):
         """
         assert len(y_true) == len(y_pred), "y_true and y_pred must have the same length"
 
-        y_true = pd.Series(y_true)
-        y_pred = pd.Series(y_pred)
-        if sample_weight is None:
-            sample_weight = pd.Series(np.ones_like(y_true), index=y_true.index)
-        else:
-            sample_weight = pd.Series(sample_weight)
-
-        # Sort inputs stably by y_pred, then by hash(index)
-        secondary_key = y_pred.index.to_series().apply(lambda x: hash(x)).values
-        primary_key = y_pred.values
-        sorted_idx = np.lexsort((secondary_key, primary_key))
-
-        y_true = y_true.iloc[sorted_idx].reset_index(drop=True)
-        y_pred = y_pred.iloc[sorted_idx].reset_index(drop=True)
-        sample_weight = sample_weight.iloc[sorted_idx].reset_index(drop=True)
+        y_true, y_pred, sample_weight = ordered_by_pred_and_hashed_index(y_true, y_pred, sample_weight)
 
         # Compute cumulative sums
         cum_true = np.cumsum(y_true * sample_weight)  # cumulative sums of true * weight
