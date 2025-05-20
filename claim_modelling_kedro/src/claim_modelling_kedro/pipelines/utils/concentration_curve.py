@@ -17,32 +17,33 @@ def calculate_concentration_curve(y_true: pd.Series, y_pred: pd.Series, sample_w
     Returns:
         tuple: (x_points, y_points) for the weighted Lorentz curve.
     """
-    # Convert inputs to numpy arrays
-    y_true = np.asarray(y_true)
-    y_pred = np.asarray(y_pred)
-
-    # Initialize equal weights if not provided
+    # Ensure inputs are Series
+    y_true = pd.Series(y_true)
+    y_pred = pd.Series(y_pred)
     if sample_weight is None:
-        sample_weight = np.ones_like(y_true)
+        sample_weight = pd.Series(np.ones_like(y_true), index=y_true.index)
     else:
-        sample_weight = np.asarray(sample_weight)
+        sample_weight = pd.Series(sample_weight)
 
-    # Combine true values, predicted values, and weights into a single array
-    data = np.c_[y_true, y_pred, sample_weight]
+    # Sort inputs stably by y_pred, then by hash(index)
+    secondary_key = y_pred.index.to_series().apply(lambda x: hash(x)).values
+    primary_key = y_pred.values
+    sorted_idx = np.lexsort((secondary_key, primary_key))
 
-    # Sort by predicted values in ascending order (to construct cumulative distribution)
-    data_sorted = data[np.argsort(data[:, 1])]
+    y_true = y_true.iloc[sorted_idx].reset_index(drop=True)
+    y_pred = y_pred.iloc[sorted_idx].reset_index(drop=True)
+    sample_weight = sample_weight.iloc[sorted_idx].reset_index(drop=True)
 
     # Weighted cumulative sum of true values
-    weighted_true = data_sorted[:, 0] * data_sorted[:, 2]  # y_true * sample_weight
+    weighted_true = y_true * sample_weight
     cumulative_weighted_true = np.cumsum(weighted_true)
 
     # Total weighted true value
     total_weighted_true = np.sum(weighted_true)
 
     # Weighted cumulative count of observations
-    cumulative_weighted_count = np.cumsum(data_sorted[:, 2])
-    total_weighted_count = np.sum(data_sorted[:, 2])
+    cumulative_weighted_count = np.cumsum(sample_weight)
+    total_weighted_count = np.sum(sample_weight)
 
     # Calculate Lorentz curve points
     x_points = np.insert(cumulative_weighted_count / total_weighted_count, 0, 0)  # Proportion of total weighted observations
