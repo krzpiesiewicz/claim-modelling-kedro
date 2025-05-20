@@ -1,3 +1,4 @@
+import os
 import tempfile
 import logging
 from typing import Dict
@@ -17,6 +18,9 @@ FILE_NAME_MEAN_CC_WITH_ORACLE = "{dataset}_mean_cc_with_oracle.jpg"
 FILE_NAME_MEAN_CC_AND_LORENZ = "{dataset}_mean_cc_and_lorenz.jpg"
 FILE_NAME_CC_WITH_ORACLE = "{dataset}_cc_with_oracle.jpg"
 FILE_NAME_CC_WITH_LORENZ = "{dataset}_cc_with_lorenz.jpg"
+
+ARTIFACT_PATH_CC_LORENZ = "summary/cc_lorenz"
+ARTIFACT_PATH_CC_ORACLE = "summary/cc_oracle"
 
 
 def get_file_name(file_template: str, dataset: str) -> str:
@@ -81,10 +85,11 @@ def create_mean_concentration_curves_figs(
     logger.info("Saving and logging the mean concentration curve with the oracle curve to MLflow...")
     with tempfile.TemporaryDirectory() as temp_dir:
         filename = get_file_name(FILE_NAME_MEAN_CC_WITH_ORACLE, dataset)
-        fig1_path = f"{temp_dir}/{filename}"
+        artifact_path = ARTIFACT_PATH_CC_ORACLE
+        fig1_path = os.path.join(temp_dir, filename)
         fig1.savefig(fig1_path, format="jpg")
-        mlflow.log_artifact(fig1_path, artifact_path="summary")
-        logger.info(f"Mean concentration curve with the oracle curve logged to MLflow under artifact path 'summary' as {filename}.")
+        mlflow.log_artifact(fig1_path, artifact_path=artifact_path)
+        logger.info(f"Mean concentration curve with the oracle curve logged to MLflow under artifact path 'summary' as {os.path.join(artifact_path, filename)}.")
 
     # Generate the mean concentration curve with the Lorenz curve
     logger.info(f"Generating the mean concentration curve with the Lorenz curve for dataset: {dataset}...")
@@ -102,10 +107,11 @@ def create_mean_concentration_curves_figs(
     logger.info("Saving and logging the mean concentration curve with the Lorenz curve to MLflow...")
     with tempfile.TemporaryDirectory() as temp_dir:
         filename = get_file_name(FILE_NAME_MEAN_CC_AND_LORENZ, dataset)
-        fig2_path = f"{temp_dir}/{filename}"
+        artifact_path = ARTIFACT_PATH_CC_LORENZ
+        fig2_path = os.path.join(temp_dir, filename)
         fig2.savefig(fig2_path, format="jpg")
-        mlflow.log_artifact(fig2_path, artifact_path="summary")
-        logger.info(f"Mean concentration curve with the Lorenz curve logged to MLflow under artifact path 'summary' as {filename}.")
+        mlflow.log_artifact(fig2_path, artifact_path=artifact_path)
+        logger.info(f"Mean concentration curve with the Lorenz curve logged to MLflow under artifact path 'summary' as {os.path.join(artifact_path, filename)}.")
 
 
 def create_concentration_curves_figs_part(
@@ -154,10 +160,11 @@ def create_concentration_curves_figs_part(
     logger.info("Saving and logging the concentration curve with the oracle curve to MLflow...")
     with tempfile.TemporaryDirectory() as temp_dir:
         filename = get_file_name(FILE_NAME_CC_WITH_ORACLE, dataset)
-        fig1_path = f"{temp_dir}/{filename}"
+        artifact_path = ARTIFACT_PATH_CC_ORACLE
+        fig1_path = os.path.join(temp_dir, filename)
         fig1.savefig(fig1_path, format="jpg")
         mlflow.log_artifact(fig1_path, artifact_path="summary")
-        logger.info(f"Concentration curve with the oracle curve logged to MLflow under artifact path 'summary' as {filename}.")
+        logger.info(f"Concentration curve with the oracle curve logged to MLflow under artifact path 'summary' as {os.path.join(artifact_path, filename)}.")
 
     # Generate the concentration curve with the Lorenz curve
     logger.info(f"Generating the concentration curve with the Lorenz curve for dataset: {dataset}...")
@@ -175,7 +182,8 @@ def create_concentration_curves_figs_part(
     logger.info("Saving and logging the concentration curve with the Lorenz curve to MLflow...")
     with tempfile.TemporaryDirectory() as temp_dir:
         filename = get_file_name(FILE_NAME_CC_WITH_LORENZ, dataset)
-        fig2_path = f"{temp_dir}/{filename}"
+        artifact_path = ARTIFACT_PATH_CC_LORENZ
+        fig2_path = os.path.join(temp_dir, filename)
         fig2.savefig(fig2_path, format="jpg")
         mlflow.log_artifact(fig2_path, artifact_path="summary")
-        logger.info(f"Concentration curve with the Lorenz curve logged to MLflow under artifact path 'summary' as {filename}.")
+        logger.info(f"Concentration curve with the Lorenz curve logged to MLflow under artifact path 'summary' as {os.path.join(artifact_path, filename)}.")
