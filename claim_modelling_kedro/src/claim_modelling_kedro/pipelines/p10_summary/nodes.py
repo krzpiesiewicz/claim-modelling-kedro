@@ -6,6 +6,8 @@ import logging
 import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
+from claim_modelling_kedro.pipelines.p10_summary.utils.calibration_plot import create_calibration_plot, \
+    create_calibration_cv_mean_plot
 from claim_modelling_kedro.pipelines.p10_summary.utils.cc_lorenz import (
     create_mean_concentration_curves_figs,
     create_concentration_curves_figs_part
@@ -179,9 +181,16 @@ def create_prediction_groups_stats_tables(
                             n_bins=n_bins,
                             prefix=prefix,
                         )
+                        logger.info(
+                            f"Table of statistics for {n_bins} groups from partition: {part} in dataset: {dataset_name} has been generated and logged.")
                         summary_df[part] = stats_df
-                    logger.info(
-                        f"Table of statistics for {n_bins} groups from partition: {part} in dataset: {dataset_name} has been generated and logged.")
+                        create_calibration_plot(
+                            summary_df=stats_df,
+                            n_bins=n_bins,
+                            dataset=dataset,
+                            prefix=prefix,
+                        )
+
                 # Average the statistics across partitions
                 create_average_prediction_group_summary(
                     config=config,
@@ -190,5 +199,12 @@ def create_prediction_groups_stats_tables(
                     n_bins=n_bins,
                     prefix=prefix
                 )
+                create_calibration_cv_mean_plot(
+                    summary_dfs=list(summary_df.values()),
+                    n_bins=n_bins,
+                    dataset=dataset,
+                    prefix=prefix,
+                )
+
     dummy_summary_2_df = pd.DataFrame({})
     return dummy_summary_2_df

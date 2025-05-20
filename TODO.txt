@@ -1,4 +1,4 @@
-TODO – programowanie i eksperymenty:
+TODO – framework:
 0.    [DONE] ogarnąć gammaGLM (daje wartości zero lub mniejsze z inverse linkiem - trzeba poprawić, gdyż wywala błąd na metryce Tweedie z p = 2)
         -> wystarczyło zamieniać ujemne wartości na dodatnie
 1.    [DONE] dopisać add_constant do StatsmodelGLM
@@ -26,8 +26,11 @@ TODO – programowanie i eksperymenty:
 17.   TODO Zaimplementować ABC i ICC z artykułu Testing for auto-calibration
 18.   TODO Dodać RGLMNet - bo tam jest L1 dla Poisson i obsługa wag (wagi nie są obsługiwne w pyglmnet)
 19.   [DONE] Selekcja cech za pomocą GLM (Poisson, Gamma... zamiast Lasso) - użyć https://glm-tools.github.io/pyglmnet/api.html
-20.   TODO Przeprowadzić eksperymenty – częstotliwość, średnia szkoda i pure premium - z cross walidacją
 21.   [CANCELED] Model łączący modele na częstotliwość i średnią szkodę.
+
+
+TODO - eksperymenty:
+
 
 TODO - tekst:
 0. Ewaluacja (gini, lorentz, CC, krzywa kalibracji)
