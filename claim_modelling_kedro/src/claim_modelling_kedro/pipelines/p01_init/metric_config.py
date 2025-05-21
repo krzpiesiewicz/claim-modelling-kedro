@@ -38,6 +38,15 @@ class MetricEnum(MetricType, Enum):
     ABC: str = "area_between_cc_and_lc"
     EXP_WEIGHTED_ABC: str = "exposure_weighted_area_between_cc_and_lc"
     CLNB_WEIGHTED_ABC: str = "claim_nb_weighted_area_between_cc_and_lc"
+    CCI: str = "cumulative_calibration_index"
+    EXP_WEIGHTED_CCI: str = "exposure_weighted_cumulative_calibration_index"
+    CLNB_WEIGHTED_CCI: str = "claim_nb_weighted_cumulative_calibration_index"
+    COI: str = "cumulative_overpricing_index"
+    EXP_WEIGHTED_COI: str = "exposure_weighted_cumulative_overpricing_index"
+    CLNB_WEIGHTED_COI: str = "claim_nb_weighted_cumulative_overpricing_index"
+    CUI: str = "cumulative_underpricing_index"
+    EXP_WEIGHTED_CUI: str = "exposure_weighted_cumulative_underpricing_index"
+    CLNB_WEIGHTED_CUI: str = "claim_nb_weighted_cumulative_underpricing_index"
 
 
 @dataclass
