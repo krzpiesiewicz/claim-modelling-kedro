@@ -2,6 +2,7 @@ from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum, TWEEDIE_DEV, EXP_WEIGHTED_TWEEDIE_DEV, \
     CLNB_WEIGHTED_TWEEDIE_DEV
 from claim_modelling_kedro.pipelines.utils.metrics.cc_index import NormalizedConcentrationIndex
+from claim_modelling_kedro.pipelines.utils.metrics.icc_and_abc import AreaBetweenCCAndLC
 from claim_modelling_kedro.pipelines.utils.metrics.metric import MeanAbsoluteError, RootMeanSquaredError, R2, \
     MeanBiasDeviation, MeanPoissonDeviance, MeanGammaDeviance, SpearmanCorrelation, MeanTweedieDeviance, Metric
 
@@ -56,6 +57,12 @@ def get_metric_from_enum(config: Config, enum: MetricEnum, pred_col: str) -> Met
             return NormalizedConcentrationIndex(config, pred_col=pred_col, exposure_weighted=True)
         case MetricEnum.CLNB_WEIGHTED_CI:
             return NormalizedConcentrationIndex(config, pred_col=pred_col, claim_nb_weighted=True)
+        case MetricEnum.ABC:
+            return AreaBetweenCCAndLC(config, pred_col=pred_col)
+        case MetricEnum.EXP_WEIGHTED_ABC:
+            return AreaBetweenCCAndLC(config, pred_col=pred_col, exposure_weighted=True)
+        case MetricEnum.CLNB_WEIGHTED_ABC:
+            return AreaBetweenCCAndLC(config, pred_col=pred_col, claim_nb_weighted=True)
         # Handle the parametrized cases with TweedieDev(p)
         case TWEEDIE_DEV(p):
             return MeanTweedieDeviance(config, pred_col=pred_col, power=p)

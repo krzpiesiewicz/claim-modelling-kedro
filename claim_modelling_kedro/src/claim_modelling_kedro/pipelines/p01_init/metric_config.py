@@ -35,6 +35,9 @@ class MetricEnum(MetricType, Enum):
     CI: str = "concentration_index"
     EXP_WEIGHTED_CI: str = "exposure_weighted_concentration_index"
     CLNB_WEIGHTED_CI: str = "claim_nb_weighted_concentration_index"
+    ABC: str = "area_between_cc_and_lc"
+    EXP_WEIGHTED_ABC: str = "exposure_weighted_area_between_cc_and_lc"
+    CLNB_WEIGHTED_ABC: str = "claim_nb_weighted_area_between_cc_and_lc"
 
 
 @dataclass

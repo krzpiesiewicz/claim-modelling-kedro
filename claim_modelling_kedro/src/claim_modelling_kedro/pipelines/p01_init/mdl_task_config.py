@@ -27,7 +27,8 @@ class ModelTask:
                                            MetricEnum.EXP_WEIGHTED_RMSE, MetricEnum.R2, MetricEnum.EXP_WEIGHTED_R2,
                                            MetricEnum.MBD, MetricEnum.EXP_WEIGHTED_MBD,
                                            MetricEnum.SPEARMAN, MetricEnum.EXP_WEIGHTED_SPEARMAN,
-                                           MetricEnum.CI, MetricEnum.EXP_WEIGHTED_C]
+                                           MetricEnum.CI, MetricEnum.EXP_WEIGHTED_CI,
+                                           MetricEnum.ABC, MetricEnum.EXP_WEIGHTED_ABC]
             case Target.FREQUENCY:
                 self.target_col = data.claims_freq_target_col
                 self.prediction_col = data.claims_freq_pred_col
@@ -38,7 +39,8 @@ class ModelTask:
                                            MetricEnum.EXP_WEIGHTED_RMSE, MetricEnum.R2, MetricEnum.EXP_WEIGHTED_R2,
                                            MetricEnum.MBD, MetricEnum.EXP_WEIGHTED_MBD,
                                            MetricEnum.SPEARMAN, MetricEnum.EXP_WEIGHTED_SPEARMAN,
-                                           MetricEnum.CI, MetricEnum.EXP_WEIGHTED_CI]
+                                           MetricEnum.CI, MetricEnum.EXP_WEIGHTED_CI,
+                                           MetricEnum.ABC, MetricEnum.EXP_WEIGHTED_ABC]
             case Target.TOTAL_AMOUNT:
                 self.target_col = data.claims_total_amount_target_col
                 self.prediction_col = data.claims_total_amount_pred_col
@@ -48,7 +50,8 @@ class ModelTask:
                                            MetricEnum.RMSE, MetricEnum.EXP_WEIGHTED_RMSE, MetricEnum.R2,
                                            MetricEnum.MBD, MetricEnum.EXP_WEIGHTED_MBD,
                                            MetricEnum.SPEARMAN, MetricEnum.EXP_WEIGHTED_SPEARMAN,
-                                           MetricEnum.CI, MetricEnum.EXP_WEIGHTED_CI] + \
+                                           MetricEnum.CI, MetricEnum.EXP_WEIGHTED_CI,
+                                           MetricEnum.ABC, MetricEnum.EXP_WEIGHTED_ABC] + \
                                           [TWEEDIE_DEV(p) for p in [1.2, 1.5, 1.7, 1.9]] + \
                                           [EXP_WEIGHTED_TWEEDIE_DEV(p) for p in [1.2, 1.5, 1.7, 1.9]]
             case Target.AVG_CLAIM_AMOUNT:
@@ -61,7 +64,8 @@ class ModelTask:
                                            MetricEnum.CLNB_WEIGHTED_RMSE, MetricEnum.R2, MetricEnum.CLNB_WEIGHTED_R2,
                                            MetricEnum.MBD, MetricEnum.CLNB_WEIGHTED_MBD,
                                            MetricEnum.SPEARMAN, MetricEnum.CLNB_WEIGHTED_SPEARMAN,
-                                           MetricEnum.CI, MetricEnum.CLNB_WEIGHTED_CI]
+                                           MetricEnum.CI, MetricEnum.CLNB_WEIGHTED_CI,
+                                           MetricEnum.ABC, MetricEnum.CLNB_WEIGHTED_ABC]
             case Target.PURE_PREMIUM:
                 self.target_col = data.claims_pure_premium_target_col
                 self.prediction_col = data.claims_pure_premium_pred_col
@@ -71,6 +75,7 @@ class ModelTask:
                                            MetricEnum.RMSE, MetricEnum.EXP_WEIGHTED_RMSE, MetricEnum.R2,
                                            MetricEnum.MBD, MetricEnum.EXP_WEIGHTED_MBD,
                                            MetricEnum.SPEARMAN, MetricEnum.EXP_WEIGHTED_SPEARMAN,
-                                           MetricEnum.CI, MetricEnum.EXP_WEIGHTED_CI] + \
+                                           MetricEnum.CI, MetricEnum.EXP_WEIGHTED_CI,
+                                           MetricEnum.ABC, MetricEnum.EXP_WEIGHTED_ABC] + \
                                           [TWEEDIE_DEV(p) for p in [1.2, 1.5, 1.7, 1.9]] + \
                                           [EXP_WEIGHTED_TWEEDIE_DEV(p) for p in [1.2, 1.5, 1.7, 1.9]]
