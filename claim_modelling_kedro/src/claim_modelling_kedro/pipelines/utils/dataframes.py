@@ -6,11 +6,27 @@ from typing import Union, Dict, Tuple
 import mlflow
 import numpy as np
 import pandas as pd
+import hashlib
 
 from claim_modelling_kedro.pipelines.utils.datasets import save_partitioned_dataset_in_mlflow, \
     load_partitioned_dataset_from_mlflow
 
 logger = logging.getLogger(__name__)
+
+
+def stable_str_hash(x: int, seed: str = "") -> str:
+    """
+    Deterministic and unique string hash for an integer input.
+
+    Args:
+        x (int): The integer to hash.
+        seed (str): Optional string to introduce variability across runs.
+
+    Returns:
+        str: Hexadecimal SHA256 hash of the input.
+    """
+    s = f"{seed}-{x}"
+    return hashlib.sha256(s.encode()).hexdigest()
 
 
 def ordered_by_pred_and_hashed_index(
@@ -26,7 +42,7 @@ def ordered_by_pred_and_hashed_index(
         sample_weight = pd.Series(sample_weight)
 
     # Sort inputs stably by y_pred, then by hash(index)
-    secondary_key = y_pred.index.to_series().apply(lambda x: hash(x)).values
+    secondary_key = y_pred.index.to_series().apply(lambda x: stable_str_hash(x)).values
     primary_key = y_pred.values
     sorted_idx = np.lexsort((secondary_key, primary_key))
 

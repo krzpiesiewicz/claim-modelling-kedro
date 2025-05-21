@@ -10,6 +10,7 @@ import wcorr
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.metric_config import TWEEDIE_DEV, EXP_WEIGHTED_TWEEDIE_DEV, \
     CLNB_WEIGHTED_TWEEDIE_DEV, MetricEnum
+from claim_modelling_kedro.pipelines.utils.dataframes import ordered_by_pred_and_hashed_index
 
 
 class Metric(ABC):
@@ -270,6 +271,10 @@ class SpearmanCorrelation(Metric):
 
     @staticmethod
     def _weighted_spearman(y_true: np.ndarray, y_pred: np.ndarray, sample_weight: np.ndarray = None) -> float:
+        y_true, y_pred, sample_weight = ordered_by_pred_and_hashed_index(y_true, y_pred, sample_weight)
+        y_true = pd.Series(y_true.values)
+        y_pred = pd.Series(y_pred.values)
+        sample_weight = pd.Series(sample_weight.values)
         return wcorr.WeightedCorr(x=y_true, y=y_pred, w=sample_weight)(method="spearman")
 
     def is_larger_better(self) -> bool:
