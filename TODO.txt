@@ -21,7 +21,7 @@ TODO – framework:
 13.2  [DONE] Zrobić wykres uśredniający wszystkie Concentraion Curves dla foldów cross walidacji
 14.   [DONE] Zestawić na wykresie krzywą lorentza (tę z samą predykcją bez true values) i Concentraion Curve
 14.1  [DONE] Zrobić to samo dla pure predictions (tak jak ewaluacja w p09_test)
-15.   TODO Dodać wykresy krzywej skumulowanej kalibracji
+15.   [DONE] Dodać wykresy krzywej skumulowanej kalibracji
 15.1  [DONE] Dodać własne indeksy kalibracji (CCI, COI i CUI)
 16.   [DONE] TODO Opracować wykres średniego targetu w percentylach / predykcji
 17.   [DONE] Zaimplementować ABC z artykułu Testing for auto-calibration

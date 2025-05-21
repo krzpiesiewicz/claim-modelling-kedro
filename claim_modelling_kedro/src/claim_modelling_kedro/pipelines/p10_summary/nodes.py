@@ -12,6 +12,8 @@ from claim_modelling_kedro.pipelines.p10_summary.utils.cc_lorenz import (
     create_mean_concentration_curves_figs,
     create_concentration_curves_figs_part
 )
+from claim_modelling_kedro.pipelines.p10_summary.utils.cumul_calib_plot import \
+    create_mean_cumulative_calibration_curves_figs, create_cumulative_calibration_curves_figs_part
 from claim_modelling_kedro.pipelines.p10_summary.utils.tabular_stats import create_prediction_group_summary_strict_bins, \
     create_average_prediction_group_summary
 from claim_modelling_kedro.pipelines.utils.dataframes import load_predictions_and_target_from_mlflow
@@ -53,7 +55,7 @@ def load_target_and_predictions(
     return calib_predictions_df, calib_target_df, train_predictions_df, train_target_df, test_predictions_df, test_target_df
 
 
-def create_concentration_curves(
+def create_curves_plots(
         config: Config,
         calib_predictions_df: Dict[str, pd.DataFrame],
         calib_target_df: Dict[str, pd.DataFrame],
@@ -85,7 +87,6 @@ def create_concentration_curves(
         target_col = config.mdl_task.target_col
         for prefix, prediction_col in zip(["pure", None], [config.clb.pure_prediction_col, config.clb.calibrated_prediction_col]):
             dataset_name = f"{prefix}_{dataset}" if prefix is not None else dataset
-            logger.info(f"Generating mean concentration curves for dataset: {dataset_name}...")
 
             # Generate and log mean concentration curves
             create_mean_concentration_curves_figs(
@@ -97,7 +98,17 @@ def create_concentration_curves(
                 dataset=dataset,
                 prefix=prefix
             )
-            logger.info(f"Mean concentration curves for dataset: {dataset_name} have been generated and logged.")
+            # Generate and log mean cumulative calibration curve
+            create_mean_cumulative_calibration_curves_figs(
+                config=config,
+                predictions_df=predictions_df,
+                target_df=target_df,
+                prediction_col=prediction_col,
+                target_col=target_col,
+                dataset=dataset,
+                prefix=prefix
+            )
+
 
             # Iterate over each partition in the dataset
             for part in predictions_df.keys():
@@ -111,7 +122,7 @@ def create_concentration_curves(
                 mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
                 logger.info(f"Starting MLflow nested run for partition: {part} with run ID: {mlflow_subrun_id}...")
 
-                # Start a nested MLflow run and generate individual concentration curves
+                # Start a nested MLflow run and generate individual curves
                 with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
                     create_concentration_curves_figs_part(
                         config=config,
@@ -122,8 +133,15 @@ def create_concentration_curves(
                         dataset = dataset,
                         prefix=prefix
                     )
-                logger.info(
-                    f"Concentration curves for partition: {part} in dataset: {dataset_name} have been generated and logged.")
+                    create_cumulative_calibration_curves_figs_part(
+                        config=config,
+                        predictions_df=part_predictions_df,
+                        target_df=part_target_df,
+                        prediction_col=prediction_col,
+                        target_col=target_col,
+                        dataset = dataset,
+                        prefix=prefix
+                    )
     dummy_summary_1_df = pd.DataFrame({})
     return dummy_summary_1_df
 
