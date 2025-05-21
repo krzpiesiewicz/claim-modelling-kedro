@@ -25,10 +25,15 @@ TODO – framework:
 15.1  [DONE] Dodać własne indeksy kalibracji (CCI, COI i CUI)
 16.   [DONE] TODO Opracować wykres średniego targetu w percentylach / predykcji
 17.   [DONE] Zaimplementować ABC z artykułu Testing for auto-calibration
-17.1  TODO Sprawdzić summary dla Poissona
-18.   TODO Dodać RGLMNet - bo tam jest L1 dla Poisson i obsługa wag (wagi nie są obsługiwne w pyglmnet)
-19.   [DONE] Selekcja cech za pomocą GLM (Poisson, Gamma... zamiast Lasso) - użyć https://glm-tools.github.io/pyglmnet/api.html
-21.   [CANCELED] Model łączący modele na częstotliwość i średnią szkodę.
+18.   TODO Rekalibracje lokalne:
+18.1  TODO Uśrednianie w obrębie równych binów
+18.2  TODO Local polynomial regression - skmisc.loess.loess_model
+18.3. TODO GLM w lokalnym otoczeniu - PDF: Does autocalibration improve goodness of lift (2022) Ciato
+19.   TODO Dummy regressor - stała wartość jako predykcja (średnia targetu)
+20.   TODO Sprawdzić wszystko dla Poissona
+21.   [DONE] Selekcja cech za pomocą GLM (Poisson, Gamma... zamiast Lasso) - użyć https://glm-tools.github.io/pyglmnet/api.html
+22.   BACKLOG Dodać RGLMNet - bo tam jest L1 dla Poisson i obsługa wag (wagi nie są obsługiwne w pyglmnet)
+23.   [CANCELED] Model łączący modele na częstotliwość i średnią szkodę.
 
 
 TODO - eksperymenty:
