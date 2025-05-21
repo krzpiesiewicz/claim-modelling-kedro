@@ -4,7 +4,7 @@ from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum, T
 from claim_modelling_kedro.pipelines.utils.metrics.cc_index import NormalizedConcentrationIndex
 from claim_modelling_kedro.pipelines.utils.metrics.cumulative_calibration_index import CumulativeCalibrationIndex, \
     CumulativeOverpricingIndex, CumulativeUnderpricingIndex
-from claim_modelling_kedro.pipelines.utils.metrics.icc_and_abc import AreaBetweenCCAndLC
+from claim_modelling_kedro.pipelines.utils.metrics.area_between_cc_and_lc import AreaBetweenCCAndLC
 from claim_modelling_kedro.pipelines.utils.metrics.metric import MeanAbsoluteError, RootMeanSquaredError, R2, \
     MeanBiasDeviation, MeanPoissonDeviance, MeanGammaDeviance, SpearmanCorrelation, MeanTweedieDeviance, Metric
 
