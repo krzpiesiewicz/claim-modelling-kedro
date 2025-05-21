@@ -172,7 +172,18 @@ def create_average_prediction_group_summary(
     """
     dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
     logger.info(f"Averaging prediction group summary for dataset: {dataset} with {n_bins} bins over partitions...")
-    avg_stats_df = pd.concat(summary_df.values()).groupby(level=0).mean()
+    if isinstance(summary_df, Dict):
+        summary_df = summary_df.values()
+    for df in summary_df:
+        df["bias_deviation"] = df["mean_target"] - df["mean_pred"]
+        df["mean_overpricing"] = np.max([df["mean_target"], df["mean_pred"]], axis=0) - df["mean_target"]
+        df["mean_underpricing"] = df["mean_target"] - np.min([df["mean_target"], df["mean_pred"]], axis=0)
+    avg_stats_df = pd.concat(summary_df).groupby(level=0).mean()
+    avg_stats_df["std_of_mean_pred"] = pd.concat(summary_df).mean_pred.groupby(level=0).std()
+    avg_stats_df["std_of_mean_target"] = pd.concat(summary_df).mean_target.groupby(level=0).std()
+    avg_stats_df["std_of_bias_deviation"] = pd.concat(summary_df).bias_deviation.groupby(level=0).std()
+    avg_stats_df["std_of_mean_overpricing"] = pd.concat(summary_df).mean_overpricing.groupby(level=0).std()
+    avg_stats_df["std_of_mean_underpricing"] = pd.concat(summary_df).mean_underpricing.groupby(level=0).std()
 
     # Save and log the averaged summary DataFrame as a CSV file to MLflow
     with tempfile.TemporaryDirectory() as temp_dir:
