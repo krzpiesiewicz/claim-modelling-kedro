@@ -1,4 +1,5 @@
 from typing import Dict, Any
+import numpy as np
 import pandas as pd
 from skmisc.loess import loess
 import hyperopt as hp
@@ -36,6 +37,8 @@ class LocalPolynomialRegressionCalibration(CalibrationModel):
             pure_predictions_df[self.pure_pred_col],
             sample_weight
         )
+        self._min_pure_y = y_pred.min()
+        self._max_pure_y = y_pred.max()
 
         self._loess_model = loess(
             x=y_pred,
@@ -49,6 +52,7 @@ class LocalPolynomialRegressionCalibration(CalibrationModel):
 
     def _predict(self, pure_predictions_df: pd.DataFrame) -> pd.Series:
         y_pred = pure_predictions_df[self.pure_pred_col].values
+        y_pred = np.clip(y_pred, self._min_pure_y, self._max_pure_y)
         pred = self._loess_model.predict(y_pred)
         return pd.Series(pred.values, index=pure_predictions_df.index)
 
@@ -80,3 +84,5 @@ class LocalPolynomialRegressionCalibration(CalibrationModel):
             self._span = float(self._hparams.get("span"))
             self._degree = int(self._hparams.get("degree"))
         self._loess_model = None
+        self._min_pure_y = None
+        self._max_pure_y = None
