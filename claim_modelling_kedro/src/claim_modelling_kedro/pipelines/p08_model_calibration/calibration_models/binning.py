@@ -16,11 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 class EqualBinsMeansCalibration(CalibrationModel):
-    def __init__(self, config: Config, n_bins: int = 10, **kwargs):
+    def __init__(self, config: Config, **kwargs):
         super().__init__(config, **kwargs)
-        self._n_bins = n_bins
-        self._bin_bounds = None
-        self._bin_means = None
 
     def _fit(self, pure_predictions_df: pd.DataFrame, target_df: pd.DataFrame, **kwargs):
         logger.debug("EqualBinsMeansCalibration _fit called")
@@ -83,5 +80,7 @@ class EqualBinsMeansCalibration(CalibrationModel):
         return f"EqualBinsMeansCalibration with {self._n_bins} bins.\nBounds: {self._bin_bounds}\nMeans: {self._bin_means}"
 
     def _updated_hparams(self):
+        self._bin_means = None
         if self._hparams is not None:
             self._n_bins = int(self._hparams.get("n_bins"))
+        self._bin_bounds = None
