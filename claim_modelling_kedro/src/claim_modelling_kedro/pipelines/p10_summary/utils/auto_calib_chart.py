@@ -82,7 +82,7 @@ def plot_auto_calib_chart(
         ax.set_ylim(bottom=min_y_val, top=max_y_val)
 
     ax.set_xlabel("Prediction")
-    ax.set_title("Auto–Calibration Diagram")
+    ax.set_title("Auto–Calibration Chart")
     ax.grid(True, linestyle='--', alpha=0.5)
     ax.legend()
     plt.close(fig)
