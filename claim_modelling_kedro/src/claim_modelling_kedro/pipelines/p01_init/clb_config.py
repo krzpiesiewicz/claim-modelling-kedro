@@ -46,13 +46,13 @@ class CalibrationConfig:
             case CalibrationMethod.STATS_MODELS_GAMMA_GLM:
                 self.model_class = "StatsmodelsGLMCalibration"
             case CalibrationMethod.SKLEARN_POISSON_GLM:
-                self.model_class = "SklearnPoissonGLM"
+                self.model_class = "SklearnPoissonGLMCalibration"
             case CalibrationMethod.SKLEARN_GAMMA_GLM:
-                self.model_class = "SklearnGammaGLM"
+                self.model_class = "SklearnGammaGLMCalibration"
             case CalibrationMethod.STATS_MODELS_TWEEDIE_GLM:
-                self.model_class = "StatsmodelsTweedieGLM"
+                self.model_class = "StatsmodelsGLMCalibration"
             case CalibrationMethod.SKLEARN_TWEEDIE_GLM:
-                self.model_class = "SklearnTweedieGLM"
+                self.model_class = "SklearnTweedieGLMCalibration"
             case CalibrationMethod.EQUAL_BINS_MEANS:
                 self.model_class = "EqualBinsMeansCalibration"
             case _:

@@ -6,7 +6,7 @@ import pandas as pd
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p08_model_calibration.calibration_models import CalibrationModel
+from claim_modelling_kedro.pipelines.p08_model_calibration.calibration_model import CalibrationModel
 from claim_modelling_kedro.pipelines.utils.mlflow_model import MLFlowModelLogger, MLFlowModelLoader
 from claim_modelling_kedro.pipelines.utils.datasets import get_class_from_path, get_mlflow_run_id_for_partition, get_partition
 
