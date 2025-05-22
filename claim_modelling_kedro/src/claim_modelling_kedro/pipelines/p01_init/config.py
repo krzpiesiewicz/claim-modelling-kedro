@@ -15,6 +15,7 @@ from claim_modelling_kedro.pipelines.p01_init.ds_config import DataScienceConfig
 from claim_modelling_kedro.pipelines.p01_init.mdl_info_config import ModelInfo
 from claim_modelling_kedro.pipelines.p01_init.mdl_task_config import ModelTask
 from claim_modelling_kedro.pipelines.p01_init.smpl_config import SamplingConfig
+from claim_modelling_kedro.pipelines.p01_init.summary_config import SummaryConfig
 from claim_modelling_kedro.pipelines.p01_init.test_config import TestConfig
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,7 @@ class Config:
     ds: DataScienceConfig
     clb: CalibrationConfig
     test: TestConfig
+    summary: SummaryConfig
 
     def __init__(self, parameters: Dict):
         self.mdl_info = ModelInfo(parameters)
@@ -40,6 +42,7 @@ class Config:
         self.ds = DataScienceConfig(parameters, mdl_info=self.mdl_info)
         self.clb = CalibrationConfig(parameters, mdl_task=self.mdl_task)
         self.test = TestConfig(parameters)
+        self.summary = SummaryConfig(parameters)
 
 
 def log_config_to_mlflow(config: Config):

@@ -87,6 +87,9 @@ def create_curves_plots(
     for dataset, predictions_df, target_df in zip(["calib", "train", "test"],
                                                   [calib_predictions_df, train_predictions_df, test_predictions_df],
                                                   [calib_target_df, train_target_df, test_target_df]):
+        if len(predictions_df) == 0:
+            logger.warning(f"Dataset {dataset} is empty. Skipping...")
+            continue
         target_col = config.mdl_task.target_col
         for prefix, prediction_col in zip(["pure", None], [config.clb.pure_prediction_col, config.clb.calibrated_prediction_col]):
             dataset_name = f"{prefix}_{dataset}" if prefix is not None else dataset
@@ -172,6 +175,9 @@ def create_prediction_groups_stats_tables_and_charts(
     for dataset, predictions_df, target_df in zip(["calib", "train", "test"],
                                                   [calib_predictions_df, train_predictions_df, test_predictions_df],
                                                   [calib_target_df, train_target_df, test_target_df]):
+        if len(predictions_df) == 0:
+            logger.warning(f"Dataset {dataset} is empty. Skipping...")
+            continue
         target_col = config.mdl_task.target_col
         for prefix, prediction_col in zip(["pure", None], [config.clb.pure_prediction_col, config.clb.calibrated_prediction_col]):
             dataset_name = f"{prefix}_{dataset}" if prefix is not None else dataset
@@ -206,12 +212,14 @@ def create_prediction_groups_stats_tables_and_charts(
                             f"Table of statistics for {n_bins} groups from partition: {part} in dataset: {dataset_name} has been generated and logged.")
                         summary_df[part] = stats_df
                         create_lift_chart_fig(
+                            config=config,
                             summary_df=stats_df,
                             n_bins=n_bins,
                             dataset=dataset,
                             prefix=prefix,
                         )
                         create_simple_lift_chart_fig(
+                            config=config,
                             summary_df=stats_df,
                             n_bins=n_bins,
                             dataset=dataset,
@@ -237,12 +245,14 @@ def create_prediction_groups_stats_tables_and_charts(
                     prefix=prefix
                 )
                 create_lift_cv_mean_chart_fig(
+                    config=config,
                     summary_dfs=list(summary_df.values()),
                     n_bins=n_bins,
                     dataset=dataset,
                     prefix=prefix,
                 )
                 create_simple_lift_cv_mean_chart_fig(
+                    config=config,
                     summary_dfs=list(summary_df.values()),
                     n_bins=n_bins,
                     dataset=dataset,

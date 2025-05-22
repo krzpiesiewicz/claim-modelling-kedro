@@ -1,4 +1,5 @@
 from typing import Dict, Optional
+import logging
 
 import numpy as np
 import pandas as pd
@@ -7,6 +8,9 @@ from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 
 from claim_modelling_kedro.pipelines.utils.dataframes import ordered_by_pred_and_hashed_index
+
+
+logger = logging.getLogger(__name__)
 
 
 def calculate_cumulative_calibration_curve(y_true: pd.Series, y_pred: pd.Series, sample_weight: pd.Series = None):

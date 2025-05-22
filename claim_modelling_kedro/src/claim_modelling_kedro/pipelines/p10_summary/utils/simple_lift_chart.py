@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
+from claim_modelling_kedro.pipelines.p01_init.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -135,12 +136,12 @@ def plot_cv_mean_simple_lift_chart(
 
 
 def create_simple_lift_chart_fig(
+    config: Config,
     summary_df: pd.DataFrame,
     n_bins: int,
     dataset: str,
     prefix: str = None,
-    min_val: float = None,
-    max_val: float = None) -> None:
+) -> None:
     """
     Creates a chart showing the mean deviation lines between predictions and targets.
 
@@ -154,7 +155,8 @@ def create_simple_lift_chart_fig(
     """
     dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
     logger.info(f"Generating a simple lift chart for dataset: {dataset}...")
-    fig = plot_cv_mean_simple_lift_chart([summary_df], min_val=min_val, max_val=max_val)
+    params = config.summary.lift_chart_params or {}
+    fig = plot_cv_mean_simple_lift_chart([summary_df], **params)
     logger.info("Generated the simple lift chart.")
 
     # Save and log the concentration curve with the Lorenz curve to MLflow
@@ -170,12 +172,12 @@ def create_simple_lift_chart_fig(
 
 
 def create_simple_lift_cv_mean_chart_fig(
+    config: Config,
     summary_dfs: List[pd.DataFrame],
     n_bins: int,
     dataset: str,
     prefix: str = None,
-    min_val: float = None,
-    max_val: float = None) -> None:
+) -> None:
     """
     Creates a chart showing the mean deviation lines between predictions and targets.
 
@@ -189,7 +191,8 @@ def create_simple_lift_cv_mean_chart_fig(
     """
     dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
     logger.info(f"Generating the CV-mean simple lift chart for dataset: {dataset}...")
-    fig = plot_cv_mean_simple_lift_chart(summary_dfs, min_val=min_val, max_val=max_val, show_std_band=True)
+    params = config.summary.lift_chart_params or {}
+    fig = plot_cv_mean_simple_lift_chart(summary_dfs, show_std_band=True, **params)
     logger.info("Generated the CV-mean simple lift chart.")
 
     # Save and log the concentration curve with the Lorenz curve to MLflow

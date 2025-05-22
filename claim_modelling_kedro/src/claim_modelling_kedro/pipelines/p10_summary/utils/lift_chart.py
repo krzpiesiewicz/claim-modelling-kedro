@@ -9,6 +9,8 @@ import logging
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
+from claim_modelling_kedro.pipelines.p01_init.config import Config
+
 logger = logging.getLogger(__name__)
 
 
@@ -165,6 +167,7 @@ def plot_cv_mean_lift_chart(
 
 
 def create_lift_chart_fig(
+    config: Config,
     summary_df: pd.DataFrame,
     n_bins: int,
     dataset: str,
@@ -184,7 +187,8 @@ def create_lift_chart_fig(
     """
     dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
     logger.info(f"Generating the lift chart for dataset: {dataset}...")
-    fig = plot_cv_mean_lift_chart([summary_df], min_val=min_val, max_val=max_val, interpolate_pred_mean=False)
+    params = config.summary.lift_chart_params or {}
+    fig = plot_cv_mean_lift_chart([summary_df], interpolate_pred_mean=False, **params)
     logger.info("Generated the lift chart.")
 
     # Save and log the concentration curve with the Lorenz curve to MLflow
@@ -200,12 +204,12 @@ def create_lift_chart_fig(
 
 
 def create_lift_cv_mean_chart_fig(
+    config: Config,
     summary_dfs: List[pd.DataFrame],
     n_bins: int,
     dataset: str,
-    prefix: str = None,
-    min_val: float = None,
-    max_val: float = None) -> None:
+    prefix: str = None
+) -> None:
     """
     Creates a chart showing the mean deviation lines between predictions and targets.
 
@@ -219,7 +223,8 @@ def create_lift_cv_mean_chart_fig(
     """
     dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
     logger.info(f"Generating the CV-mean lift chart for dataset: {dataset}...")
-    fig = plot_cv_mean_lift_chart(summary_dfs, min_val=min_val, max_val=max_val, interpolate_pred_mean=False)
+    params = config.summary.lift_chart_params or {}
+    fig = plot_cv_mean_lift_chart(summary_dfs, interpolate_pred_mean=False, **params)
     logger.info("Generated the CV-mean lift chart.")
 
     # Save and log the concentration curve with the Lorenz curve to MLflow
