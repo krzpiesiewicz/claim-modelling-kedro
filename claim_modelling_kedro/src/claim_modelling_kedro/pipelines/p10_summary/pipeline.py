@@ -1,7 +1,7 @@
 from kedro.pipeline import Pipeline, pipeline, node
 
 from claim_modelling_kedro.pipelines.p10_summary.nodes import load_target_and_predictions, create_curves_plots, \
-    create_prediction_groups_stats_tables
+    create_prediction_groups_stats_tables_and_charts
 
 
 
@@ -24,7 +24,7 @@ def create_pipeline(**kwargs) -> Pipeline:
                 name="create_curves_plots",
             ),
             node(
-                func=create_prediction_groups_stats_tables,
+                func=create_prediction_groups_stats_tables_and_charts,
                 inputs=["config", "calib_predictions_df", "calib_target_df", "train_predictions_df", "train_target_df",
                         "test_predictions_df", "test_target_df"],
                 outputs="dummy_summary_2_df",

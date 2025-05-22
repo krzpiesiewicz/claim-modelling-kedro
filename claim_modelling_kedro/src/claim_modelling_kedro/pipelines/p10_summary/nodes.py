@@ -6,6 +6,7 @@ import logging
 import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
+from claim_modelling_kedro.pipelines.p10_summary.utils.auto_calib_chart import create_auto_calib_chart_fig
 from claim_modelling_kedro.pipelines.p10_summary.utils.lift_chart import create_lift_chart_fig, \
     create_lift_cv_mean_chart_fig
 from claim_modelling_kedro.pipelines.p10_summary.utils.cc_lorenz import (
@@ -132,7 +133,7 @@ def create_curves_plots(
                         target_df=part_target_df,
                         prediction_col=prediction_col,
                         target_col=target_col,
-                        dataset = dataset,
+                        dataset=dataset,
                         prefix=prefix
                     )
                     create_cumulative_calibration_curves_figs_part(
@@ -141,14 +142,14 @@ def create_curves_plots(
                         target_df=part_target_df,
                         prediction_col=prediction_col,
                         target_col=target_col,
-                        dataset = dataset,
+                        dataset=dataset,
                         prefix=prefix
                     )
     dummy_summary_1_df = pd.DataFrame({})
     return dummy_summary_1_df
 
 
-def create_prediction_groups_stats_tables(
+def create_prediction_groups_stats_tables_and_charts(
         config: Config,
         calib_predictions_df: Dict[str, pd.DataFrame],
         calib_target_df: Dict[str, pd.DataFrame],
@@ -215,6 +216,16 @@ def create_prediction_groups_stats_tables(
                             n_bins=n_bins,
                             dataset=dataset,
                             prefix=prefix,
+                        )
+                        create_auto_calib_chart_fig(
+                            config=config,
+                            predictions_df=part_predictions_df,
+                            target_df=part_target_df,
+                            prediction_col=prediction_col,
+                            target_col=target_col,
+                            dataset=dataset,
+                            n_bins=n_bins,
+                            prefix=prefix
                         )
 
                 # Average the statistics across partitions
