@@ -16,6 +16,7 @@ class CalibrationMethod(Enum):
     SKLEARN_GAMMA_GLM: str = "SklearnGammaGLM"
     SKLEARN_TWEEDIE_GLM: str = "SklearnTweedieGLM"
     EQUAL_BINS_MEANS: str = "EqualBinsMeans"
+    LOCAL_POLYNOMIAL_REGRESSION: str = "LocalPolynomialRegression"
 
 
 @dataclass
@@ -55,6 +56,8 @@ class CalibrationConfig:
                 self.model_class = "SklearnTweedieGLMCalibration"
             case CalibrationMethod.EQUAL_BINS_MEANS:
                 self.model_class = "EqualBinsMeansCalibration"
+            case CalibrationMethod.LOCAL_POLYNOMIAL_REGRESSION:
+                self.model_class = "LocalPolynomialRegressionCalibration"
             case _:
                 raise ValueError(f"Calibration method \"{self.method}\" not supported.")
         self.model_class = f"claim_modelling_kedro.pipelines.p08_model_calibration.calibration_models.{self.model_class}"
