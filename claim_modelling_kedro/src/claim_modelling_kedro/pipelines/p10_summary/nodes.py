@@ -14,6 +14,8 @@ from claim_modelling_kedro.pipelines.p10_summary.utils.cc_lorenz import (
 )
 from claim_modelling_kedro.pipelines.p10_summary.utils.cumul_calib_plot import \
     create_mean_cumulative_calibration_curves_figs, create_cumulative_calibration_curves_figs_part
+from claim_modelling_kedro.pipelines.p10_summary.utils.simple_lift_chart import create_simple_lift_cv_mean_chart_fig, \
+    create_simple_lift_chart_fig
 from claim_modelling_kedro.pipelines.p10_summary.utils.tabular_stats import create_prediction_group_summary_strict_bins, \
     create_average_prediction_group_summary
 from claim_modelling_kedro.pipelines.utils.dataframes import load_predictions_and_target_from_mlflow
@@ -208,6 +210,12 @@ def create_prediction_groups_stats_tables(
                             dataset=dataset,
                             prefix=prefix,
                         )
+                        create_simple_lift_chart_fig(
+                            summary_df=stats_df,
+                            n_bins=n_bins,
+                            dataset=dataset,
+                            prefix=prefix,
+                        )
 
                 # Average the statistics across partitions
                 create_average_prediction_group_summary(
@@ -218,6 +226,12 @@ def create_prediction_groups_stats_tables(
                     prefix=prefix
                 )
                 create_lift_cv_mean_chart_fig(
+                    summary_dfs=list(summary_df.values()),
+                    n_bins=n_bins,
+                    dataset=dataset,
+                    prefix=prefix,
+                )
+                create_simple_lift_cv_mean_chart_fig(
                     summary_dfs=list(summary_df.values()),
                     n_bins=n_bins,
                     dataset=dataset,
