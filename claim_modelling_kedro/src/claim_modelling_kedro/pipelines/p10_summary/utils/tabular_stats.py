@@ -64,7 +64,6 @@ def create_prediction_group_summary_strict_bins(
     dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
     logger.info(f"Generating prediction group summary for dataset: {dataset} with {n_bins} bins...")
 
-    # Combine predictions and targets into a single DataFrame
     y_true = target_df[target_col]
     y_pred = predictions_df[prediction_col]
     sample_weight = get_sample_weight(config, target_df)
@@ -75,20 +74,16 @@ def create_prediction_group_summary_strict_bins(
         "weight": sample_weight
     })
 
-    # Stable sort: primary by y_pred (ascending), secondary by hash(index) to break ties
-    primary_key = df["y_pred"].values
-    secondary_key = df.index.to_series().apply(lambda x: hash(x)).values
-    sorted_indices = np.lexsort((secondary_key, primary_key))
-
+    bin_label_name = "group"
     group_numbers = np.zeros(len(df), dtype=int)
-    for i, idx in enumerate(sorted_indices):
+    for i, idx in enumerate(df.index):
         group_numbers[idx] = (i * n_bins) // len(df) + 1  # 1-based group index
 
-    df["group"] = group_numbers
+    df[bin_label_name] = group_numbers
 
     # Filter by specified groups
     if groups is not None:
-        df = df[df["group"].isin(groups)]
+        df = df[df[bin_label_name].isin(groups)]
 
     # Group and compute statistics
     def weighted_mean(x, w):
@@ -115,7 +110,7 @@ def create_prediction_group_summary_strict_bins(
         return arr
 
     summary_rows = []
-    for group, group_df in df.groupby("group"):
+    for group, group_df in df.groupby(bin_label_name):
         w = group_df["weight"].values
         yt = group_df["y_true"].values
         yp = group_df["y_pred"].values
