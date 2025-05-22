@@ -35,6 +35,15 @@ def plot_cv_mean_lift_chart(
         max_val: float = None,
         interpolate_pred_mean: bool = True
 ) -> plt.Figure:
+    """
+    Plots a lift chart with mean prediction and target lines,
+    optionally showing standard deviation bands and over/under bars.
+    Args:
+        summary_dfs (List[pd.DataFrame]): List of summary DataFrames with "group", "mean_pred", and "mean_target" columns.
+        min_val (float, optional): Minimum value for the y-axis. Defaults to None.
+        max_val (float, optional): Maximum value for the y-axis. Defaults to None.
+        interpolate_pred_mean (bool, optional): Whether to interpolate the mean prediction line. Defaults to True.
+    """
     all_groups = sorted(set(summary_dfs[0]["group"]))
     mean_pred = []
     mean_target = []
@@ -167,6 +176,9 @@ def create_lift_chart_fig(
 
     Args:
         summary_df (pd.DataFrame): DataFrame containing summary statistics.
+        n_bins (int): Number of bins used in the summary.
+        dataset (str): Name of the dataset (e.g., "train" or "test").
+        prefix (str, optional): Prefix for the dataset ('pure' or None). Defaults to None.
         min_val (float, optional): Minimum value for y-axis. Defaults to None.
         max_val (float, optional): Maximum value for y-axis. Defaults to None.
     """
@@ -198,7 +210,10 @@ def create_lift_cv_mean_chart_fig(
     Creates a chart showing the mean deviation lines between predictions and targets.
 
     Args:
-        summary_df (pd.DataFrame): DataFrame containing summary statistics.
+        summary_dfs (List[pd.DataFrame]): DataFrame containing summary statistics.
+        n_bins (int): Number of bins used in the summary.
+        dataset (str): Name of the dataset (e.g., "train" or "test").
+        prefix (str, optional): Prefix for the dataset ('pure' or None). Defaults to None.
         min_val (float, optional): Minimum value for y-axis. Defaults to None.
         max_val (float, optional): Maximum value for y-axis. Defaults to None.
     """
