@@ -184,7 +184,7 @@ def create_lift_chart_fig(
     """
     dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
     logger.info(f"Generating the lift chart for dataset: {dataset}...")
-    fig = plot_cv_mean_lift_chart([summary_df], min_val, max_val, interpolate_pred_mean=False)
+    fig = plot_cv_mean_lift_chart([summary_df], min_val=min_val, max_val=max_val, interpolate_pred_mean=False)
     logger.info("Generated the lift chart.")
 
     # Save and log the concentration curve with the Lorenz curve to MLflow
@@ -219,7 +219,7 @@ def create_lift_cv_mean_chart_fig(
     """
     dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
     logger.info(f"Generating the CV-mean lift chart for dataset: {dataset}...")
-    fig = plot_cv_mean_lift_chart(summary_dfs, min_val, max_val, interpolate_pred_mean=False)
+    fig = plot_cv_mean_lift_chart(summary_dfs, min_val=min_val, max_val=max_val, interpolate_pred_mean=False)
     logger.info("Generated the CV-mean lift chart.")
 
     # Save and log the concentration curve with the Lorenz curve to MLflow
