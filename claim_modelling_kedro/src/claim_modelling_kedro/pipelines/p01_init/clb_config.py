@@ -15,6 +15,7 @@ class CalibrationMethod(Enum):
     SKLEARN_POISSON_GLM: str = "SklearnPoissonGLM"
     SKLEARN_GAMMA_GLM: str = "SklearnGammaGLM"
     SKLEARN_TWEEDIE_GLM: str = "SklearnTweedieGLM"
+    EQUAL_BINS_MEANS: str = "EqualBinsMeans"
 
 
 @dataclass
@@ -52,6 +53,8 @@ class CalibrationConfig:
                 self.model_class = "StatsmodelsTweedieGLM"
             case CalibrationMethod.SKLEARN_TWEEDIE_GLM:
                 self.model_class = "SklearnTweedieGLM"
+            case CalibrationMethod.EQUAL_BINS_MEANS:
+                self.model_class = "EqualBinsMeansCalibration"
             case _:
                 raise ValueError(f"Calibration method \"{self.method}\" not supported.")
         self.model_class = f"claim_modelling_kedro.pipelines.p08_model_calibration.calibration_models.{self.model_class}"
