@@ -6,8 +6,8 @@ import logging
 import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p10_summary.utils.calibration_plot import create_calibration_plot, \
-    create_calibration_cv_mean_plot
+from claim_modelling_kedro.pipelines.p10_summary.utils.lift_chart import create_lift_chart_fig, \
+    create_lift_cv_mean_chart_fig
 from claim_modelling_kedro.pipelines.p10_summary.utils.cc_lorenz import (
     create_mean_concentration_curves_figs,
     create_concentration_curves_figs_part
@@ -202,7 +202,7 @@ def create_prediction_groups_stats_tables(
                         logger.info(
                             f"Table of statistics for {n_bins} groups from partition: {part} in dataset: {dataset_name} has been generated and logged.")
                         summary_df[part] = stats_df
-                        create_calibration_plot(
+                        create_lift_chart_fig(
                             summary_df=stats_df,
                             n_bins=n_bins,
                             dataset=dataset,
@@ -217,7 +217,7 @@ def create_prediction_groups_stats_tables(
                     n_bins=n_bins,
                     prefix=prefix
                 )
-                create_calibration_cv_mean_plot(
+                create_lift_cv_mean_chart_fig(
                     summary_dfs=list(summary_df.values()),
                     n_bins=n_bins,
                     dataset=dataset,

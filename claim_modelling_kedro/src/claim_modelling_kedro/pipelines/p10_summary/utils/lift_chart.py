@@ -12,10 +12,10 @@ from matplotlib.lines import Line2D
 logger = logging.getLogger(__name__)
 
 
-FILE_NAME_CALIBRATION_PLOT = "{dataset}_calibration_plot_{n_bins}_groups.jpg"
-FILE_NAME_CALIBRATION_MEAN_CV_PLOT = "{dataset}_cv_mean_calibration_plot_{n_bins}_groups.jpg"
+FILE_NAME_LIFT_CHART = "{dataset}_lift_chart_{n_bins}_groups.jpg"
+FILE_NAME_LIFT_MEAN_CV_CHART = "{dataset}_cv_mean_lift_chart_{n_bins}_groups.jpg"
 
-ARTIFACT_PATH_CALIB_PLOTS = "summary/calibration_plots"
+ARTIFACT_PATH_LIFT_CHARTS = "summary/lift_charts"
 
 
 def get_file_name(file_template: str, dataset: str, n_bins: int) -> str:
@@ -29,7 +29,7 @@ def get_file_name(file_template: str, dataset: str, n_bins: int) -> str:
     return file_template.format(dataset=dataset, n_bins=n_bins)
 
 
-def plot_cv_mean_deviation_lines(
+def plot_cv_mean_lift_chart(
         summary_dfs: List[pd.DataFrame],
         min_val: float = None,
         max_val: float = None,
@@ -68,7 +68,7 @@ def plot_cv_mean_deviation_lines(
 
     # Mean prediction
     if interpolate_pred_mean:
-        ax.plot(all_groups, mean_pred, color="black", linewidth=3, label="Mean Prediction")
+        ax.plot(all_groups, mean_pred, color="black", linewidth=3)
     else:
         ax.plot(all_groups, mean_pred, color="gray", linewidth=2)
         for i, group in enumerate(all_groups):
@@ -77,7 +77,7 @@ def plot_cv_mean_deviation_lines(
     # Standard deviation band
     if len(summary_dfs) > 1:
         ax.fill_between(all_groups, np.array(mean_pred) - std_pred, np.array(mean_pred) + std_pred,
-                        color="black", alpha=0.1, label="Prediction ±1 Std")
+                        color="black", alpha=0.1)
 
     # Over/under bars
     for i, group in enumerate(all_groups):
@@ -106,19 +106,22 @@ def plot_cv_mean_deviation_lines(
     ax.set_xticklabels(xtick_labels)
     ax.set_xlim(min(all_groups) - 0.5, max(all_groups) + 0.5)
 
-    # Y-axis
-    yticks = list(ax.get_yticks())
-    if min_val is not None:
-        yticks.append(min_val)
-    if max_val is not None:
-        yticks.append(max_val)
-    ax.set_yticks(sorted(set(yticks)))
+    # Set axis limits
+    if min_val is not None or max_val is not None:
+        ax.set_ylim(min_val, max_val)
 
-    ax.set_xlabel("Group")
-    ax.set_ylabel("Value")
-    title = "Bias Deviation Between Prediction and Target Means"
+    # Add labels, title, and legend
+    match len(all_groups):
+        case 10:
+            xlabel = "Decile"
+        case 100:
+            xlabel = "Percentile"
+        case _:
+            xlabel = "Group"
+    ax.set_xlabel(xlabel)
+    title = "Extended Lift Chart"
     if len(summary_dfs) > 1:
-        title = f"Mean {title} (CV Average)"
+        title = f"{title} (CV Average)"
     ax.set_title(title)
     ax.grid(True, linestyle='--', alpha=0.5)
 
@@ -152,7 +155,7 @@ def plot_cv_mean_deviation_lines(
     return fig
 
 
-def create_calibration_plot(
+def create_lift_chart_fig(
     summary_df: pd.DataFrame,
     n_bins: int,
     dataset: str,
@@ -160,7 +163,7 @@ def create_calibration_plot(
     min_val: float = None,
     max_val: float = None) -> None:
     """
-    Creates a plot showing the mean deviation lines between predictions and targets.
+    Creates a chart showing the mean deviation lines between predictions and targets.
 
     Args:
         summary_df (pd.DataFrame): DataFrame containing summary statistics.
@@ -168,23 +171,23 @@ def create_calibration_plot(
         max_val (float, optional): Maximum value for y-axis. Defaults to None.
     """
     dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
-    logger.info(f"Generating the calibration plot for dataset: {dataset}...")
-    fig = plot_cv_mean_deviation_lines([summary_df], min_val, max_val, interpolate_pred_mean=False)
-    logger.info("Generated the calibration plot.")
+    logger.info(f"Generating the lift chart for dataset: {dataset}...")
+    fig = plot_cv_mean_lift_chart([summary_df], min_val, max_val, interpolate_pred_mean=False)
+    logger.info("Generated the lift chart.")
 
     # Save and log the concentration curve with the Lorenz curve to MLflow
-    logger.info("Saving and logging the calibration plot to MLflow...")
+    logger.info("Saving and logging the lift chart to MLflow...")
     with tempfile.TemporaryDirectory() as temp_dir:
-        filename = get_file_name(FILE_NAME_CALIBRATION_PLOT, dataset=dataset, n_bins=n_bins)
-        artifact_path = ARTIFACT_PATH_CALIB_PLOTS
+        filename = get_file_name(FILE_NAME_LIFT_CHART, dataset=dataset, n_bins=n_bins)
+        artifact_path = ARTIFACT_PATH_LIFT_CHARTS
         fig_path = os.path.join(temp_dir, filename)
         fig.savefig(fig_path, format="jpg")
         mlflow.log_artifact(fig_path, artifact_path=artifact_path)
         logger.info(
-            f"Calibration plot has been logged to MLflow under artifact {os.path.join(artifact_path, filename)}.")
+            f"lift chart has been logged to MLflow under artifact {os.path.join(artifact_path, filename)}.")
 
 
-def create_calibration_cv_mean_plot(
+def create_lift_cv_mean_chart_fig(
     summary_dfs: List[pd.DataFrame],
     n_bins: int,
     dataset: str,
@@ -192,7 +195,7 @@ def create_calibration_cv_mean_plot(
     min_val: float = None,
     max_val: float = None) -> None:
     """
-    Creates a plot showing the mean deviation lines between predictions and targets.
+    Creates a chart showing the mean deviation lines between predictions and targets.
 
     Args:
         summary_df (pd.DataFrame): DataFrame containing summary statistics.
@@ -200,17 +203,17 @@ def create_calibration_cv_mean_plot(
         max_val (float, optional): Maximum value for y-axis. Defaults to None.
     """
     dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
-    logger.info(f"Generating the CV-mean calibration plot for dataset: {dataset}...")
-    fig = plot_cv_mean_deviation_lines(summary_dfs, min_val, max_val, interpolate_pred_mean=False)
-    logger.info("Generated the CV-mean calibration plot.")
+    logger.info(f"Generating the CV-mean lift chart for dataset: {dataset}...")
+    fig = plot_cv_mean_lift_chart(summary_dfs, min_val, max_val, interpolate_pred_mean=False)
+    logger.info("Generated the CV-mean lift chart.")
 
     # Save and log the concentration curve with the Lorenz curve to MLflow
-    logger.info("Saving and logging the CV-mean calibration plot to MLflow...")
+    logger.info("Saving and logging the CV-mean lift chart to MLflow...")
     with tempfile.TemporaryDirectory() as temp_dir:
-        filename = get_file_name(FILE_NAME_CALIBRATION_MEAN_CV_PLOT, dataset=dataset, n_bins=n_bins)
-        artifact_path = ARTIFACT_PATH_CALIB_PLOTS
+        filename = get_file_name(FILE_NAME_LIFT_MEAN_CV_CHART, dataset=dataset, n_bins=n_bins)
+        artifact_path = ARTIFACT_PATH_LIFT_CHARTS
         fig_path = os.path.join(temp_dir, filename)
         fig.savefig(fig_path, format="jpg")
         mlflow.log_artifact(fig_path, artifact_path=artifact_path)
         logger.info(
-            f"CV-mean Calibration plot has been logged to MLflow under artifact {os.path.join(artifact_path, filename)}.")
+            f"CV-mean lift chart has been logged to MLflow under artifact {os.path.join(artifact_path, filename)}.")
