@@ -72,7 +72,7 @@ def sample_with_no_condition(config: Config, target_df: pd.DataFrame, train_keys
     - target: {config.mdl_info.target}
     - all observations: {train_size}
     - sample size: {config.smpl.n_obs}""")
-    sample_keys = get_stratified_sample_keys(train_trg_df, config.data.stratify_target_col,
+    sample_keys = get_stratified_sample_keys(train_trg_df, config.mdl_task.target_col,
                                              size=config.smpl.n_obs, shuffle=True,
                                              random_seed=config.smpl.random_seed)
     sample_df = train_trg_df.loc[sample_keys, :]
@@ -134,7 +134,7 @@ def sample_with_target_ratio(config: Config, target_df: pd.DataFrame, train_keys
         sample_events_keys = pd.Index([], name=train_trg_df.index.name)
     else:
         sample_events_keys = get_stratified_sample_keys(train_trg_df.loc[events_keys, :],
-                                                        config.data.stratify_target_col,
+                                                        config.mdl_task.target_col,
                                                         size=n_events_in_sample, shuffle=True,
                                                         random_seed=config.smpl.random_seed)
     non_events_keys = train_keys.difference(events_keys)
@@ -142,7 +142,7 @@ def sample_with_target_ratio(config: Config, target_df: pd.DataFrame, train_keys
         sample_non_events_keys = pd.Index([], name=train_trg_df.index.name)
     else:
         sample_non_events_keys = get_stratified_sample_keys(train_trg_df.loc[non_events_keys, :],
-                                                            config.data.stratify_target_col,
+                                                            config.mdl_task.target_col,
                                                             size=n_non_events_in_sample, shuffle=True,
                                                             random_seed=config.smpl.random_seed)
     sample_keys = sample_events_keys.union(sample_non_events_keys)
