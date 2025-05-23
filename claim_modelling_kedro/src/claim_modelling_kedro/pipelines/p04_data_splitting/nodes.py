@@ -1,10 +1,14 @@
 import logging
 from typing import Tuple, Dict
+
+import mlflow
+import numpy as np
 from tabulate import tabulate
 
 import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
+from claim_modelling_kedro.pipelines.p07_data_science.model import get_sample_weight
 from claim_modelling_kedro.pipelines.utils.stratified_cv_split import get_stratified_train_calib_test_cv
 from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_calib_test_split_keys
 
@@ -62,22 +66,27 @@ def split_train_calib_test(
         calib_keys = {one_part_key: calib_keys}
         test_keys = {one_part_key: test_keys}
 
+    round_ndigits = 0 if target_df[stratify_target_col].mean() > 1000 else 2 # for rounding
+
     # Log the distribution of the target variable in each partition
     for dataset, keys_dct in zip(
             ["train", "calib", "test"],
             [train_keys, calib_keys, test_keys]
     ):
         top_n = 6
-        stats_cols = ["mean", "min", "q_0.1", "q_0.25", "q_0.5", "q_0.75", "q_0.9", "q_0.95", "q_0.99", "q_0.995",
+        stats_cols = ["n_obs", "mean", "weighted_mean", "min", "q_0.1", "q_0.25", "q_0.5", "q_0.75", "q_0.9", "q_0.95", "q_0.99", "q_0.995",
                 "q_0.999"] + [f"top_{top_n - k}" for k in range(top_n)]
         table = pd.DataFrame({col: {} for col in ["dataset", "part"] + stats_cols}, index=range(len(keys_dct)))
         table[["dataset", "part"]] = table[["dataset", "part"]].astype(str)
         for row_idx, (part, keys) in enumerate(keys_dct.items()):
+            weights = get_sample_weight(config, target_df.loc[keys,:])
             target_values = target_df.loc[keys, stratify_target_col]
             row = {
                 "dataset": dataset,
                 "part": part,
+                "n_obs": len(target_values),
                 "mean": target_values.mean(),
+                "weighted_mean": np.average(target_values, weights=weights),
                 "min": target_values.min(),
                 "q_0.1": target_values.quantile(0.1),
                 "q_0.25": target_values.quantile(0.25),
@@ -91,10 +100,13 @@ def split_train_calib_test(
             }
             largest_values = target_values.nlargest(top_n)
             for k in range(1, top_n + 1):
-                row[f"top_{top_n + 1 - k}"] = round(largest_values.iloc[top_n - k])
+                row[f"top_{top_n + 1 - k}"] = round(largest_values.iloc[top_n - k], ndigits=round_ndigits)
             table.iloc[row_idx,:] = pd.Series(row)
-        table[stats_cols] = table[stats_cols].round().astype(int)
-        table.to_csv(f"data/03_primary/{dataset}_distribution_table.csv", index=False)
+        if round_ndigits == 0:
+            table[stats_cols] = table[stats_cols].round().astype(int)
+        csv_path = f"data/03_primary/{dataset}_distribution_table.csv"
+        table.to_csv(csv_path, index=False)
+        mlflow.log_artifact(csv_path, artifact_path="split")
         logger.info("\n" + tabulate(table, headers=table.columns, tablefmt="grid", showindex=False))
 
     return train_policies, calib_policies, test_policies, train_keys, calib_keys, test_keys
