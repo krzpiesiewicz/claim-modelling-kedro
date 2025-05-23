@@ -24,13 +24,14 @@ TODO – framework:
 15.   [DONE] Dodać wykresy krzywej skumulowanej kalibracji
 15.1  [DONE] Dodać własne indeksy kalibracji (CCI, COI i CUI)
 16.   [DONE] Opracować wykres średniego targetu w percentylach / predykcji
-16.1  TODO zrobić w parameters.yml słownik summary z przedziałami y_min, y_max dla wykresu
+16.1  [DONE] zrobić w parameters.yml słownik summary z przedziałami y_min, y_max dla wykresu
 17.   [DONE] Zaimplementować ABC z artykułu Testing for auto-calibration
 18.   TODO Rekalibracje lokalne:
 18.1  [DONE] Uśrednianie w obrębie równych binów
 18.2  [DONE] Local polynomial regression - skmisc.loess.loess_model
 18.3. TODO GLM w lokalnym otoczeniu - PDF: Does autocalibration improve goodness of lift (2022) Ciato
-18.4. TODO Dopisać w IsotonicLikeCalibrationModel ustawianie _set_y_min i _set_y_max dla parametrów y_min_bin_size i y_max_bin_size
+18.3.1 TODO teraz! Dodać parameter zamiast self.config.mdl_info.model do StatsmodelsGLM
+18.4. BACKLOG Dopisać w IsotonicLikeCalibrationModel ustawianie _set_y_min i _set_y_max dla parametrów y_min_bin_size i y_max_bin_size
 18.5. TODO Dodać hyperopta dla modeli kalibracji
 19.   TODO Dummy regressor - stała wartość jako predykcja (średnia targetu)
 20.   TODO Sprawdzić wszystko dla Poissona

@@ -126,13 +126,13 @@ class DataScienceConfig:
         else:
             match mdl_info.model:
                 case ModelEnum.STATSMODELS_POISSON_GLM:
-                    model_class_name = "StatsmodelsGLM"
+                    model_class_name = "StatsmodelsPoissonGLM"
                 case ModelEnum.STATSMODELS_GAMMA_GLM:
-                    model_class_name = "StatsmodelsGLM"
+                    model_class_name = "StatsmodelsGammaGLM"
                 case ModelEnum.STATSMODELS_TWEEDIE_GLM:
-                    model_class_name = "StatsmodelsGLM"
+                    model_class_name = "StatsmodelsTweedieGLM"
                 case ModelEnum.STATSMODELS_GAUSSIAN_GLM:
-                    model_class_name = "StatsmodelsGLM"
+                    model_class_name = "StatsmodelsGaussianGLM"
                 case ModelEnum.SKLEARN_POISSON_GLM:
                     model_class_name = "SklearnPoissonGLM"
                 case ModelEnum.SKLEARN_GAMMA_GLM:

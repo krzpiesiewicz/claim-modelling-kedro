@@ -6,39 +6,39 @@ import pandas as pd
 from sklearn.linear_model import PoissonRegressor, GammaRegressor, TweedieRegressor
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p07_data_science.models import StatsmodelsGLM
+from claim_modelling_kedro.pipelines.p07_data_science.models import StatsmodelsGammaGLM
 from claim_modelling_kedro.pipelines.p08_model_calibration.calibration_model import CalibrationModel
 
 
 logger = logging.getLogger(__name__)
 
 
-class StatsmodelsGLMCalibration(CalibrationModel, StatsmodelsGLM):
+class StatsmodelsGammaGLMCalibration(CalibrationModel, StatsmodelsGammaGLM):
     """
     A CalibrationModel that uses StatsmodelsGLM for predictive modeling with calibration capabilities.
     """
     def __init__(self, config: Config, **kwargs):
         # Initialize both parent classes
-        CalibrationModel.__init__(self, config, **kwargs)
-        StatsmodelsGLM.__init__(self, config, pred_col=self.pred_col, target_col=self.target_col, **kwargs)
+        CalibrationModel.__init__(self, config, call_updated_hparams=False, **kwargs)
+        StatsmodelsGammaGLM.__init__(self, config, pred_col=self.pred_col, target_col=self.target_col, **kwargs)
 
     def _fit(self, pure_predictions_df: pd.DataFrame, target_df: pd.DataFrame, **kwargs):
         """
         Use the _fit method from StatsmodelsGLM for fitting the calibration model.
         """
-        logger.debug("StatsmodelsGLMCalibration _fit called")
+        logger.debug("StatsmodelsGammaGLMCalibration _fit called")
         pure_predictions_df = pure_predictions_df[self.pure_pred_col]
         # Call StatsmodelsGLM's _fit method
-        StatsmodelsGLM._fit(self, pure_predictions_df, target_df, **kwargs)
+        StatsmodelsGammaGLM._fit(self, pure_predictions_df, target_df, **kwargs)
 
     def _predict(self, pure_predictions_df: pd.DataFrame) -> pd.Series:
         """
         Use the _predict method from StatsmodelsGLM for making predictions.
         """
-        logger.debug("StatsmodelsGLMCalibration _predict called")
+        logger.debug("StatsmodelsGammaGLMCalibration _predict called")
         pure_predictions_df = pure_predictions_df[self.pure_pred_col]
         # Call StatsmodelsGLM's _predict method
-        return StatsmodelsGLM._predict(self, pure_predictions_df)
+        return StatsmodelsGammaGLM._predict(self, pure_predictions_df)
 
 
 class SklearnPoissonGLMCalibration(CalibrationModel):

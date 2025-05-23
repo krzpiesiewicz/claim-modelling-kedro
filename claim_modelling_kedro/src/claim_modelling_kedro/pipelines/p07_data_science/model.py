@@ -49,8 +49,7 @@ class PredictiveModel(ABC):
         self.pred_col = pred_col
         self._fit_kwargs = fit_kwargs if fit_kwargs is not None else {}
         self._hparams = None
-        if hparams is not None:
-            self.update_hparams(hparams, call_updated_hparams=call_updated_hparams)
+        self.update_hparams(hparams, call_updated_hparams=call_updated_hparams)
         self._features_importances = None
         self._not_fitted = True
 
@@ -58,9 +57,10 @@ class PredictiveModel(ABC):
             target_df: Union[pd.DataFrame, pd.Series, np.ndarray], **kwargs):
         assert_pandas_no_lacking_indexes(features_df, target_df, "features_df", "target_df")
         target_df = trunc_target_index(features_df, target_df)
-        sample_weight = get_sample_weight(self.config, target_df)
-        if sample_weight is not None:
-            kwargs["sample_weight"] = sample_weight
+        if not "sample_weight" in kwargs:
+            sample_weight = get_sample_weight(self.config, target_df)
+            if sample_weight is not None:
+                kwargs["sample_weight"] = sample_weight
         self._fit(features_df, target_df, **self._fit_kwargs, **kwargs)
         self._not_fitted = False
 

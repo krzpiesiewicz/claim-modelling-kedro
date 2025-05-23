@@ -20,36 +20,81 @@ from claim_modelling_kedro.pipelines.utils.metrics.cc_index import NormalizedCon
 logger = logging.getLogger(__name__)
 
 
-class StatsmodelsGLM(PredictiveModel):
+def get_statsmodels_metric(config: Config, model_enum: ModelEnum, pred_col: str) -> Metric:
+    match model_enum:
+        case ModelEnum.STATSMODELS_GAUSSIAN_GLM:
+            return RootMeanSquaredError(config, pred_col=pred_col)
+        case ModelEnum.STATSMODELS_GAMMA_GLM:
+            return MeanGammaDeviance(config, pred_col=pred_col)
+        case ModelEnum.STATSMODELS_POISSON_GLM:
+            return MeanPoissonDeviance(config, pred_col=pred_col)
+        case ModelEnum.STATSMODELS_TWEEDIE_GLM:
+            return NormalizedConcentrationIndex(config, pred_col=pred_col)
+        case _:
+            raise ValueError(
+                f"""Family for model {model_enum} not supported in Stastsmodels GLM. Supported are:
+        - {ModelEnum.STATSMODELS_GAUSSIAN_GLM},
+        - {ModelEnum.STATSMODELS_GAMMA_GLM},
+        - {ModelEnum.STATSMODELS_POISSON_GLM},
+        - {ModelEnum.STATSMODELS_TWEEDIE_GLM}.""")
+
+
+class StatsmodelsGLM(PredictiveModel, ABC):
     """
-    It"s important to note that sm.GLM does not have hyperparameters in
-    the same sense as machine learning models like Random Forest or
-    Gradient Boosting do. Parameters like learning rate, tree depth, etc.,
-    can be tuned in those models. The parameters of sm.GLM are more about
-    specifying the structure of the model and the data, rather than
-    tuning the model"s learning process.
+    Generalized Linear Model (GLM) implementation using Statsmodels.
+
+    This class provides a flexible framework for fitting GLMs with various
+    distributions and link functions. It leverages the `statsmodels` library
+    to fit models and supports multiple families such as Gaussian, Gamma,
+    Poisson, and Tweedie.
+
+    Key Features:
+        - Supports multiple GLM families and link functions.
+        - Handles weighted fitting through sample weights.
+        - Automatically adjusts predictions to enforce constraints (e.g., non-negative predictions).
+
+    Note:
+        Unlike machine learning models such as Random Forest or Gradient Boosting,
+        `statsmodels.GLM` does not have hyperparameters like learning rate or tree depth.
+        Instead, it focuses on specifying the structure of the model and the data.
+
+    Args:
+        config (Config): Configuration object containing model settings.
+        model_enum (ModelEnum): Enum specifying the GLM family to use.
+        **kwargs: Additional keyword arguments for customization.
+
+    Methods:
+        - metric: Returns the evaluation metric based on the GLM family.
+        - _updated_hparams: Updates model parameters based on hyperparameters.
+        - _fit: Fits the GLM to the provided features and target data.
+        - _predict: Generates predictions using the fitted model.
+        - get_hparams_space: Returns the hyperparameter search space.
+        - get_default_hparams: Returns the default hyperparameter values.
+        - get_params: Returns the model parameters for compatibility with sklearn.
+        - summary: Returns a summary of the fitted model.
+
+    Supported Families:
+        - Gaussian: For continuous data with normal distribution.
+        - Gamma: For continuous positive data with skewness.
+        - Poisson: For count data.
+        - Tweedie: For data with a combination of continuous and discrete components.
+
+    Example Usage:
+        config = Config(...)
+        model = StatsmodelsGLM(config, model_enum=ModelEnum.STATSMODELS_GAMMA_GLM)
+        model._fit(features_df, target_df)
+        predictions = model._predict(features_df)
     """
 
-    def __init__(self, config: Config, **kwargs):
+    def __init__(self, config: Config, model_enum: ModelEnum, **kwargs):
+        self._model_enum = model_enum
         PredictiveModel.__init__(self, config, **kwargs)
 
+    def _get_model_enum(self) -> ModelEnum:
+        return self._model_enum
+
     def metric(self) -> Metric:
-        match self.config.mdl_info.model:
-            case ModelEnum.STATSMODELS_GAUSSIAN_GLM:
-                return RootMeanSquaredError(self.config, pred_col=self.pred_col)
-            case ModelEnum.STATSMODELS_GAMMA_GLM:
-                return MeanGammaDeviance(self.config, pred_col=self.pred_col)
-            case ModelEnum.STATSMODELS_POISSON_GLM:
-                return MeanPoissonDeviance(self.config, pred_col=self.pred_col)
-            case ModelEnum.STATSMODELS_TWEEDIE_GLM:
-                return NormalizedConcentrationIndex(self.config, pred_col=self.pred_col)
-            case _:
-                raise ValueError(
-                    f"""Family for model {self.config.mdl_info.model} not supported in Stastsmodels GLM. Supported are:
-            - {ModelEnum.STATSMODELS_GAUSSIAN_GLM},
-            - {ModelEnum.STATSMODELS_GAMMA_GLM},
-            - {ModelEnum.STATSMODELS_POISSON_GLM},
-            - {ModelEnum.STATSMODELS_TWEEDIE_GLM}.""")
+        return get_statsmodels_metric(config=self.config, model_enum=self._get_model_enum(), pred_col=self.pred_col)
 
     def _updated_hparams(self):
         logger.debug(f"_updated_hparams - self._hparams: {self._hparams}")
@@ -58,7 +103,7 @@ class StatsmodelsGLM(PredictiveModel):
         force_min_y_pred = self._hparams.get("force_min_y_pred")
         self._force_min_y_pred = force_min_y_pred if force_min_y_pred != "auto" else False
         self._fit_intercept = self._hparams.get("fit_intercept", True)
-        match self.config.mdl_info.model:
+        match self._get_model_enum():
             case ModelEnum.STATSMODELS_GAUSSIAN_GLM:
                 self.family = sm.families.Gaussian()
             case ModelEnum.STATSMODELS_GAMMA_GLM:
@@ -103,7 +148,7 @@ class StatsmodelsGLM(PredictiveModel):
                 self.family = sm.families.Tweedie(link=link, var_power=var_power)
             case _:
                 raise ValueError(
-                    f"""Family for model {self.config.mdl_info.model} not supported in Stastsmodels GLM. Supported families are:
+                    f"""Family for model {self._get_model_enum()} not supported in Stastsmodels GLM. Supported families are:
             - \"Gaussian\" for {ModelEnum.STATSMODELS_GAUSSIAN_GLM},
             - \"Gamma\" for {ModelEnum.STATSMODELS_GAMMA_GLM},
             - \"Poisson\" for {ModelEnum.STATSMODELS_POISSON_GLM},
@@ -166,6 +211,71 @@ class StatsmodelsGLM(PredictiveModel):
 
     def summary(self):
         return self.model.summary()
+
+
+class StatsmodelsPoissonGLM(StatsmodelsGLM):
+    """
+    Generalized Linear Model (GLM) using the Poisson family from Statsmodels.
+
+    This class implements a GLM for Poisson-distributed target variables,
+    commonly used for modeling count data. It inherits from `StatsmodelsGLM`
+    and specifies the Poisson family.
+
+    Args:
+        config (Config): Configuration object containing model settings.
+        **kwargs: Additional keyword arguments for customization.
+    """
+    def __init__(self, config: Config, **kwargs):
+        StatsmodelsGLM.__init__(self, config=config, model_enum=ModelEnum.STATSMODELS_POISSON_GLM, **kwargs)
+
+
+class StatsmodelsGammaGLM(StatsmodelsGLM):
+    """
+    Generalized Linear Model (GLM) using the Gamma family from Statsmodels.
+
+    This class implements a GLM for Gamma-distributed target variables,
+    often used for modeling continuous positive data with skewness.
+    It inherits from `StatsmodelsGLM` and specifies the Gamma family.
+
+    Args:
+        config (Config): Configuration object containing model settings.
+        **kwargs: Additional keyword arguments for customization.
+    """
+    def __init__(self, config: Config, **kwargs):
+        StatsmodelsGLM.__init__(self, config=config, model_enum=ModelEnum.STATSMODELS_GAMMA_GLM, **kwargs)
+
+
+class StatsmodelsTweedieGLM(StatsmodelsGLM):
+    """
+    Generalized Linear Model (GLM) using the Tweedie family from Statsmodels.
+
+    This class implements a GLM for Tweedie-distributed target variables,
+    which is suitable for modeling data with a combination of continuous
+    and discrete components (e.g., insurance claims). It inherits from
+    `StatsmodelsGLM` and specifies the Tweedie family.
+
+    Args:
+        config (Config): Configuration object containing model settings.
+        **kwargs: Additional keyword arguments for customization.
+    """
+    def __init__(self, config: Config, **kwargs):
+        StatsmodelsGLM.__init__(self, config=config, model_enum=ModelEnum.STATSMODELS_TWEEDIE_GLM, **kwargs)
+
+
+class StatsmodelsGaussianGLM(StatsmodelsGLM):
+    """
+    Generalized Linear Model (GLM) using the Gaussian family from Statsmodels.
+
+    This class implements a GLM for Gaussian-distributed target variables,
+    commonly used for modeling continuous data. It inherits from `StatsmodelsGLM`
+    and specifies the Gaussian family.
+
+    Args:
+        config (Config): Configuration object containing model settings.
+        **kwargs: Additional keyword arguments for customization.
+    """
+    def __init__(self, config: Config, **kwargs):
+        StatsmodelsGLM.__init__(self, config=config, model_enum=ModelEnum.STATSMODELS_GAUSSIAN_GLM, **kwargs)
 
 
 class SklearnGLM(SklearnModel, ABC):

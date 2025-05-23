@@ -1,4 +1,5 @@
 from .isotonic_regression import SklearnIsotonicRegression, CIRModelCenteredIsotonicRegression
-from .glm import StatsmodelsGLMCalibration, SklearnPoissonGLMCalibration, SklearnGammaGLMCalibration, SklearnTweedieGLMCalibration
+from .glm import StatsmodelsGammaGLMCalibration, SklearnPoissonGLMCalibration, SklearnGammaGLMCalibration, SklearnTweedieGLMCalibration
 from .binning import EqualBinsMeansCalibration
 from .lpr import LocalPolynomialRegressionCalibration
+from .local_glm import LocalStatsmodelsGLMCalibration

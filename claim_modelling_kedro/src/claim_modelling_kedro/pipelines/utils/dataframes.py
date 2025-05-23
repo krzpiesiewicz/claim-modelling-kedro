@@ -29,6 +29,17 @@ def stable_str_hash(x: int, seed: str = "") -> str:
     return hashlib.sha256(s.encode()).hexdigest()
 
 
+def indices_ordered_values_and_hashed_index(
+        s: Union[pd.Series, np.ndarray],
+) -> np.ndarray:
+    # Sort inputs stably by y_pred, then by hashed index
+    s = pd.Series(s)
+    secondary_key = s.index.to_series().apply(lambda x: stable_str_hash(x)).values
+    primary_key = s.values
+    sorted_idx = np.lexsort((secondary_key, primary_key))
+    return sorted_idx
+
+
 def ordered_by_pred_and_hashed_index(
         y_true: Union[pd.Series, np.ndarray],
         y_pred: Union[pd.Series, np.ndarray],
@@ -41,16 +52,21 @@ def ordered_by_pred_and_hashed_index(
     else:
         sample_weight = pd.Series(sample_weight)
 
-    # Sort inputs stably by y_pred, then by hash(index)
-    secondary_key = y_pred.index.to_series().apply(lambda x: stable_str_hash(x)).values
-    primary_key = y_pred.values
-    sorted_idx = np.lexsort((secondary_key, primary_key))
+    sorted_idx = indices_ordered_values_and_hashed_index(y_pred)
 
     y_true = y_true.iloc[sorted_idx].reset_index(drop=True)
     y_pred = y_pred.iloc[sorted_idx].reset_index(drop=True)
     sample_weight = sample_weight.iloc[sorted_idx].reset_index(drop=True)
 
     return y_true, y_pred, sample_weight
+
+
+def index_ordered_by_col(
+        df: pd.DataFrame,
+        order_col: str,
+) -> pd.Index:
+    sorted_idx = indices_ordered_values_and_hashed_index(df[order_col])
+    return df.index[sorted_idx]
 
 
 def assert_pandas_no_lacking_indexes(source_df: Union[pd.DataFrame, pd.Series, np.ndarray],
