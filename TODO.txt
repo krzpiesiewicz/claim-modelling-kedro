@@ -26,16 +26,17 @@ TODO – framework:
 16.   [DONE] Opracować wykres średniego targetu w percentylach / predykcji
 16.1  [DONE] zrobić w parameters.yml słownik summary z przedziałami y_min, y_max dla wykresu
 17.   [DONE] Zaimplementować ABC z artykułu Testing for auto-calibration
-18.   TODO Rekalibracje lokalne:
+18.   [DONE] Rekalibracje lokalne:
 18.1  [DONE] Uśrednianie w obrębie równych binów
 18.2  [DONE] Local polynomial regression - skmisc.loess.loess_model
-18.3. TODO GLM w lokalnym otoczeniu - PDF: Does autocalibration improve goodness of lift (2022) Ciato
-18.3.1 TODO teraz! Dodać parameter zamiast self.config.mdl_info.model do StatsmodelsGLM
-18.4. BACKLOG Dopisać w IsotonicLikeCalibrationModel ustawianie _set_y_min i _set_y_max dla parametrów y_min_bin_size i y_max_bin_size
-18.5. TODO Dodać hyperopta dla modeli kalibracji
-19.   TODO Dummy regressor - stała wartość jako predykcja (średnia targetu)
+18.3. [DONE] GLM w lokalnym otoczeniu - PDF: Does autocalibration improve goodness of lift (2022) Ciato
+19.   [DONE] Selekcja cech za pomocą GLM (Poisson, Gamma... zamiast Lasso) - użyć https://glm-tools.github.io/pyglmnet/api.html
 20.   TODO Sprawdzić wszystko dla Poissona
-21.   [DONE] Selekcja cech za pomocą GLM (Poisson, Gamma... zamiast Lasso) - użyć https://glm-tools.github.io/pyglmnet/api.html
+20.1  TODO Znaleźć błąd w ewNCI
+21.   TODO Dummy regressor - stała wartość jako predykcja (średnia targetu)
+X.    BACKLOG Dopisać w IsotonicLikeCalibrationModel ustawianie _set_y_min i _set_y_max dla parametrów y_min_bin_size i y_max_bin_size
+X.    BACKLOG Dodać hyperopta dla modeli kalibracji
+
 X.    BACKLOG Dodać RGLMNet - bo tam jest L1 dla Poisson i obsługa wag (wagi nie są obsługiwne w pyglmnet)
 X.    [CANCELED] Model łączący modele na częstotliwość i średnią szkodę.
 
