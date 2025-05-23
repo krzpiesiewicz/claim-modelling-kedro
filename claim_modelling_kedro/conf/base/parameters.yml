@@ -274,3 +274,9 @@ test:
     policy: keep # 'keep', 'drop', 'clip'
     lower_bound:
     upper_bound:
+
+
+summary:
+  lift_chart:
+    min_val: 0
+    max_val:
