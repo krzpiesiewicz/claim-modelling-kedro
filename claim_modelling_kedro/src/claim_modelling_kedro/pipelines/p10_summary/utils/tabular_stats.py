@@ -4,7 +4,7 @@ import mlflow
 import logging
 import pandas as pd
 import numpy as np
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p07_data_science.model import get_sample_weight
@@ -29,44 +29,15 @@ def get_file_name(file_template: str, dataset: str, n_bins: int) -> str:
     return file_template.format(dataset=dataset, n_bins=n_bins)
 
 
-def create_prediction_group_summary_strict_bins(
-    config: Config,
-    predictions_df: pd.DataFrame,
-    target_df: pd.DataFrame,
-    prediction_col: str,
-    target_col: str,
-    dataset: str,
+def prediction_group_summary_strict_bins(
+    y_true: Union[pd.Series, np.ndarray],
+    y_pred: Union[pd.Series, np.ndarray],
+    sample_weight: Union[pd.Series, np.ndarray],
     n_bins: int,
-    prefix: str = None,
     groups: List[int] = None,
     round_precision: int = None,
     as_int: bool = False
 ) -> pd.DataFrame:
-    """
-    Generates a summary of predictions and targets grouped into bins.
-
-    Args:
-        config (Config): Configuration object containing settings and parameters.
-        predictions_df (Dict[str, pd.DataFrame]): Dictionary of predictions for each partition.
-        target_df (Dict[str, pd.DataFrame]): Dictionary of targets for each partition.
-        prediction_col (str): Name of the column containing the predictions.
-        target_col (str): Name of the column containing the target values.
-        dataset (str): Name of the dataset (e.g., "train" or "test").
-        n_bins (int): Number of bins to divide the data into.
-        prefix (str, optional): Prefix for the dataset ('pure' or None). Defaults to None.
-        groups (List[int], optional): Specific groups to include in the summary. Defaults to None.
-        round_precision (int, optional): Precision for rounding numerical values. Defaults to None.
-        as_int (bool, optional): Whether to convert rounded values to integers. Defaults to False.
-
-    Returns:
-        pd.DataFrame: DataFrame containing the summary statistics for each bin.
-    """
-    dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
-    logger.info(f"Generating prediction group summary for dataset: {dataset} with {n_bins} bins...")
-
-    y_true = target_df[target_col]
-    y_pred = predictions_df[prediction_col]
-    sample_weight = get_sample_weight(config, target_df)
     y_true, y_pred, sample_weight = ordered_by_pred_and_hashed_index(y_true, y_pred, sample_weight)
     df = pd.DataFrame({
         "y_true": y_true,
@@ -135,6 +106,58 @@ def create_prediction_group_summary_strict_bins(
     summary_df.sort_values("group", inplace=True)
     summary_df.reset_index(drop=True, inplace=True)
 
+    return summary_df
+
+
+def create_prediction_group_summary_strict_bins(
+    config: Config,
+    predictions_df: pd.DataFrame,
+    target_df: pd.DataFrame,
+    prediction_col: str,
+    target_col: str,
+    dataset: str,
+    n_bins: int,
+    prefix: str = None,
+    groups: List[int] = None,
+    round_precision: int = None,
+    as_int: bool = False
+) -> pd.DataFrame:
+    """
+    Generates a summary of predictions and targets grouped into bins.
+
+    Args:
+        config (Config): Configuration object containing settings and parameters.
+        predictions_df (Dict[str, pd.DataFrame]): Dictionary of predictions for each partition.
+        target_df (Dict[str, pd.DataFrame]): Dictionary of targets for each partition.
+        prediction_col (str): Name of the column containing the predictions.
+        target_col (str): Name of the column containing the target values.
+        dataset (str): Name of the dataset (e.g., "train" or "test").
+        n_bins (int): Number of bins to divide the data into.
+        prefix (str, optional): Prefix for the dataset ('pure' or None). Defaults to None.
+        groups (List[int], optional): Specific groups to include in the summary. Defaults to None.
+        round_precision (int, optional): Precision for rounding numerical values. Defaults to None.
+        as_int (bool, optional): Whether to convert rounded values to integers. Defaults to False.
+
+    Returns:
+        pd.DataFrame: DataFrame containing the summary statistics for each bin.
+    """
+    dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
+    logger.info(f"Generating prediction group summary for dataset: {dataset} with {n_bins} bins...")
+
+    y_true = target_df[target_col]
+    y_pred = predictions_df[prediction_col]
+    sample_weight = get_sample_weight(config, target_df)
+
+    summary_df = prediction_group_summary_strict_bins(
+        y_true=y_true,
+        y_pred=y_pred,
+        sample_weight=sample_weight,
+        n_bins=n_bins,
+        groups=groups,
+        round_precision=round_precision,
+        as_int=as_int
+    )
+
     # Save and log the summary DataFrame as a CSV file to MLflow
     logger.info(f"Saving and logging the prediction group summary for dataset: {dataset} as a CSV file to MLflow...")
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -179,6 +202,9 @@ def create_average_prediction_group_summary(
     avg_stats_df["std_of_bias_deviation"] = pd.concat(summary_df).bias_deviation.groupby(level=0).std()
     avg_stats_df["std_of_mean_overpricing"] = pd.concat(summary_df).mean_overpricing.groupby(level=0).std()
     avg_stats_df["std_of_mean_underpricing"] = pd.concat(summary_df).mean_underpricing.groupby(level=0).std()
+    avg_stats_df["rel_bias_deviation"] = df["bias_deviation"] / df["mean_target"]
+    avg_stats_df["rel_mean_overpricing"] = df["mean_overpricing"] / df["mean_target"]
+    avg_stats_df["rel_mean_underpricing"] = df["mean_underpricing"] / df["mean_target"]
 
     # Save and log the averaged summary DataFrame as a CSV file to MLflow
     with tempfile.TemporaryDirectory() as temp_dir:
