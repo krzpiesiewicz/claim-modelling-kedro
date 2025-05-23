@@ -285,9 +285,7 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
         if hparam in hparam_space:
             hparam_space.pop(hparam)
     if hparam_space is None or len(hparam_space) == 0:
-        logger.warning(
-            "No hyperparameters to tune. Please check the hyperparameters space. Returning an empty dict as best_hparams.")
-        return {}
+        raise Exception(f"No hyperparameter space defined for {config.ds.hopt_algo}.")
 
     trials = Trials()
     objective = partial(fit_model, config=config, model=model, trials=trials, space=hparam_space, metric=metric,
