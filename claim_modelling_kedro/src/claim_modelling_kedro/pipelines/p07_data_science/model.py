@@ -323,10 +323,10 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
         if log_metrics_to_mlflow:
             for stat in metrics_cv_stats_df.columns:
                 for metric_name, score in metrics_cv_stats_df[stat].items():
-                    metric_name = f"{prefix}_{metric_name}" if prefix is not None else metric_name
+                    # metric_name = f"{prefix}_{metric_name}" if prefix is not None else metric_name
                     mlflow.log_metric(f"{metric_name}_{stat}", score)
     elif log_metrics_to_mlflow:
         for metric_name, score in scores_df.iloc[:, 0].items():
-            metric_name = f"{prefix}_{metric_name}" if prefix is not None else metric_name
+            # metric_name = f"{prefix}_{metric_name}" if prefix is not None else metric_name
             mlflow.log_metric(metric_name, score)
     return scores_by_part, scores_df
