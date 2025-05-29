@@ -238,7 +238,7 @@ data_science:
 calibration:
   mlflow_run_id: # If provided a MLFLow run id, the calibration model is saved to / downloaded from the MLflow run
   enabled: True # whether to use the calibration
-  method: StatsmodelsGammaGLM # the method of calibrating pure predictions of data science model from the previous stage
+  method: IsotonicRegression # the method of calibrating pure predictions of data science model from the previous stage
     # 'IsotonicRegression', 'CenteredIsotonicRegression', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM'
     # 'LocalStatsmodelsGLM', 'EqualBinsMeans', 'LocalPolynomialRegression'
   const_hparams:
