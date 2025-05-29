@@ -17,7 +17,8 @@ class ModelWrapperFeatureSelector(SelectorModel):
         if isinstance(model_class, str):
             model_class = get_class_from_path(config.ds.model_class)
         self._model = model_class(config=self.config, target_col=self.config.mdl_task.target_col,
-                                  pred_col=self.config.mdl_task.prediction_col)
+                                  pred_col=self.config.mdl_task.prediction_col,
+                                  hparams=self.config.ds.fs_params)
 
     def fit(self, features_df: pd.DataFrame, target_df: pd.DataFrame, **kwargs):
         logger.debug(f"{self.config.ds.fs_params=}")

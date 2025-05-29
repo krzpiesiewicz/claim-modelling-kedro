@@ -168,33 +168,3 @@ def fit_transform_features_selector(config: Config, sample_features_df: Dict[str
             selected_features_df[part] = selected_part_df
 
     return selected_features_df
-
-
-def process_select_partition(config: Config, part: str, features_df: Dict[str, pd.DataFrame],
-                             mlflow_run_id: str) -> Tuple[str, pd.DataFrame]:
-    features_part_df = get_partition(features_df, part)
-    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mflow_run_id=mlflow_run_id)
-    logger.info(f"Selecting partition '{part}' of the sample dataset...")
-    selected_part_df = select_features_by_mlflow_model_part(config, features_part_df, mlflow_subrun_id)
-    return part, selected_part_df
-
-
-def select_features_by_mlflow_model(config: Config, features_df: Dict[str, pd.DataFrame],
-                                    mlflow_run_id: str = None) -> Dict[str, pd.DataFrame]:
-    if not config.ds.fs_enabled:
-        logger.info("Feature selection is disabled. Hence, returning the input features.")
-        return features_df
-    selected_features_df = {}
-    logger.info(f"Selecting features of the sample dataset...")
-
-    parts_cnt = len(features_df)
-    with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
-        futures = {
-            executor.submit(process_select_partition, config, part, features_df, mlflow_run_id): part
-            for part in features_df.keys()
-        }
-        for future in as_completed(futures):
-            part, selected_part_df = future.result()
-            selected_features_df[part] = selected_part_df
-
-    return selected_features_df

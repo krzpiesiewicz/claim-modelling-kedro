@@ -25,21 +25,15 @@ class Target(Enum):
 
 
 @dataclass
-class ModelInfo:
+class ExperimentInfo:
     name: str
     author: str
-    type: str
-    model: ModelEnum
     target: Target
-    short_description: str
-    full_description: str
+    description: str
 
     def __init__(self, parameters: Dict):
-        params = parameters["model"]
+        params = parameters["experiment"]
         self.name = params["name"]
         self.author = params["author"]
-        self.type = params["type"]
-        self.model = ModelEnum(params["model"])
         self.target = Target(params["target"])
-        self.short_description = params["short_description"]
-        self.full_description = params["full_description"]
+        self.description = params["full_description"]

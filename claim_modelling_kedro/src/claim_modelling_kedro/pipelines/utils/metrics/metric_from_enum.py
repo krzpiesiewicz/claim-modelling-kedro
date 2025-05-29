@@ -6,7 +6,7 @@ from claim_modelling_kedro.pipelines.utils.metrics.cumulative_calibration_index 
 from claim_modelling_kedro.pipelines.utils.metrics.area_between_cc_and_lc import AreaBetweenCCAndLC
 from claim_modelling_kedro.pipelines.utils.metrics.metric import MeanAbsoluteError, RootMeanSquaredError, R2, \
     MeanBiasDeviation, MeanPoissonDeviance, MeanGammaDeviance, SpearmanCorrelation, MeanTweedieDeviance, Metric
-from claim_modelling_kedro.pipelines.utils.metrics.gini import GiniIndex, OrderedGiniIndex, NormalizedOrderedGiniIndex
+from claim_modelling_kedro.pipelines.utils.metrics.gini import LorenzGiniIndex, ConcentrationCurveGiniIndex, NormalizedConcentrationCurveGiniIndex
 
 
 def get_metric_from_enum(config: Config, enum: MetricEnum, pred_col: str) -> Metric:
@@ -77,24 +77,24 @@ def get_metric_from_enum(config: Config, enum: MetricEnum, pred_col: str) -> Met
             return CumulativeUnderpricingIndex(config, pred_col=pred_col, exposure_weighted=True)
         case MetricEnum.CLNB_WEIGHTED_CUI:
             return CumulativeUnderpricingIndex(config, pred_col=pred_col, claim_nb_weighted=True)
-        case MetricEnum.GINI:
-            return GiniIndex(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_GINI:
-            return GiniIndex(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_GINI:
-            return GiniIndex(config, pred_col=pred_col, claim_nb_weighted=True)
-        case MetricEnum.ORDERED_GINI:
-            return OrderedGiniIndex(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_ORDERED_GINI:
-            return OrderedGiniIndex(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_ORDERED_GINI:
-            return OrderedGiniIndex(config, pred_col=pred_col, claim_nb_weighted=True)
-        case MetricEnum.NORMALIZED_ORDERED_GINI:
-            return NormalizedOrderedGiniIndex(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_NORMALIZED_ORDERED_GINI:
-            return NormalizedOrderedGiniIndex(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_NORMALIZED_ORDERED_GINI:
-            return NormalizedOrderedGiniIndex(config, pred_col=pred_col, claim_nb_weighted=True)
+        case MetricEnum.LC_GINI:
+            return LorenzGiniIndex(config, pred_col=pred_col)
+        case MetricEnum.EXP_WEIGHTED_LC_GINI:
+            return LorenzGiniIndex(config, pred_col=pred_col, exposure_weighted=True)
+        case MetricEnum.CLNB_WEIGHTED_LC_GINI:
+            return LorenzGiniIndex(config, pred_col=pred_col, claim_nb_weighted=True)
+        case MetricEnum.CC_GINI:
+            return ConcentrationCurveGiniIndex(config, pred_col=pred_col)
+        case MetricEnum.EXP_WEIGHTED_CC_GINI:
+            return ConcentrationCurveGiniIndex(config, pred_col=pred_col, exposure_weighted=True)
+        case MetricEnum.CLNB_WEIGHTED_CC_GINI:
+            return ConcentrationCurveGiniIndex(config, pred_col=pred_col, claim_nb_weighted=True)
+        case MetricEnum.NORMALIZED_CC_GINI:
+            return NormalizedConcentrationCurveGiniIndex(config, pred_col=pred_col)
+        case MetricEnum.EXP_WEIGHTED_NORMALIZED_CC_GINI:
+            return NormalizedConcentrationCurveGiniIndex(config, pred_col=pred_col, exposure_weighted=True)
+        case MetricEnum.CLNB_WEIGHTED_NORMALIZED_CC_GINI:
+            return NormalizedConcentrationCurveGiniIndex(config, pred_col=pred_col, claim_nb_weighted=True)
         case TWEEDIE_DEV(p):
             return MeanTweedieDeviance(config, pred_col=pred_col, power=p)
         case EXP_WEIGHTED_TWEEDIE_DEV(p):

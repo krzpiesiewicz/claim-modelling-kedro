@@ -10,12 +10,12 @@ from hyperopt import hp
 from sklearn.linear_model import PoissonRegressor, TweedieRegressor, GammaRegressor
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p01_init.mdl_info_config import ModelEnum
+from claim_modelling_kedro.pipelines.p01_init.exprmnt import ModelEnum
 from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel
 from claim_modelling_kedro.pipelines.p07_data_science.models.sklearn_model import SklearnModel
 from claim_modelling_kedro.pipelines.utils.metrics.metric import Metric, RootMeanSquaredError, MeanPoissonDeviance, \
     MeanGammaDeviance, MeanTweedieDeviance
-from claim_modelling_kedro.pipelines.utils.metrics.gini import OrderedGiniIndex
+from claim_modelling_kedro.pipelines.utils.metrics.gini import ConcentrationCurveGiniIndex
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ def get_statsmodels_metric(config: Config, model_enum: ModelEnum, pred_col: str)
         case ModelEnum.STATSMODELS_POISSON_GLM:
             return MeanPoissonDeviance(config, pred_col=pred_col)
         case ModelEnum.STATSMODELS_TWEEDIE_GLM:
-            return OrderedGiniIndex(config, pred_col=pred_col)
+            return ConcentrationCurveGiniIndex(config, pred_col=pred_col)
         case _:
             raise ValueError(
                 f"""Family for model {model_enum} not supported in Stastsmodels GLM. Supported are:
@@ -387,7 +387,7 @@ class SklearnTweedieGLM(SklearnGLM):
         hparams = self.get_hparams()
         if "power" in hparams:
             return MeanTweedieDeviance(self.config, pred_col=self.pred_col, power=hparams["power"])
-        return NormalizedConcentrationIndex(self.config)
+        return ConcentrationCurveGiniIndex(self.config)
 
     @classmethod
     def _get_solver_options(cls) -> List[str]:
@@ -431,17 +431,21 @@ class SklearnTweedieGLM(SklearnGLM):
 
 
 class PyGLMNetGLM(PredictiveModel):
-    def __init__(self, config: Config, **kwargs):
+    def __init__(self, config: Config, model_enum: ModelEnum = None, **kwargs):
+        self._model_enum = model_enum or config.ds.model
         PredictiveModel.__init__(self, config, **kwargs)
 
+    def _get_model_enum(self) -> ModelEnum:
+        return self._model_enum
+
     def metric(self) -> Metric:
-        match self.config.mdl_info.model:
+        match self._get_model_enum():
             case ModelEnum.PYGLMNET_GAMMA_GLM:
                 return MeanGammaDeviance(self.config, pred_col=self.pred_col)
             case ModelEnum.PYGLMNET_POISSON_GLM:
                 return MeanPoissonDeviance(self.config, pred_col=self.pred_col)
             case _:
-                raise ValueError(f"Family for model {self.config.mdl_info.model} not supported in PyGLMNetGLM.")
+                raise ValueError(f"Family for model {self._get_model_enum()} not supported in PyGLMNetGLM.")
 
     def _updated_hparams(self):
         logger.debug(f"_updated_hparams - self._hparams: {self._hparams}")
@@ -456,14 +460,14 @@ class PyGLMNetGLM(PredictiveModel):
         self._tol = self._hparams.get("tol")
         self._distr = self._hparams.get("distr")
         if self._distr is None:
-            match self.config.mdl_info.model:
+            match self._get_model_enum():
                 case ModelEnum.PYGLMNET_POISSON_GLM:
                     self._distr = "poisson"
                 case ModelEnum.PYGLMNET_GAMMA_GLM:
                     self._distr = "gamma"
                 case _:
                     raise ValueError(
-                        f"""Distribution for model {self.config.mdl_info.model} not supported in PyGLMNet. Supported distributions are:
+                        f"""Distribution for model {self._get_model_enum()} not supported in PyGLMNet. Supported distributions are:
                 - \"poisson\" for {ModelEnum.PYGLMNET_POISSON_GLM},
                 - \"gamma\" for {ModelEnum.PYGLMNET_GAMMA_GLM}.""")
         elif self._distr not in ["poisson", "gamma"]:

@@ -75,15 +75,21 @@ def run_eval_pipeline(
     transformed_features = transform_features_by_mlflow_model(
         config, features_wo_outliers, mlflow_run_id=config.de.mlflow_run_id
     )
-    selected_features = select_features_by_mlflow_model(
-        config, transformed_features, mlflow_run_id=config.ds.mlflow_run_id
-    )
+    if config.ds.fs_enabled:
+        selected_features = select_features_by_mlflow_model(
+            config, transformed_features, mlflow_run_id=config.ds.mlflow_run_id
+        )
+    else:
+        selected_features = transformed_features
     pure_predictions = predict_by_mlflow_model(
         config, selected_features, mlflow_run_id=config.ds.mlflow_run_id
     )
-    calibrated_predictions = calibrate_predictions_by_mlflow_model(
-        config, pure_predictions, mlflow_run_id=config.clb.mlflow_run_id
-    )
+    if config.clb.enabled:
+        calibrated_predictions = calibrate_predictions_by_mlflow_model(
+            config, pure_predictions, mlflow_run_id=config.clb.mlflow_run_id
+        )
+    else:
+        calibrated_predictions = pure_predictions
 
     save_predictions_and_target_in_mlflow(calibrated_predictions, part_target_df, dataset=dataset_name)
     evaluate_predictions(config, pure_predictions, part_target_df, dataset=dataset_name, prefix="pure",

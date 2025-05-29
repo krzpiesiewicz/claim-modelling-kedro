@@ -39,6 +39,8 @@ def plot_auto_calib_chart(
         max_y_val: float = None,
         marker: str = "o",
 ) -> plt.Figure:
+    if sample_weight is None:
+        sample_weight = pd.Series(1, index=y_true.index)
     df = pd.DataFrame({
         "y_true": y_true,
         "y_pred": y_pred,

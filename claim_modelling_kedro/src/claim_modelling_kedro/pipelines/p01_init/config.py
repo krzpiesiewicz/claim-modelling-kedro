@@ -12,7 +12,7 @@ from claim_modelling_kedro.pipelines.p01_init.clb_config import CalibrationConfi
 from claim_modelling_kedro.pipelines.p01_init.data_config import DataConfig
 from claim_modelling_kedro.pipelines.p01_init.de_config import DataEngineeringConfig
 from claim_modelling_kedro.pipelines.p01_init.ds_config import DataScienceConfig
-from claim_modelling_kedro.pipelines.p01_init.mdl_info_config import ModelInfo
+from claim_modelling_kedro.pipelines.p01_init.exprmnt import ExperimentInfo
 from claim_modelling_kedro.pipelines.p01_init.mdl_task_config import ModelTask
 from claim_modelling_kedro.pipelines.p01_init.smpl_config import SamplingConfig
 from claim_modelling_kedro.pipelines.p01_init.summary_config import SummaryConfig
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Config:
-    mdl_info: ModelInfo
+    exprmnt: ExperimentInfo
     data: DataConfig
     mdl_task: ModelTask
     smpl: SamplingConfig
@@ -34,12 +34,12 @@ class Config:
     summary: SummaryConfig
 
     def __init__(self, parameters: Dict):
-        self.mdl_info = ModelInfo(parameters)
+        self.exprmnt = ExperimentInfo(parameters)
         self.data = DataConfig(parameters)
-        self.mdl_task = ModelTask(mdl_info=self.mdl_info, data=self.data)
+        self.mdl_task = ModelTask(exprmnt=self.exprmnt, data=self.data)
         self.smpl = SamplingConfig(parameters)
         self.de = DataEngineeringConfig(parameters)
-        self.ds = DataScienceConfig(parameters, mdl_info=self.mdl_info)
+        self.ds = DataScienceConfig(parameters, exprmnt=self.exprmnt)
         self.clb = CalibrationConfig(parameters, mdl_task=self.mdl_task)
         self.test = TestConfig(parameters)
         self.summary = SummaryConfig(parameters)

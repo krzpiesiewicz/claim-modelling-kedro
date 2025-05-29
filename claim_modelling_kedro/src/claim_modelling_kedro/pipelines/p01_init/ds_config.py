@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, Any, List
 
-from claim_modelling_kedro.pipelines.p01_init.mdl_info_config import ModelInfo, Target, ModelEnum
+from claim_modelling_kedro.pipelines.p01_init.exprmnt import ExperimentInfo, Target, ModelEnum
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum
 
 
@@ -25,6 +25,10 @@ class DataScienceConfig:
     mlflow_run_id: str
     split_random_seed: int
     split_val_size: float
+    model: ModelEnum
+    model_class: str
+    model_random_seed: int
+    model_const_hparams: Dict[str, Any]
     fs_enabled: bool
     fs_method: str
     fs_model_class: str
@@ -43,15 +47,54 @@ class DataScienceConfig:
     hopt_split_random_seed: int
     hopt_split_val_size: float
     hopt_excluded_params: List[str]
-    model_class: str
-    model_random_seed: int
-    model_const_hparams: Dict[str, Any]
 
-    def __init__(self, parameters: Dict, mdl_info: ModelInfo):
+    def __init__(self, parameters: Dict, exprmnt: ExperimentInfo):
         params = parameters["data_science"]
         self.mlflow_run_id = params["mlflow_run_id"]
         self.split_random_seed = params["split_random_seed"]
         self.split_val_size = params["split_val_size"]
+
+        model_params = params["model"]
+        self.model = ModelEnum(model_params["model"])
+        if model_params["model_class"] is not None:
+            self.model_class = model_params["model_class"]
+        else:
+            match self.model:
+                case ModelEnum.STATSMODELS_POISSON_GLM:
+                    model_class_name = "StatsmodelsPoissonGLM"
+                case ModelEnum.STATSMODELS_GAMMA_GLM:
+                    model_class_name = "StatsmodelsGammaGLM"
+                case ModelEnum.STATSMODELS_TWEEDIE_GLM:
+                    model_class_name = "StatsmodelsTweedieGLM"
+                case ModelEnum.STATSMODELS_GAUSSIAN_GLM:
+                    model_class_name = "StatsmodelsGaussianGLM"
+                case ModelEnum.SKLEARN_POISSON_GLM:
+                    model_class_name = "SklearnPoissonGLM"
+                case ModelEnum.SKLEARN_GAMMA_GLM:
+                    model_class_name = "SklearnGammaGLM"
+                case ModelEnum.SKLEARN_TWEEDIE_GLM:
+                    model_class_name = "SklearnTweedieGLM"
+                case ModelEnum.PYGLMNET_POISSON_GLM:
+                    model_class_name = "PyGLMNetGLM"
+                case ModelEnum.PYGLMNET_GAMMA_GLM:
+                    model_class_name = "PyGLMNetGLM"
+                case _:
+                    raise ValueError(f"Model {self.model} not supported.")
+            self.model_class = f"claim_modelling_kedro.pipelines.p07_data_science.models.{model_class_name}"
+        self.model_random_seed = model_params["random_seed"]
+        logger.debug(f'model_params["const_hparams"]: {model_params["const_hparams"]}')
+        logger.debug(f'mdl_info.model.value: {self.model.value}')
+        if self.model.value in model_params["const_hparams"]:
+            logger.debug(
+                f'model_params["const_hparams"][mdl_info.model.value]: {model_params["const_hparams"][self.model.value]}')
+        if (model_params["const_hparams"] is not None
+                and self.model.value in model_params["const_hparams"]
+                and model_params["const_hparams"][self.model.value] is not None):
+            self.model_const_hparams = model_params["const_hparams"][self.model.value]
+        else:
+            self.model_const_hparams = {}
+        logger.debug(f"model_const_hparams: {self.model_const_hparams}")
+
         fs_params = params["feature_selection"]
         self.fs_enabled = fs_params["enabled"]
         self.fs_method = FeatureSelectionMethod(fs_params["method"])
@@ -82,7 +125,7 @@ class DataScienceConfig:
         if hopt_params["metric"] is None or hopt_params["metric"] != "auto":
             self.hopt_metric = MetricEnum(hopt_params["metric"])
         else:
-            match mdl_info.target:
+            match exprmnt.target:
                 case Target.CLAIMS_NUMBER:
                     self.hopt_metric = MetricEnum.POISSON_DEV
                 case Target.FREQUENCY:
@@ -98,7 +141,7 @@ class DataScienceConfig:
                 case Target.POSITIVE_SEVERITY:
                     self.hopt_metric = MetricEnum.GAMMA_DEV
                 case _:
-                    raise ValueError(f"Metric for target {mdl_info.target} is not defined -> see p01_init/config.py.")
+                    raise ValueError(f"Metric for target {exprmnt.target} is not defined -> see p01_init/config.py.")
         self.hopt_max_evals = hopt_params["max_evals"]
         self.hopt_algo = HyperoptAlgoEnum(hopt_params["algo"])
         self.hopt_show_progressbar = hopt_params["show_progressbar"]
@@ -115,46 +158,9 @@ class DataScienceConfig:
             self.hopt_cv_folds = None
             self.hopt_split_val_size = hopt_params["split_val_size"]
         if (hopt_params["excluded_params"] is not None
-                and mdl_info.model.value in hopt_params["excluded_params"]
-                and hopt_params["excluded_params"][mdl_info.model.value] is not None):
-            self.hopt_excluded_params = hopt_params["excluded_params"][mdl_info.model.value]
+                and self.model.value in hopt_params["excluded_params"]
+                and hopt_params["excluded_params"][self.model.value] is not None):
+            self.hopt_excluded_params = hopt_params["excluded_params"][self.model.value]
         else:
             self.hopt_excluded_params = []
-        model_params = params["model"]
-        if model_params["model_class"] is not None:
-            self.model_class = model_params["model_class"]
-        else:
-            match mdl_info.model:
-                case ModelEnum.STATSMODELS_POISSON_GLM:
-                    model_class_name = "StatsmodelsPoissonGLM"
-                case ModelEnum.STATSMODELS_GAMMA_GLM:
-                    model_class_name = "StatsmodelsGammaGLM"
-                case ModelEnum.STATSMODELS_TWEEDIE_GLM:
-                    model_class_name = "StatsmodelsTweedieGLM"
-                case ModelEnum.STATSMODELS_GAUSSIAN_GLM:
-                    model_class_name = "StatsmodelsGaussianGLM"
-                case ModelEnum.SKLEARN_POISSON_GLM:
-                    model_class_name = "SklearnPoissonGLM"
-                case ModelEnum.SKLEARN_GAMMA_GLM:
-                    model_class_name = "SklearnGammaGLM"
-                case ModelEnum.SKLEARN_TWEEDIE_GLM:
-                    model_class_name = "SklearnTweedieGLM"
-                case ModelEnum.PYGLMNET_POISSON_GLM:
-                    model_class_name = "PyGLMNetGLM"
-                case ModelEnum.PYGLMNET_GAMMA_GLM:
-                    model_class_name = "PyGLMNetGLM"
-                case _:
-                    raise ValueError(f"Model {mdl_info.model} not supported.")
-            self.model_class = f"claim_modelling_kedro.pipelines.p07_data_science.models.{model_class_name}"
-        self.model_random_seed = model_params["random_seed"]
-        logger.debug(f'model_params["const_hparams"]: {model_params["const_hparams"]}')
-        logger.debug(f'mdl_info.model.value: {mdl_info.model.value}')
-        if mdl_info.model.value in model_params["const_hparams"]:
-            logger.debug(f'model_params["const_hparams"][mdl_info.model.value]: {model_params["const_hparams"][mdl_info.model.value]}')
-        if (model_params["const_hparams"] is not None
-                and mdl_info.model.value in model_params["const_hparams"]
-                and model_params["const_hparams"][mdl_info.model.value] is not None):
-            self.model_const_hparams = model_params["const_hparams"][mdl_info.model.value]
-        else:
-            self.model_const_hparams = {}
-        logger.debug(f"model_const_hparams: {self.model_const_hparams}")
+

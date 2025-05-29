@@ -26,4 +26,20 @@ def process_parameters(parameters: Dict) -> Config:
     logger.info("Saving config to MLFlow...")
     log_config_to_mlflow(config)
     logger.info("Saved config to MLFlow.")
+    # Save description to MLFlow
+    logger.info("Saving description to MLFlow...")
+    mlflow.set_tag("mlflow.note.content", config.exprmnt.description)
+    logger.info("Saved description to MLFlow...")
+    # Sving tags
+    logger.info("Saving tags to MLFlow...")
+    tags = {
+        "author": config.exprmnt.author,
+        "target": config.exprmnt.target.value,
+        "model": config.ds.model.value,
+        "fs": config.ds.fs_method.value,
+        "clb": config.clb.method.value,
+    }
+    for key, val in tags.items():
+        mlflow.set_tag(key, val)
+    logger.info("Saved tags to MLFlow.")
     return config

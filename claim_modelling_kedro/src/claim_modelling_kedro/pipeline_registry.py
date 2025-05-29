@@ -58,6 +58,8 @@ def register_pipelines() -> Dict[str, Pipeline]:
     pipelines["clb_test_summary"] = init_pipeline + calibration_pipeline + test_pipeline + summary_pipeline
     pipelines["from_ds_to_summary"] = (
                 init_pipeline + data_science_pipeline + calibration_pipeline + test_pipeline + summary_pipeline)
+    pipelines["from_de_to_summary"] = (
+            init_pipeline + data_engineering_pipeline + data_science_pipeline + calibration_pipeline + test_pipeline + summary_pipeline)
     pipelines["from_smpl_to_summary"] = (
                 init_pipeline + def_modeling_task_pipeline + sampling_pipeline + data_engineering_pipeline + data_science_pipeline + calibration_pipeline + test_pipeline + summary_pipeline)
     pipelines["all_to_smpl"] = (init_pipeline + data_processing_pipeline + def_modeling_task_pipeline +

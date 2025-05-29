@@ -69,7 +69,7 @@ def sample_with_no_condition(config: Config, target_df: pd.DataFrame, train_keys
     assert_train_size_gte_given_config_sample_size(config, train_trg_df)
     train_size = train_trg_df.shape[0]
     logger.info(f"""Sampling from the train dataset:
-    - target: {config.mdl_info.target}
+    - target: {config.exprmnt.target}
     - all observations: {train_size}
     - sample size: {config.smpl.n_obs}""")
     sample_keys = get_stratified_sample_keys(train_trg_df, config.mdl_task.target_col,
@@ -106,7 +106,7 @@ def sample_with_target_ratio(config: Config, target_df: pd.DataFrame, train_keys
     n_events_in_sample = round(n_obs * config.smpl.target_ratio)
     n_non_events_in_sample = n_obs - n_events_in_sample
     logger.info(f"""Sampling from the train dataset:
-    - target: {config.mdl_info.target}
+    - target: {config.exprmnt.target}
     - events: {n_events} ({round(100 * n_events / train_size, 1)}%)
     - all observations: {train_size}""")
     logger.info(f"""Target sample:

@@ -41,14 +41,14 @@ def calculate_area_under_cc(y_true: pd.Series, y_pred: pd.Series, sample_weight:
     return calculate_area_under_cc_parts(curve_parts)
 
 
-class GiniIndex(Metric):
+class LorenzGiniIndex(Metric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=self._gini_index, **kwargs)
 
     @staticmethod
     def _gini_index(y_true: pd.Series, y_pred: pd.Series, sample_weight: pd.Series = None) -> float:
         """
-        Compute the Gini Index as the area under CC(y_pred, y_pred).
+        Compute the Gini Index as the area over Lorenz Curve CC(y_pred, y_pred).
 
         Args:
             y_true (pd.Series): Series of true values (not used here).
@@ -56,35 +56,35 @@ class GiniIndex(Metric):
             sample_weight (pd.Series): Series of sample weights. If None, all weights are set to 1.
 
         Returns:
-            float: Gini Index.
+            float: Gini Index over Lorenz Curve.
         """
         return 1 - 2 * calculate_area_under_cc(y_pred, y_pred, sample_weight)
 
     def _get_name(self) -> str:
-        return "Gini Index"
+        return "Gini Index (Lorenz Curve)"
 
     def _get_short_name(self) -> str:
-        return "GI"
+        return "LCGI"
 
     def get_enum(self) -> MetricType:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_GINI_INDEX
+            return MetricEnum.EXP_WEIGHTED_LC_GINI
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_GINI_INDEX
-        return MetricEnum.GINI_INDEX
+            return MetricEnum.CLNB_WEIGHTED_LC_GINI
+        return MetricEnum.LC_GINI
 
     def is_larger_better(self) -> bool:
         return True
 
 
-class OrderedGiniIndex(Metric):
+class ConcentrationCurveGiniIndex(Metric):
     def __init__(self, config: Config, **kwargs):
-        super().__init__(config, sklearn_like_metric=self._ordered_gini_index, **kwargs)
+        super().__init__(config, sklearn_like_metric=self._cc_gini_index, **kwargs)
 
     @staticmethod
-    def _ordered_gini_index(y_true: pd.Series, y_pred: pd.Series, sample_weight: pd.Series = None) -> float:
+    def _cc_gini_index(y_true: pd.Series, y_pred: pd.Series, sample_weight: pd.Series = None) -> float:
         """
-        Compute the Ordered Gini Index as the area under CC(y_true, y_pred).
+        Compute the Gini Index as the area over concentration curve CC(y_true, y_pred).
 
         Args:
             y_true (pd.Series): Series of true values.
@@ -92,35 +92,35 @@ class OrderedGiniIndex(Metric):
             sample_weight (pd.Series): Series of sample weights. If None, all weights are set to 1.
 
         Returns:
-            float: Ordered Gini Index.
+            float: Gini Index over the concentration curve.
         """
         return 1 - 2 * calculate_area_under_cc(y_true, y_pred, sample_weight)
 
     def _get_name(self) -> str:
-        return "Ordered Gini Index"
+        return "Gini Index (Concentration Curve)"
 
     def _get_short_name(self) -> str:
-        return "OGI"
+        return "CCGI"
 
     def get_enum(self) -> MetricType:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_ORDERED_GINI_INDEX
+            return MetricEnum.EXP_WEIGHTED_CC_GINI
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_ORDERED_GINI_INDEX
-        return MetricEnum.ORDERED_GINI_INDEX
+            return MetricEnum.CLNB_WEIGHTED_CC_GINI
+        return MetricEnum.CC_GINI
 
     def is_larger_better(self) -> bool:
         return True
 
 
-class NormalizedOrderedGiniIndex(Metric):
+class NormalizedConcentrationCurveGiniIndex(Metric):
     def __init__(self, config: Config, **kwargs):
-        super().__init__(config, sklearn_like_metric=self._normalized_ordered_gini_index, **kwargs)
+        super().__init__(config, sklearn_like_metric=self._normalized_cc_gini_index, **kwargs)
 
     @staticmethod
-    def _normalized_ordered_gini_index(y_true: pd.Series, y_pred: pd.Series, sample_weight: pd.Series = None) -> float:
+    def _normalized_cc_gini_index(y_true: pd.Series, y_pred: pd.Series, sample_weight: pd.Series = None) -> float:
         """
-        Compute the Normalized Ordered Gini Index.
+        Compute the Normalized Gini Index over the concentration curve CC(y_true, y_pred).
 
         Args:
             y_true (pd.Series): Series of true values.
@@ -128,7 +128,7 @@ class NormalizedOrderedGiniIndex(Metric):
             sample_weight (pd.Series): Series of sample weights. If None, all weights are set to 1.
 
         Returns:
-            float: Normalized Ordered Gini Index.
+            float: Normalized Gini Index over the concentration curve.
         """
         ordered_gini = 1 - 2 * calculate_area_under_cc(y_true, y_pred, sample_weight)
         gini_true = 1 - 2 * calculate_area_under_cc(y_true, y_true, sample_weight)
@@ -140,17 +140,17 @@ class NormalizedOrderedGiniIndex(Metric):
         return ordered_gini / gini_true
 
     def _get_name(self) -> str:
-        return "Normalized Ordered Gini Index"
+        return "Normalized Gini Index (Concentration Curve)"
 
     def _get_short_name(self) -> str:
-        return "NOGI"
+        return "NCCGI"
 
     def get_enum(self) -> MetricType:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_NORMALIZED_ORDERED_GINI_INDEX
+            return MetricEnum.EXP_WEIGHTED_NORMALIZED_CC_GINI
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_NORMALIZED_ORDERED_GINI_INDEX
-        return MetricEnum.NORMALIZED_ORDERED_GINI_INDEX
+            return MetricEnum.CLNB_WEIGHTED_NORMALIZED_CC_GINI
+        return MetricEnum.NORMALIZED_CC_GINI
 
     def is_larger_better(self) -> bool:
         return True

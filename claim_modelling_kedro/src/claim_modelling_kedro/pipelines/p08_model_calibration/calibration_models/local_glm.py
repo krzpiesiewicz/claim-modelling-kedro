@@ -7,7 +7,7 @@ import warnings
 from statsmodels.tools.sm_exceptions import DomainWarning
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p01_init.mdl_info_config import ModelEnum
+from claim_modelling_kedro.pipelines.p01_init.exprmnt import ModelEnum
 from claim_modelling_kedro.pipelines.p07_data_science.model import get_sample_weight
 from claim_modelling_kedro.pipelines.p08_model_calibration.calibration_model import CalibrationModel
 from claim_modelling_kedro.pipelines.p07_data_science.models import StatsmodelsPoissonGLM, StatsmodelsGammaGLM, \

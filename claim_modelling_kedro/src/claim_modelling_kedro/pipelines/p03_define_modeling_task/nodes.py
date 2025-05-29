@@ -5,7 +5,7 @@ import pandas as pd
 from pandera.typing import Series
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p01_init.mdl_info_config import Target
+from claim_modelling_kedro.pipelines.p01_init.exprmnt import Target
 from claim_modelling_kedro.pipelines.p05_sampling.utils import is_target_gt_zero, return_none
 
 from claim_modelling_kedro.pipelines.utils.outliers import handle_outliers
@@ -17,8 +17,8 @@ def create_modeling_task(
         config: Config,
         targets_df: pd.DataFrame,
 ) -> Tuple[pd.DataFrame, Callable[[Series], Series[bool]]]:
-    logger.info(f"Defining modelling task for target {config.mdl_info.target}...")
-    match config.mdl_info.target:
+    logger.info(f"Defining modelling task for target {config.exprmnt.target}...")
+    match config.exprmnt.target:
         case Target.CLAIMS_NUMBER:
             target_df = targets_df
             is_event = is_target_gt_zero

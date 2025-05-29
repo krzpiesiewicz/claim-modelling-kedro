@@ -41,8 +41,11 @@ def fit_calibration_model(config: Config, pure_sample_predictions_df: Dict[str, 
                                                                            calib_features_df_handled_outliers,
                                                                            mlflow_run_id=config.de.mlflow_run_id)
         # Select features by the MLflow model
-        selected_calib_features_df = select_features_by_mlflow_model(config, transformed_calib_features_df,
-                                                                     mlflow_run_id=config.ds.mlflow_run_id)
+        if config.ds.fs_enabled:
+            selected_calib_features_df = select_features_by_mlflow_model(config, transformed_calib_features_df,
+                                                                         mlflow_run_id=config.ds.mlflow_run_id)
+        else:
+            selected_calib_features_df = transformed_calib_features_df
         # Predict by the pure MLflow model
         pure_calib_predictions_df = predict_by_mlflow_model(config, selected_calib_features_df,
                                                             mlflow_run_id=config.ds.mlflow_run_id)

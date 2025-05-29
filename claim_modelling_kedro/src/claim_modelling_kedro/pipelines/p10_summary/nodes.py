@@ -91,7 +91,10 @@ def create_curves_plots(
             logger.warning(f"Dataset {dataset} is empty. Skipping...")
             continue
         target_col = config.mdl_task.target_col
-        for prefix, prediction_col in zip(["pure", None], [config.clb.pure_prediction_col, config.clb.calibrated_prediction_col]):
+        prefixes_and_columns = [(None, config.mdl_task.prediction_col)]
+        if config.clb.enabled:
+            prefixes_and_columns.append(("pure", config.clb.pure_prediction_col))
+        for prefix, prediction_col in prefixes_and_columns:
             dataset_name = f"{prefix}_{dataset}" if prefix is not None else dataset
 
             # Generate and log mean concentration curves
@@ -179,7 +182,10 @@ def create_prediction_groups_stats_tables_and_charts(
             logger.warning(f"Dataset {dataset} is empty. Skipping...")
             continue
         target_col = config.mdl_task.target_col
-        for prefix, prediction_col in zip(["pure", None], [config.clb.pure_prediction_col, config.clb.calibrated_prediction_col]):
+        prefixes_and_columns = [(None, config.mdl_task.prediction_col)]
+        if config.clb.enabled:
+            prefixes_and_columns.append(("pure", config.clb.pure_prediction_col))
+        for prefix, prediction_col in prefixes_and_columns:
             dataset_name = f"{prefix}_{dataset}" if prefix is not None else dataset
             for n_bins in [10, 20, 30, 50, 100]:
                 # Collect stats for each partition

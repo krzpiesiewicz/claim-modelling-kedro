@@ -132,7 +132,24 @@ status=$?
 cat $LOGFILE_KEDRO_LOG_TO_MLFLOW.log | tr -cd '\11\12\15\40-\176' | sed 's/]8.*$//' | sed 's/\[[0-9]*m//g' | sed 's/\[[0-9]*;[0-9]*m//g' | sed 's/\[[0-9]*;[0-9]*;[0-9]*m//g' > $LOGFILE_KEDRO_LOG_TO_MLFLOW.clean.log
 
 if [ $status -eq 0 ]; then
-  echo -e "\nSaved kedro log to mlflow ($(basename $HTML_LOG_FILE))."
+  msg="\nSaved kedro log to mlflow ($(basename $HTML_LOG_FILE))."
 else
-  echo -e "\nFailed to save kedro log to mlflow => See file://$(pwd)/$LOGFILE_KEDRO_LOG_TO_MLFLOW.clean.log for more details."
+  msg="\nFailed to save kedro log to mlflow => See file://$(pwd)/$LOGFILE_KEDRO_LOG_TO_MLFLOW.clean.log for more details."
+fi
+echo -e "$msg"
+
+# Notification parameters
+TITLE="Finished"
+MESSAGE="Kedro run completed with status: $status.\n$msg"
+APP_NAME="Claim Modelling Kedro"
+SOUND_FILE="/usr/share/sounds/freedesktop/stereo/complete.oga"
+
+# Send notification
+notify-send -a "$APP_NAME" -u normal -t 0 "$TITLE" "$MESSAGE"
+
+# Play sound with fallback if the file doesn't exist
+if [[ -f "$SOUND_FILE" ]]; then
+    paplay "$SOUND_FILE"
+else
+    echo "⚠️ Sound file not found: $SOUND_FILE" >&2
 fi
