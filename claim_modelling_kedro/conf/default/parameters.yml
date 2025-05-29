@@ -1,8 +1,7 @@
 experiment:
-  name: test-model
+  name: dev
   author: Krzysztof Piesiewicz
-  short_description: Gamma GLM for claim avg_claim_amount
-  full_description: GLM from stats models with canonical Gamma link function
+  description: Development
   target: avg_claim_amount # 'claim_number' – the number of claims,
                            # 'total_claims_amount' – the total amount of claims (including zeros),
                            # 'frequency' – the number of claims (including zeros) per unit of exposure (claim_number / exposure),
@@ -136,7 +135,7 @@ data_engineering:
     min_frequency: # (int) the minimum frequency of a category in a feature
   scaler:
     enabled: False # whether to use the scaler
-    method: 'MaxAbsScaler' # 'StandardScaler', 'MinMaxScaler', 'RobustScaler', 'MaxAbsScaler'
+    method: # 'StandardScaler', 'MinMaxScaler', 'RobustScaler', 'MaxAbsScaler'
     params:
       StandardScaler:
         with_mean: False # whether to center the data before scaling
@@ -155,8 +154,8 @@ data_science:
   split_val_size: 0.3 # the part of data used for validation the final model
   split_random_seed: 0 # the random seed for splitting the data into train and validation sets
   feature_selection:
-    enabled: True # whether to use the feature selection
-    max_n_features: 0 # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
+    enabled: False # whether to use the feature selection
+    max_n_features: # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
     min_importance: 0.001 # the minimum importance of a feature
     max_iter: 100 # the maximum number of iterations
     method: pyglmnet # 'model', 'pyglmnet', 'lasso', 'rfe'
@@ -212,7 +211,7 @@ data_science:
 #      GradientBoostingRegressor:
 #        - n_estimators
   model:
-    model: DummyMeanRegressor # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
+    model: StatsmodelsGammaGLM # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
     # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM', 'PyGLMNetPoissonGLM', 'PyGLMNetGammaGLM',
     model_class: # model_class: str, e.g.,
                  # model_class: claim_modelling_kedro.pipelines.p07_data_science.models.SklearnPoissonGLM
@@ -239,7 +238,7 @@ data_science:
 calibration:
   mlflow_run_id: # If provided a MLFLow run id, the calibration model is saved to / downloaded from the MLflow run
   enabled: True # whether to use the calibration
-  method: IsotonicRegression # the method of calibrating pure predictions of data science model from the previous stage
+  method: StatsmodelsGammaGLM # the method of calibrating pure predictions of data science model from the previous stage
     # 'IsotonicRegression', 'CenteredIsotonicRegression', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM'
     # 'LocalStatsmodelsGLM', 'EqualBinsMeans', 'LocalPolynomialRegression'
   const_hparams:
