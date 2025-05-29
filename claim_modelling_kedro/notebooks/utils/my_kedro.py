@@ -93,7 +93,7 @@ class MyKedro():
         if project_path is not None:
             self.project_path = project_path
         else:
-            self.project_path = "/home/krzysiek/Development/claim-modelling/claim_modelling_kedro"
+            self.project_path = "/home/krzysiek/Development/claim-modelling-kedro/claim_modelling_kedro"
 
         def _load():
             self._reset_path()
