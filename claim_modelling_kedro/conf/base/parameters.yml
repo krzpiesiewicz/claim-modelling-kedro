@@ -32,7 +32,7 @@ data:
   policy_exposure_col: ClaimNb
   policy_id_col: IDpol
   split_random_seed: 1
-  stratify_target_col: ClaimSeverity_TRG # the target column used for stratification;
+  stratify_target_col: # the target column used for stratification;
     # possible values: 'ClaimNb_TRG', 'ClaimFreq_TRG', 'ClaimTotalAmount_TRG', 'ClaimSeverity_TRG', 'ClaimPurePremium_TRG';
     # if empty, the column coresponding to the model.target is used.
   calib_size: 0.2 # [0,1) - the part of policies used for model calibration
