@@ -3,12 +3,25 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, Any, List
 
-from claim_modelling_kedro.pipelines.p01_init.exprmnt import ExperimentInfo, Target, ModelEnum
+from claim_modelling_kedro.pipelines.p01_init.exprmnt import ExperimentInfo, Target
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum
 
 
 logger = logging.getLogger(__name__)
 
+
+class ModelEnum(Enum):
+    DUMMY_MEAN_REGRESSOR: str = "DummyMeanRegressor"
+    STATSMODELS_POISSON_GLM: str = "StatsmodelsPoissonGLM"
+    STATSMODELS_GAMMA_GLM: str = "StatsmodelsGammaGLM"
+    STATSMODELS_TWEEDIE_GLM: str = "StatsmodelsTweedieGLM"
+    STATSMODELS_GAUSSIAN_GLM: str = "StatsmodelsGaussianGLM"
+    SKLEARN_POISSON_GLM: str = "SklearnPoissonGLM"
+    SKLEARN_GAMMA_GLM: str = "SklearnGammaGLM"
+    SKLEARN_TWEEDIE_GLM: str = "SklearnTweedieGLM"
+    RGLMNET_POISSON_GLM: str = "RGLMNetPoissonGLM"
+    PYGLMNET_POISSON_GLM: str = "PyGLMNetPoissonGLM"
+    PYGLMNET_GAMMA_GLM: str = "PyGLMNetGammaGLM"
 
 class FeatureSelectionMethod(Enum):
     MODEL: str = "model"
@@ -165,4 +178,3 @@ class DataScienceConfig:
             self.hopt_excluded_params = hopt_params["excluded_params"][self.model.value]
         else:
             self.hopt_excluded_params = []
-

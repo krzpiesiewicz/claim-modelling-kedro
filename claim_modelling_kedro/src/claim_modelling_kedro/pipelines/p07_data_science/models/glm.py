@@ -10,7 +10,7 @@ from hyperopt import hp
 from sklearn.linear_model import PoissonRegressor, TweedieRegressor, GammaRegressor
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p01_init.exprmnt import ModelEnum
+from claim_modelling_kedro.pipelines.p01_init.ds_config import ModelEnum
 from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel
 from claim_modelling_kedro.pipelines.p07_data_science.models.sklearn_model import SklearnModel
 from claim_modelling_kedro.pipelines.utils.metrics.metric import Metric, RootMeanSquaredError, MeanPoissonDeviance, \
