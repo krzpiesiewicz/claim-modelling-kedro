@@ -1,7 +1,7 @@
-model:
+experiment:
   name: test-model
   author: Krzysztof Piesiewicz
-  short_description: Poisson GLM for claim frequency
+  short_description: Gamma GLM for claim avg_claim_amount
   full_description: GLM from stats models with canonical Gamma link function
   target: avg_claim_amount # 'claim_number' – the number of claims,
                            # 'total_claims_amount' – the total amount of claims (including zeros),
@@ -29,15 +29,15 @@ data:
   claims_total_amount_pred_col: ClaimTotalAmount_PRED
   claims_avg_amount_pred_col: ClaimSeverity_PRED
   claims_pure_premium_pred_col: ClaimPurePremium_PRED
-  policy_exposure_col: Exposure
+  policy_exposure_col: ClaimNb
   policy_id_col: IDpol
   split_random_seed: 1
   stratify_target_col: ClaimSeverity_TRG # the target column used for stratification;
     # possible values: 'ClaimNb_TRG', 'ClaimFreq_TRG', 'ClaimTotalAmount_TRG', 'ClaimSeverity_TRG', 'ClaimPurePremium_TRG';
     # if empty, the column coresponding to the model.target is used.
-  calib_size: 0.1 # [0,1) - the part of policies used for model calibration
+  calib_size: 0.2 # [0,1) - the part of policies used for model calibration
     # if calib_size is None or zero, then calibration.enabled has to be set to False
-  test_size: 0.1 # (0, 1) the part of policies used for test if cross_validation.enabled is False
+  test_size: 0.2 # (0, 1) the part of policies used for test if cross_validation.enabled is False
     # if cross_validation.enabled is True, then test_size param is ignored (test_size = data_size / folds).
     # test_size has to be greater than 0.
     # => train_size = 1 - calib_data_size - calib_data_size (train_size has to be greater than 0)
@@ -58,14 +58,14 @@ data:
 sampling:
   use_calib_data: False # whether to use also the calibration data for sampling
   random_seed: 1
-  n_obs: 2000 # the number of samples which are used to train a model.
-  target_ratio: # the ratio of nonzero samples, if None, the ratio is not controlled
+  n_obs: 5000 # the number of samples which are used to train a model.
+  target_ratio: 0.5 # the ratio of nonzero samples, if None, the ratio is not controlled
                     # if target_ratio is not None and n_obs is None, then get all targets and complete the sample with zeros
                     # If both n_obs and target_ratio are Nones, then all training data is used
   allow_lower_ratio: True # allow the ratio of nonzero samples to be lower than target_ratio
   include_zeros: True # include zero values of target in a sample
   outliers:
-    policy: keep # 'keep', 'drop', 'clip'
+    policy: clip # 'keep', 'drop', 'clip'
     lower_bound:
     upper_bound:
 
@@ -138,7 +138,7 @@ data_engineering:
     max_categories: # (int) the maximum number of categories in a feature
     min_frequency: # (int) the minimum frequency of a category in a feature
   scaler:
-    enabled: True # whether to use the scaler
+    enabled: False # whether to use the scaler
     method: 'MaxAbsScaler' # 'StandardScaler', 'MinMaxScaler', 'RobustScaler', 'MaxAbsScaler'
     params:
       StandardScaler:
@@ -159,7 +159,7 @@ data_science:
   split_random_seed: 0 # the random seed for splitting the data into train and validation sets
   feature_selection:
     enabled: True # whether to use the feature selection
-    max_n_features: # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
+    max_n_features: 0 # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
     min_importance: 0.001 # the minimum importance of a feature
     max_iter: 100 # the maximum number of iterations
     method: pyglmnet # 'model', 'pyglmnet', 'lasso', 'rfe'
@@ -190,8 +190,7 @@ data_science:
           alpha: 0.01 # the regularization parameter
   hyperopt:
     enabled: False # whether to use the hyperopt
-    metric: claim_nb_weighted_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
-    metric: claim_nb_weighted_concentration_index # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
+    metric: cc_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
       # 'gamma_deviance', 'exposure_weighted_gamma_deviance', 'claim_nb_weighted_gamma_deviance',
       # 'rmse', 'exposure_weighted_rmse', 'claim_nb_weighted_rmse', 'r2', 'exposure_weighted_r2', 'claim_nb_weighted_r2',
       # 'concentration_index', 'exposure_weighted_concentration_index', 'claim_nb_weighted_concentration_index',
@@ -213,12 +212,13 @@ data_science:
     excluded_params:
 #      GradientBoostingRegressor:
 #        - n_estimators
-
   model:
-    random_seed: 0
+    model: DummyMeanRegressor # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
+    # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM', 'PyGLMNetPoissonGLM', 'PyGLMNetGammaGLM',
     model_class: # model_class: str, e.g.,
                  # model_class: claim_modelling_kedro.pipelines.p07_data_science.models.SklearnPoissonGLM
                  # if empty, the model class is inferred from the parameter model.model
+    random_seed: 0
     const_hparams:
       StatsmodelsTweedieGLM:
         link: log # 'log' (all families), 'inverse' (Gamma), 'power' (Tweedie)
@@ -227,7 +227,7 @@ data_science:
         force_min_y_pred: False
         fit_intercept: True
       StatsmodelsGammaGLM:
-        link: log # 'log' (all families), 'inverse' (Gamma), 'power' (Tweedie)
+        link: inverse # 'log' (all families), 'inverse' (Gamma), 'power' (Tweedie)
         force_min_y_pred: True
         fit_intercept: True
 #      SklearnPoissonGLM:

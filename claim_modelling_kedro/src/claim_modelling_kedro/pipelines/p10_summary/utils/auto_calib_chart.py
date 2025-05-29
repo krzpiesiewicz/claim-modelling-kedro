@@ -39,8 +39,6 @@ def plot_auto_calib_chart(
         max_y_val: float = None,
         marker: str = "o",
 ) -> plt.Figure:
-    if sample_weight is None:
-        sample_weight = pd.Series(1, index=y_true.index)
     df = pd.DataFrame({
         "y_true": y_true,
         "y_pred": y_pred,
@@ -52,6 +50,9 @@ def plot_auto_calib_chart(
 
     # Assign decile bins
     df["bin"] = pd.qcut(df["y_pred"], q=n_bins, labels=False, duplicates="drop")
+
+    if len(np.unique(df["bin"])) == 1:
+        df["bin"] = 1
 
     bin_means_pred = df.groupby("bin").apply(lambda g: np.average(g["y_pred"], weights=g["weight"]))
     bin_means_true = df.groupby("bin").apply(lambda g: np.average(g["y_true"], weights=g["weight"]))

@@ -4,6 +4,7 @@ from typing import Dict
 
 
 class ModelEnum(Enum):
+    DUMMY_MEAN_REGRESSOR: str = "DummyMeanRegressor"
     STATSMODELS_POISSON_GLM: str = "StatsmodelsPoissonGLM"
     STATSMODELS_GAMMA_GLM: str = "StatsmodelsGammaGLM"
     STATSMODELS_TWEEDIE_GLM: str = "StatsmodelsTweedieGLM"

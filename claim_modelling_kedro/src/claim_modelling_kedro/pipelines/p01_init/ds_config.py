@@ -60,6 +60,8 @@ class DataScienceConfig:
             self.model_class = model_params["model_class"]
         else:
             match self.model:
+                case ModelEnum.DUMMY_MEAN_REGRESSOR:
+                    model_class_name = "DummyMeanRegressor"
                 case ModelEnum.STATSMODELS_POISSON_GLM:
                     model_class_name = "StatsmodelsPoissonGLM"
                 case ModelEnum.STATSMODELS_GAMMA_GLM:
