@@ -32,9 +32,6 @@ class MetricEnum(MetricType, Enum):
     SPEARMAN: str = "spearman_correlation"
     EXP_WEIGHTED_SPEARMAN: str = "exposure_weighted_spearman_correlation"
     CLNB_WEIGHTED_SPEARMAN: str = "claim_nb_weighted_spearman_correlation"
-    CI: str = "concentration_index"
-    EXP_WEIGHTED_CI: str = "exposure_weighted_concentration_index"
-    CLNB_WEIGHTED_CI: str = "claim_nb_weighted_concentration_index"
     ABC: str = "area_between_cc_and_lc"
     EXP_WEIGHTED_ABC: str = "exposure_weighted_area_between_cc_and_lc"
     CLNB_WEIGHTED_ABC: str = "claim_nb_weighted_area_between_cc_and_lc"
@@ -47,6 +44,15 @@ class MetricEnum(MetricType, Enum):
     CUI: str = "cumulative_underpricing_index"
     EXP_WEIGHTED_CUI: str = "exposure_weighted_cumulative_underpricing_index"
     CLNB_WEIGHTED_CUI: str = "claim_nb_weighted_cumulative_underpricing_index"
+    GINI: str = "gini"
+    EXP_WEIGHTED_GINI: str = "exposure_weighted_gini"
+    CLNB_WEIGHTED_GINI: str = "claim_nb_weighted_gini"
+    ORDERED_GINI: str = "ordered_gini"
+    EXP_WEIGHTED_ORDERED_GINI: str = "exposure_weighted_ordered_gini"
+    CLNB_WEIGHTED_ORDERED_GINI: str = "claim_nb_weighted_ordered_gini"
+    NORMALIZED_ORDERED_GINI: str = "normalized_ordered_gini"
+    EXP_WEIGHTED_NORMALIZED_ORDERED_GINI: str = "exposure_weighted_normalized_ordered_gini"
+    CLNB_WEIGHTED_NORMALIZED_ORDERED_GINI: str = "claim_nb_weighted_normalized_ordered_gini"
 
 
 @dataclass

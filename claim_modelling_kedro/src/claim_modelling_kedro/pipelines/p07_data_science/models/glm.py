@@ -15,7 +15,7 @@ from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveMod
 from claim_modelling_kedro.pipelines.p07_data_science.models.sklearn_model import SklearnModel
 from claim_modelling_kedro.pipelines.utils.metrics.metric import Metric, RootMeanSquaredError, MeanPoissonDeviance, \
     MeanGammaDeviance, MeanTweedieDeviance
-from claim_modelling_kedro.pipelines.utils.metrics.cc_index import NormalizedConcentrationIndex
+from claim_modelling_kedro.pipelines.utils.metrics.gini import OrderedGiniIndex
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ def get_statsmodels_metric(config: Config, model_enum: ModelEnum, pred_col: str)
         case ModelEnum.STATSMODELS_POISSON_GLM:
             return MeanPoissonDeviance(config, pred_col=pred_col)
         case ModelEnum.STATSMODELS_TWEEDIE_GLM:
-            return NormalizedConcentrationIndex(config, pred_col=pred_col)
+            return OrderedGiniIndex(config, pred_col=pred_col)
         case _:
             raise ValueError(
                 f"""Family for model {model_enum} not supported in Stastsmodels GLM. Supported are:

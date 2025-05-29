@@ -3,4 +3,4 @@ from .metric import (
     Metric, MeanAbsoluteError, RootMeanSquaredError, R2, MeanBiasDeviation, MeanGammaDeviance, MeanPoissonDeviance,
     MeanTweedieDeviance, SpearmanCorrelation
 )
-from .cc_index import NormalizedConcentrationIndex
+from .gini import GiniIndex, OrderedGiniIndex, NormalizedOrderedGiniIndex
