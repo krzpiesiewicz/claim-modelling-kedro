@@ -190,7 +190,9 @@ data_science:
     metric: cc_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
       # 'gamma_deviance', 'exposure_weighted_gamma_deviance', 'claim_nb_weighted_gamma_deviance',
       # 'rmse', 'exposure_weighted_rmse', 'claim_nb_weighted_rmse', 'r2', 'exposure_weighted_r2', 'claim_nb_weighted_r2',
-      # 'concentration_index', 'exposure_weighted_concentration_index', 'claim_nb_weighted_concentration_index',
+      # 'lc_gini', 'exposure_weighted_lc_gini', 'claim_nb_weighted_lc_gini',
+      # 'cc_gini', 'exposure_weighted_cc_gini', 'claim_nb_weighted_cc_gini',
+      # 'normalized_cc_gini', 'exposure_weighted_normalized_cc_gini', 'claim_nb_weighted_normalized_cc_gini',
       # 'spearman_correlation', 'exposure_weighted_spearman_correlation', 'claim_nb_weighted_spearman_correlation'
       # tweedie_deviance(p), where p is a float number, e.g., tweedie_deviance(1.5)
       # exposure_weighted_tweedie_deviance(p) or claim_nb_weighted_tweedie_deviance(p), where p is a float number, e.g., weighted_tweedie_deviance(1.5)
