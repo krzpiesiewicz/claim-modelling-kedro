@@ -4,6 +4,7 @@ import os
 import tempfile
 from pathlib import Path
 from typing import Union, Dict, Any
+import subprocess
 
 import mlflow
 import pandas as pd
@@ -17,6 +18,14 @@ from pluggy import PluginManager
 from claim_modelling_kedro.experiments import get_run_mlflow_id, set_run_mlflow_id
 
 logger = logging.getLogger(__name__)
+
+
+def get_git_commit_sha() -> str:
+    try:
+        sha = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
+        return sha
+    except Exception:
+        return "unknown"
 
 
 class ProjectContext(KedroContext):
@@ -139,6 +148,7 @@ class ProjectContext(KedroContext):
                     execution_time=None,
                     status=None,
                     logdir=[self.kedro_log_dir],
+                    commit_sha=[get_git_commit_sha()]
                 ))
                 logger.debug(f"new_row: {new_row}")
                 kedro_runs_df = pd.concat([kedro_runs_df, new_row],
