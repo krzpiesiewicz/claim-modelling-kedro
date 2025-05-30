@@ -31,17 +31,25 @@ def main():
     parser = argparse.ArgumentParser(description="Run an experiment for different pipelines.")
     parser.add_argument("experiment_name", type=str, help="Name of the experiment")
     parser.add_argument("first_pipeline", type=str, help="Pipeline to run for the first run")
-    parser.add_argument("--other-pipeline", type=str,
-                        help="The other pipeline to run for all subsequent runs (optional)", default=None)
-    parser.add_argument("--run-name", type=str, help="Specific run name to run (optional)", default=None)
+    parser.add_argument(
+        "--other-pipeline",
+        type=str,
+        help="The other pipeline to run for all subsequent runs (optional)",
+        default=None
+    )
+    parser.add_argument(
+        "--run-name",
+        type=str,
+        nargs="+",
+        help="One or more specific run names to execute (optional)",
+        default=None
+    )
 
     # Parse arguments
     args = parser.parse_args()
     experiment_name = args.experiment_name
     first_pipeline = args.first_pipeline
-    other_pipeline = args.other_pipeline
-    if other_pipeline is None:
-        other_pipeline = first_pipeline
+    other_pipeline = args.other_pipeline or first_pipeline
 
     # Get the current working directory (claim-modelling)
     base_dir = os.path.abspath(os.getcwd())
@@ -62,51 +70,50 @@ def main():
         logger.error(f"No run directories found in {runs_dir}")
         return
 
+    # Validate selected run names
     if args.run_name:
-        if args.run_name not in run_names:
-            logger.error(f"Run name '{args.run_name}' not found in {runs_dir}")
+        invalid_runs = [r for r in args.run_name if r not in run_names]
+        if invalid_runs:
+            logger.error(f"The following run names were not found in {runs_dir}: {', '.join(invalid_runs)}")
             return
-        run_duration = copy_config_and_run_experiment(base_dir, experiment_dir, experiment_name,
-                                                      args.run_name, first_pipeline)
-        logger.info(f"Run '{args.run_name}' completed in {run_duration:.2f} seconds.")
+        selected_run_names = args.run_name
     else:
-        logger.info(f"Running all runs for experiment '{experiment_name}'")
-        logger.info(f"Runs:\n   - " + ",\n   - ".join(run_names) + ".")
+        selected_run_names = run_names
 
-        total_runs = len(run_names)
-        completed_runs = 0
-        start_time = time.time()
-        run_times = []
+    logger.info(f"Running {len(selected_run_names)} run(s) for experiment '{experiment_name}'")
+    logger.info(f"Runs:\n   - " + ",\n   - ".join(selected_run_names) + ".")
 
-        # Iterate through the run directories in alphabetical order
-        for idx, run_name in enumerate(run_names):
-            # Determine the pipeline to use: first for the first run, others for the rest
-            if idx == 0:
-                pipeline = first_pipeline
-            else:
-                pipeline = other_pipeline
+    total_runs = len(selected_run_names)
+    completed_runs = 0
+    start_time = time.time()
+    run_times = []
 
-            # Log start of the run
-            logger.info(f"Starting run {idx + 1}/{total_runs} - '{run_name}' using pipeline: {pipeline}")
+    # Iterate through selected run directories
+    for idx, run_name in enumerate(selected_run_names):
+        # Determine the pipeline to use: first for the first run, others for the rest
+        pipeline = first_pipeline if idx == 0 else other_pipeline
 
-            # Execute experiment run
-            run_duration = copy_config_and_run_experiment(base_dir, experiment_dir, experiment_name, run_name, pipeline)
+        # Log start of the run
+        logger.info(f"Starting run {idx + 1}/{total_runs} - '{run_name}' using pipeline: {pipeline}")
 
-            run_times.append(run_duration)
-            completed_runs += 1
-            elapsed_time = time.time() - start_time
-            mean_run_time = sum(run_times) / len(run_times)
+        # Execute experiment run
+        run_duration = copy_config_and_run_experiment(base_dir, experiment_dir, experiment_name, run_name, pipeline)
 
-            remaining_runs = total_runs - completed_runs
-            expected_remaining_time = mean_run_time * remaining_runs if remaining_runs > 0 else 0
-            percentage_complete = (completed_runs / total_runs) * 100
+        run_times.append(run_duration)
+        completed_runs += 1
+        elapsed_time = time.time() - start_time
+        mean_run_time = sum(run_times) / len(run_times)
 
-            logger.info(f"Completed run {idx + 1}/{total_runs} ({percentage_complete:.2f}%)")
-            logger.info(f"Mean time of past runs: {mean_run_time:.2f} seconds")
-            logger.info(f"Expected time for remaining runs: {expected_remaining_time:.2f} seconds")
-            logger.info(f"Elapsed time: {elapsed_time:.2f} seconds")
+        remaining_runs = total_runs - completed_runs
+        expected_remaining_time = mean_run_time * remaining_runs if remaining_runs > 0 else 0
+        percentage_complete = (completed_runs / total_runs) * 100
 
-        logger.info("All experiment runs completed.")
+        logger.info(f"Completed run {idx + 1}/{total_runs} ({percentage_complete:.2f}%)")
+        logger.info(f"Mean time of past runs: {mean_run_time:.2f} seconds")
+        logger.info(f"Expected time for remaining runs: {expected_remaining_time:.2f} seconds")
+        logger.info(f"Elapsed time: {elapsed_time:.2f} seconds")
+
+    logger.info("All experiment runs completed.")
 
 
 if __name__ == "__main__":
