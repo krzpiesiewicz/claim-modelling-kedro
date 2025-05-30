@@ -103,6 +103,7 @@ class StatsmodelsGLM(PredictiveModel, ABC):
         force_min_y_pred = self._hparams.get("force_min_y_pred")
         self._force_min_y_pred = force_min_y_pred if force_min_y_pred != "auto" else False
         self._fit_intercept = self._hparams.get("fit_intercept", True)
+        self._intercept_scale = self._hparams.get("intercept_scale", 1.0)
         match self._get_model_enum():
             case ModelEnum.STATSMODELS_GAUSSIAN_GLM:
                 self.family = sm.families.Gaussian()
@@ -164,7 +165,14 @@ class StatsmodelsGLM(PredictiveModel, ABC):
         if self._force_min_y_pred:
             self._min_y = np.min(y)
         if self._fit_intercept:
+            self._y_mean = np.mean(y)
             features_df = sm.add_constant(features_df)
+            if isinstance(self._intercept_scale, str):
+                assert self._intercept_scale == "mean"
+                intercept_scale = self._y_mean
+            else:
+                intercept_scale = self._intercept_scale
+            features_df["const"] = intercept_scale
         logger.debug(f"{features_df.head()=}")
         logger.debug(f"{y.head()=}")
         if "sample_weight" in kwargs:
@@ -183,6 +191,11 @@ class StatsmodelsGLM(PredictiveModel, ABC):
         logger.debug(f"{self.get_hparams()=}")
         if self._fit_intercept:
             features_df = sm.add_constant(features_df)
+            if isinstance(self._intercept_scale, str) and self._intercept_scale == "mean":
+                intercept_scale = self._y_mean
+            else:
+                intercept_scale = self._intercept_scale
+            features_df["const"] = intercept_scale
         logger.debug(f"{features_df.head()=}")
         y_pred = self.model.predict(features_df)
         logger.debug(
@@ -200,7 +213,8 @@ class StatsmodelsGLM(PredictiveModel, ABC):
 
     @classmethod
     def get_default_hparams(cls) -> Dict[str, Any]:
-        return {"link": None, "power": None, "force_min_y_pred": "auto", "fit_intercept": True}
+        return {"link": None, "power": None, "force_min_y_pred": "auto", "fit_intercept": True,
+                "intercept_scale": 1.0}
 
     def get_params(self, deep: bool = True) -> Dict[str, Any]:
         """
