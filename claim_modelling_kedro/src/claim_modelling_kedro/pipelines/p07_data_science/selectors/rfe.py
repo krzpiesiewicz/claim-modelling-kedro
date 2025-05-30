@@ -28,12 +28,12 @@ class RecursiveFeatureEliminationSelector(SelectorModel):
         X = features_df
         y = target_df[self.target_col]
         self.selector = RFE(self.estimator, n_features_to_select=self.max_n_features or len(features_df.columns),
-                            importance_getter=(lambda estimator: estimator.get_features_importances()))
+                            importance_getter=(lambda estimator: estimator.get_features_importance()))
         sample_weight = get_sample_weight(self.config, target_df)
         if sample_weight is not None:
             kwargs["sample_weight"] = sample_weight
         self.selector.fit(X, y, **kwargs)
         self._set_selected_features(self.selector.feature_names_in_[self.selector.support_])
-        importances = self.selector.estimator_.get_features_importances().copy()
-        importances.index = self.selector.feature_names_in_[importances.index]
-        self._set_features_importances(importances)
+        importance = self.selector.estimator_.get_features_importance().copy()
+        importance.index = self.selector.feature_names_in_[importance.index]
+        self._set_features_importance(importance)

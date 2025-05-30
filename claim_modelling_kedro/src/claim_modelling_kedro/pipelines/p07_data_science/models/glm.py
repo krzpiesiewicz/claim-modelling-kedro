@@ -176,7 +176,7 @@ class StatsmodelsGLM(PredictiveModel, ABC):
         else:
             self.model = sm.GLM(y, features_df, family=self.family).fit(**kwargs)
         logger.debug(f"Model fitted - {self.model.summary()}")
-        self._set_features_importances(np.abs(self.model.params))
+        self._set_features_importance(np.abs(self.model.params))
 
     def _predict(self, features_df: pd.DataFrame) -> pd.Series:
         logger.debug("StatsmodelsGLM _predict called")
@@ -284,10 +284,10 @@ class SklearnGLM(SklearnModel, ABC):
 
     def _fit(self, features_df: Union[pd.DataFrame, np.ndarray], target_df: Union[pd.DataFrame, np.ndarray], **kwargs):
         super()._fit(features_df, target_df, **kwargs)
-        features_importances = pd.Series(np.abs(self.model.coef_))
+        features_importance = pd.Series(np.abs(self.model.coef_))
         if hasattr(self.model, "feature_names_in_"):
-            features_importances.index = self.model.feature_names_in_
-        self._set_features_importances(features_importances)
+            features_importance.index = self.model.feature_names_in_
+        self._set_features_importance(features_importance)
 
 
 class SklearnPoissonGLM(SklearnGLM):
@@ -508,12 +508,12 @@ class PyGLMNetGLM(PredictiveModel):
         )
         self.model.fit(x, y)
         logger.debug(f"Model fitted - {self.summary()}")
-        importances = np.abs(self.model.beta_)
-        logger.debug(f"{importances=}")
+        importance = np.abs(self.model.beta_)
+        logger.debug(f"{importance=}")
         if isinstance(features_df, pd.DataFrame):
-            importances = pd.Series(importances, index=features_df.columns)
-            logger.debug(f"{importances=}")
-        self._set_features_importances(importances)
+            importance = pd.Series(importance, index=features_df.columns)
+            logger.debug(f"{importance=}")
+        self._set_features_importance(importance)
 
     def _predict(self, features_df: pd.DataFrame) -> pd.Series:
         x = features_df.values if isinstance(features_df, pd.DataFrame) else features_df

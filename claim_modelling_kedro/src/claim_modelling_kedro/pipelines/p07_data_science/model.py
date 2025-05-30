@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # Define the artifact path for prediction model
 _ds_artifact_path = "model_ds"
 _predictive_model_artifact_path = f"{_ds_artifact_path}/predictive_model"
-_features_importances_filename = "features_importance.csv"
+_features_importance_filename = "features_importance.csv"
 
 
 def get_sample_weight(config: Config, target_df: Union[pd.DataFrame, np.ndarray]) -> Union[pd.Series, None]:
@@ -52,7 +52,7 @@ class PredictiveModel(ABC):
         self._fit_kwargs = fit_kwargs if fit_kwargs is not None else {}
         self._hparams = None
         self.update_hparams(hparams, call_updated_hparams=call_updated_hparams)
-        self._features_importances = None
+        self._features_importance = None
         self._not_fitted = True
 
     def fit(self, features_df: Union[pd.DataFrame, np.ndarray],
@@ -86,20 +86,20 @@ class PredictiveModel(ABC):
     def _predict(self, features_df: pd.DataFrame) -> Union[pd.DataFrame, pd.Series, np.ndarray]:
         pass
 
-    def get_features_importances(self) -> pd.Series:
+    def get_features_importance(self) -> pd.Series:
         if self._not_fitted:
             raise ValueError("The model is not fitted yet. "
-                             "Please, fit the model before requesting feature importances ranking.")
-        if self._features_importances is None:
-            raise ValueError("The model does not supply feature importances ranking.")
-        return self._features_importances.copy()
+                             "Please, fit the model before requesting feature importance ranking.")
+        if self._features_importance is None:
+            raise ValueError("The model does not supply feature importance ranking.")
+        return self._features_importance.copy()
 
-    def _set_features_importances(self, features_importances: Union[pd.Series, np.ndarray]):
-        if type(features_importances) is not pd.Series:
-            features_importances = pd.Series(features_importances)
-        features_importances.index.name = "feature"
-        features_importances.name = "importance"
-        self._features_importances = features_importances.sort_values(ascending=False)
+    def _set_features_importance(self, features_importance: Union[pd.Series, np.ndarray]):
+        if type(features_importance) is not pd.Series:
+            features_importance = pd.Series(features_importance)
+        features_importance.index.name = "feature"
+        features_importance.name = "importance"
+        self._features_importance = features_importance.sort_values(ascending=False)
 
     @abstractmethod
     def metric(self) -> Metric:
@@ -180,18 +180,18 @@ def fit_transform_predictive_model_part(config: Config, selected_sample_features
     logger.info(f"Fitted the predictive model. Elapsed time: {formatted_time}.")
     # Save the model
     MLFlowModelLogger(model, "predictive model").log_model(_predictive_model_artifact_path)
-    # Save the features importances
-    logger.info("Saving the features importances...")
+    # Save the features importance
+    logger.info("Saving the features importance...")
     try:
-        features_importances = model.get_features_importances()
+        features_importance = model.get_features_importance()
         with tempfile.TemporaryDirectory() as tempdir:
-            file_path = os.path.join(tempdir, _features_importances_filename)
-            features_importances.to_csv(file_path)
+            file_path = os.path.join(tempdir, _features_importance_filename)
+            features_importance.to_csv(file_path)
             mlflow.log_artifact(file_path, _ds_artifact_path)
         logger.info(
-            f"Successfully saved the features importances to MLFlow path {os.path.join(_ds_artifact_path, _features_importances_filename)}")
+            f"Successfully saved the features importance to MLFlow path {os.path.join(_ds_artifact_path, _features_importance_filename)}")
     except ValueError as e:
-        logger.warning(f"{e}. Skipping saving features importances.")
+        logger.warning(f"{e}. Skipping saving features importance.")
     # Make predictions
     logger.info("Predicting the target...")
     predictions_df = model.predict(selected_sample_features_df)

@@ -24,5 +24,5 @@ class ModelWrapperFeatureSelector(SelectorModel):
         logger.debug(f"{self.config.ds.fs_params=}")
         self._model.update_hparams(self.config.ds.fs_params)
         self._model.fit(features_df, target_df, **kwargs)
-        self._set_features_importances(self._model.get_features_importances())
-        self._set_selected_features_from_importances()
+        self._set_features_importance(self._model.get_features_importance())
+        self._set_selected_features_from_importance()

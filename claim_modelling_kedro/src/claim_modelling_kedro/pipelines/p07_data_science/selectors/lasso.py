@@ -27,7 +27,7 @@ class LassoFeatureSelector(SelectorModel):
         if sample_weight is not None:
             kwargs["sample_weight"] = sample_weight.values
         self.model.fit(x, y, **kwargs)
-        feature_importances = pd.Series(np.abs(self.model.coef_),
+        features_importance = pd.Series(np.abs(self.model.coef_),
                                         index=pd.Index(features_df.columns, name="feature"))
-        self._set_features_importances(feature_importances)
-        self._set_selected_features_from_importances()
+        self._set_features_importance(features_importance)
+        self._set_selected_features_from_importance()

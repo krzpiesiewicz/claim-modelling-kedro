@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 _selector_artifact_path = "model_ds/selector"
 _select_artifact_path = "model_ds"
 _selected_features_filename = "selected_features.txt"
-_features_importances_filename = "features_importances.csv"
+_features_importance_filename = "features_importance.csv"
 
 
 class SelectorModel(ABC):
@@ -28,7 +28,7 @@ class SelectorModel(ABC):
         self.max_n_features = config.ds.fs_max_n_features
         self.min_importance = config.ds.fs_min_importance
         self.max_iter = config.ds.fs_max_iter
-        self._features_importances = None
+        self._features_importance = None
         self._selected_features = None
 
     @abstractmethod
@@ -41,27 +41,27 @@ class SelectorModel(ABC):
     def get_selected_features(self) -> pd.Index:
         return self._selected_features.copy()
 
-    def get_features_importances(self) -> pd.Series:
-        if self._features_importances is not None:
-            return self._features_importances.copy()
+    def get_features_importance(self) -> pd.Series:
+        if self._features_importance is not None:
+            return self._features_importance.copy()
         return None
 
-    def _set_selected_features_from_importances(self):
+    def _set_selected_features_from_importance(self):
         if self.min_importance is not None:
-            importances = self._features_importances[self._features_importances > self.min_importance]
+            importance = self._features_importance[self._features_importance > self.min_importance]
         else:
-            importances = self._features_importances.index
+            importance = self._features_importance.index
         if self.max_n_features is not None:
-            importances = importances.sort_values(ascending=False).head(self.max_n_features)
-        self._set_selected_features(importances.index)
+            importance = importance.sort_values(ascending=False).head(self.max_n_features)
+        self._set_selected_features(importance.index)
 
     def _set_selected_features(self, selected_features: Sequence[str]):
         self._selected_features = pd.Index(selected_features, name="feature")
 
-    def _set_features_importances(self, features_importances: pd.Series):
-        features_importances.index.name = "feature"
-        features_importances.name = "importance"
-        self._features_importances = features_importances.sort_values(ascending=False)
+    def _set_features_importance(self, features_importance: pd.Series):
+        features_importance.index.name = "feature"
+        features_importance.name = "importance"
+        self._features_importance = features_importance.sort_values(ascending=False)
 
 
 def process_select_features_partition(config: Config, part: str, transformed_features_df: Dict[str, pd.DataFrame],
@@ -102,13 +102,13 @@ def fit_transform_features_selector_part(config: Config, transformed_sample_feat
     # Save the selector
     MLFlowModelLogger(selector, f"features selector model").log_model(_selector_artifact_path)
     selected_features = selector.get_selected_features()
-    features_importances = selector.get_features_importances()
-    # Log info about the features importances and selected features
-    logger.info(f"Features importances:\n{features_importances.reset_index()}")
-    logger.info(f"Selected {len(selected_features)} / {len(features_importances)} features:\n" + \
+    features_importance = selector.get_features_importance()
+    # Log info about the features importance and selected features
+    logger.info(f"Features importance:\n{features_importance.reset_index()}")
+    logger.info(f"Selected {len(selected_features)} / {len(features_importance)} features:\n" + \
                 ",\n".join(f"    - {ftr}" for ftr in selected_features))
-    sel_ftrs_imp = features_importances[selected_features]
-    logger.info(f"""Importances of the selected features:
+    sel_ftrs_imp = features_importance[selected_features]
+    logger.info(f"""importance of the selected features:
     - min: {sel_ftrs_imp.min()}
     - mean: {sel_ftrs_imp.mean()}
     - max: {sel_ftrs_imp.max()}""")
@@ -122,14 +122,14 @@ def fit_transform_features_selector_part(config: Config, transformed_sample_feat
         mlflow.log_artifact(file_path, _select_artifact_path)
     logger.info(
         f"Successfully saved the selected features to MLFlow path {os.path.join(_select_artifact_path, _selected_features_filename)}")
-    # Save the features importances
-    logger.info("Saving the features importances...")
+    # Save the features importance
+    logger.info("Saving the features importance...")
     with tempfile.TemporaryDirectory() as tempdir:
-        file_path = os.path.join(tempdir, _features_importances_filename)
-        features_importances.to_csv(file_path)
+        file_path = os.path.join(tempdir, _features_importance_filename)
+        features_importance.to_csv(file_path)
         mlflow.log_artifact(file_path, _select_artifact_path)
     logger.info(
-        f"Successfully saved the features importances to MLFlow path {os.path.join(_select_artifact_path, _features_importances_filename)}")
+        f"Successfully saved the features importance to MLFlow path {os.path.join(_select_artifact_path, _features_importance_filename)}")
     selected_features_df = selector.transform(transformed_sample_features_df)
     logger.info("Selected the features.")
     return selected_features_df
