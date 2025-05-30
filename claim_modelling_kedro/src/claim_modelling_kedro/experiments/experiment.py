@@ -89,7 +89,7 @@ def copy_experiment_run_configs(experiment_dir: str, run_name: str, target_dir_p
     Args:
         experiment_dir (str): The directory of the experiment.
         run_dir (str): The directory of the run (relative to experiment_dir)
-        target_dir_path (str, optional): The root directory where files will be copied to. Defaults to ""conf".
+        target_dir_path (str, optional): The root directory where files will be copied to. Defaults to "" (claim_modelling_kedro).
         target_rel_paths (Dict[str, str], optional): A dictionary mapping the source file names to their target relative paths.
             Example: {"parameters.yml": "base/parameters.yml", "mlflow.yml": "local/mlflow.yml"}.
             Defaults to copying `parameters.yml` and `mlflow.yml` to standard locations in `base/` and `local/`.
@@ -97,11 +97,12 @@ def copy_experiment_run_configs(experiment_dir: str, run_name: str, target_dir_p
     # Default values for target_rel_paths and target_dir_path
     if target_rel_paths is None:
         target_rel_paths = {
-            "parameters.yml": "base/parameters.yml",
-            "mlflow.yml": "local/mlflow.yml"
+            "parameters.yml": "conf/base/parameters.yml",
+            "mlflow.yml": "conf/local/mlflow.yml",
+            "features_blacklist.txt": "data/01_raw/features_blacklist.txt"
         }
     if target_dir_path is None:
-        target_dir_path = "conf"
+        target_dir_path = ""
 
     # Construct the run directory path (run number with leading zeros)
     run_dir = os.path.join(experiment_dir, "runs", run_name,
@@ -137,11 +138,12 @@ def copy_experiment_run_configs(experiment_dir: str, run_name: str, target_dir_p
 
 def restore_default_config_files(base_dir: str) -> None:
     for source_file, target_rel_path in {
-        "parameters.yml": "base/parameters.yml",
-        "mlflow.yml": "local/mlflow.yml"
+        "parameters.yml": "conf/base/parameters.yml",
+        "mlflow.yml": "conf/local/mlflow.yml",
+        "features_blacklist.txt": "data/01_raw/features_blacklist.txt",
     }.items():
         source_file_path = os.path.join(base_dir, "conf", "default", source_file)
-        target_file_path = os.path.join(base_dir, "conf", target_rel_path)
+        target_file_path = os.path.join(base_dir, target_rel_path)
 
         # Ensure the source file exists
         if not os.path.exists(source_file_path):

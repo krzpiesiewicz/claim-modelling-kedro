@@ -9,7 +9,7 @@ setup_logger()
 logger = logging.getLogger(__name__)
 
 def main():
-    # Get the current working directory (solvency-modelling)
+    # Get the current working directory (claim_modelling_kedro)
     base_dir = os.path.abspath(os.getcwd())
     restore_default_config_files(base_dir=base_dir)
 
