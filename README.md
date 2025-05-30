@@ -7,7 +7,7 @@ Project for my master thesis
 The dataset used in this project can be found at:
 [Dataset Link](https://students.mimuw.edu.pl/~kp385996/ai-insurance/data.zip)
 
-## Scripts
+## Basic scripts
 
 ### create_venv.sh
 
@@ -49,9 +49,82 @@ This script runs the Kedro pipeline defined in the project.
 - `--pipeline`, `-p`: Specify the pipeline to run (default: `__default__`).
 - `--mlflow-run-id`: Continue the MLflow run with the given run ID.
 
+---
+
+## How to Create and Run a Batch of Experiments
+
+### Creating a Batch of Experiments
+
+1. In the `experiments` directory, copy the `experiments_dir_template` directory and rename it to your desired experiment name, e.g., `my_experiment_name`.
+
+2. Edit the files in `experiments/my_experiment_name/templates/` (`parameters.yml` and `mlflow.yml`) to define the parameters for your experiment.
+
+3. In any notebook in the project (e.g., `notebooks/my_experiment_analysis.ipynb`), run the following method to create a new experiment run:
+
+    ```python
+    create_experiment_run(
+        experiment_name=experiment_name,
+        run_name=run_name,
+        template_parameters=template_parameters
+    )
+    ```
+
+    where:
+   - `experiment_name` is the name of your experiment directory,
+   - `run_name` is the name of the new MLflow run,
+   - `template_parameters` is a dictionary of parameters whose values will replace the template tags in the files located in `experiments/<experiment_name>/templates/`.
+
+    You can call this method multiple times with different pairs of `run_name` and `template_parameters` to create multiple runs for the same experiment.
+
+    Import the method in your notebook as follows:
+
+    ```python
+    from claim_modelling_kedro.experiments.experiment import (
+        create_experiment_run,
+        default_run_name_from_run_no
+    )
+    ```
+
+---
+
+### Running a Batch of Experiments
+
+1. Run the experiment using the provided `run_experiment.sh` script. See usage below.
+
+2. Restore the default configuration files using the `restore_default_config.sh` script. See usage below.
+
+---
+
+### Viewing Experiment Results in a Notebook
+
+Useful methods for viewing experiment results in your notebook:
+
+- From `claim_modelling_kedro.experiments.experiment`:
+  - `get_run_mlflow_id`
+
+- From `claim_modelling_kedro.pipelines.utils.dataframes`:
+  - `load_metrics_table_from_mlflow`
+  - `load_predictions_and_target_from_mlflow`
+  - `load_metrics_cv_stats_from_mlflow`
+
+- From `claim_modelling_kedro.pipelines.utils.datasets`:
+  - `get_partition`
+  - `get_mlflow_run_id_for_partition`
+
+---
+
+## Scripts for Running Experiments
+
 ### run_experiment.sh
 
-This script runs an experiment for different pipelines. It takes the experiment name and the first pipeline to run as required arguments. Optionally, you can specify another pipeline to run for all subsequent runs and a specific run name.
+This script runs an experiment for different pipelines.  
+It requires the experiment name and the name of the first pipeline to run as positional arguments.
+
+Optionally, you can specify:
+- another pipeline to run for all subsequent runs, and
+- a specific run name.
+
+The script copies the rendered templates from `experiments/<experiment_name>/templates/` to the Kedro configuration directory.
 
 **Usage:**
 ```sh
