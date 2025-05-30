@@ -90,6 +90,11 @@ data_engineering:
         single_column: True
         description: "The capped bonus-malus value"
         model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.BonusMalusCreatorModel
+      - name: "BonusMalusCat"
+        type: "categorical"
+        single_column: True
+        description: "The capped bonus-malus value"
+        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.BonusMalusCatCreatorModel
       - name: "LogDensity"
         type: "numerical"
         single_column: True

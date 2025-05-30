@@ -175,6 +175,26 @@ class BonusMalusCreatorModel(CustomFeatureCreatorModel):
         return pd.DataFrame({self.ftr_config.name: features_df.BonusMalus.clip(upper=150)})
 
 
+class BonusMalusCatCreatorModel(CustomFeatureCreatorModel):
+    def __init__(self, ftr_config: CustomFeatureConfig):
+        super().__init__(ftr_config)
+
+    def fit(self, features_df: pd.DataFrame) -> None:
+        pass
+
+    def _transform(self, features_df: pd.DataFrame) -> pd.DataFrame:
+        features_df = features_df.copy()
+        features_df["BonusMalus"] = features_df.BonusMalus.clip(upper=150)
+        bonus_malus_intervals = [50, 51] + list(range(55, 101, 5)) + [np.inf]
+        return create_category_feature(
+            features_df,
+            column="BonusMalus",
+            intervals=bonus_malus_intervals,
+            right=True,
+            new_column=self.ftr_config.name  # we replace the original column with the new one
+        )
+
+
 class DensityCreatorModel(CustomFeatureCreatorModel):
     def __init__(self, ftr_config: CustomFeatureConfig):
         super().__init__(ftr_config)
