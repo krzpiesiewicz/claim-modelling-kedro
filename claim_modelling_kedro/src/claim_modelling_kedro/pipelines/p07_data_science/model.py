@@ -1,4 +1,6 @@
 import logging
+import os
+import tempfile
 import time
 from abc import ABC, abstractmethod
 from datetime import timedelta
@@ -22,7 +24,9 @@ from claim_modelling_kedro.pipelines.utils.dataframes import (
 logger = logging.getLogger(__name__)
 
 # Define the artifact path for prediction model
-_predictive_model_artifact_path = "model_ds/predictive_model"
+_ds_artifact_path = "model_ds"
+_predictive_model_artifact_path = f"{_ds_artifact_path}/predictive_model"
+_features_importances_filename = "features_importance.csv"
 
 
 def get_sample_weight(config: Config, target_df: Union[pd.DataFrame, np.ndarray]) -> Union[pd.Series, None]:
@@ -176,6 +180,18 @@ def fit_transform_predictive_model_part(config: Config, selected_sample_features
     logger.info(f"Fitted the predictive model. Elapsed time: {formatted_time}.")
     # Save the model
     MLFlowModelLogger(model, "predictive model").log_model(_predictive_model_artifact_path)
+    # Save the features importances
+    logger.info("Saving the features importances...")
+    try:
+        features_importances = model.get_features_importances()
+        with tempfile.TemporaryDirectory() as tempdir:
+            file_path = os.path.join(tempdir, _features_importances_filename)
+            features_importances.to_csv(file_path)
+            mlflow.log_artifact(file_path, _ds_artifact_path)
+        logger.info(
+            f"Successfully saved the features importances to MLFlow path {os.path.join(_ds_artifact_path, _features_importances_filename)}")
+    except ValueError as e:
+        logger.warning(f"{e}. Skipping saving features importances.")
     # Make predictions
     logger.info("Predicting the target...")
     predictions_df = model.predict(selected_sample_features_df)
