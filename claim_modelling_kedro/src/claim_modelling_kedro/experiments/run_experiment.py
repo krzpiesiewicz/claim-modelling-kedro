@@ -4,9 +4,10 @@ import os
 import time
 
 from claim_modelling_kedro.experiments import copy_experiment_run_configs, run_kedro_pipeline
+from claim_modelling_kedro.experiments.setup_logger import setup_logger
 
 # Configure the logger
-logging.basicConfig(level=logging.INFO)
+setup_logger()
 logger = logging.getLogger(__name__)
 
 
@@ -42,7 +43,7 @@ def main():
     if other_pipeline is None:
         other_pipeline = first_pipeline
 
-    # Get the current working directory (solvency-modelling)
+    # Get the current working directory (claim-modelling)
     base_dir = os.path.abspath(os.getcwd())
 
     # Experiment directory path

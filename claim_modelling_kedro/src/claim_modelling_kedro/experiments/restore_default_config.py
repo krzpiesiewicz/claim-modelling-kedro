@@ -2,9 +2,10 @@ import os
 import logging
 
 from claim_modelling_kedro.experiments import restore_default_config_files
+from claim_modelling_kedro.experiments.setup_logger import setup_logger
 
 # Configure the logger
-logging.basicConfig(level=logging.INFO)
+setup_logger()
 logger = logging.getLogger(__name__)
 
 def main():

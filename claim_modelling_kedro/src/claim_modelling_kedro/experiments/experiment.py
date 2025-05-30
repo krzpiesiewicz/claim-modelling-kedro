@@ -5,6 +5,9 @@ import re
 from typing import Dict, Any
 import yaml
 
+from claim_modelling_kedro.experiments.setup_logger import setup_logger
+
+setup_logger()
 logger = logging.getLogger(__name__)
 
 
@@ -49,7 +52,7 @@ def create_experiment_run(experiment_name: str, run_name: str, template_paramete
     """
     Creates a new run directory for a specific experiment.
     """
-    experiment_dir = f"experiments/{experiment_name}"
+    experiment_dir = os.path.join("experiments", "experiment_name")
     templates_dir = os.path.join(experiment_dir, "templates")
     runs_dir = os.path.join(experiment_dir, "runs")
 
@@ -58,6 +61,11 @@ def create_experiment_run(experiment_name: str, run_name: str, template_paramete
 
     # Create the run directory if it doesn't exist
     os.makedirs(run_dir, exist_ok=True)
+
+    if not os.path.exists(templates_dir):
+        msg = f"Templates directory '{templates_dir}' does not exist. No templates to fill."
+        logger.error(msg)
+        raise FileNotFoundError(msg)
 
     # Update the placeholder for the name of the mlflow experiment
     template_parameters.update(MLFLOW_EXPERIMENT_NAME=experiment_name, MLFLOW_RUN_NAME=run_name)
@@ -111,8 +119,9 @@ def copy_experiment_run_configs(experiment_dir: str, run_name: str, target_dir_p
 
         # Ensure the source file exists
         if not os.path.exists(source_file_path):
-            logger.error(f"Source file '{source_file_path}' does not exist. Skipping.")
-            continue
+            msg = f"Source file '{source_file_path}' does not exist."
+            logger.error(msg)
+            raise FileNotFoundError(msg)
 
         # Ensure the target directory exists
         target_dir = os.path.dirname(target_file_path)
