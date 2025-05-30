@@ -41,8 +41,27 @@ X.    BACKLOG Dodać RGLMNet - bo tam jest L1 dla Poisson i obsługa wag (wagi n
 X.    [CANCELED] Model łączący modele na częstotliwość i średnią szkodę.
 
 
-TODO - eksperymenty:
+TODO - eksperymenty - severity:
+0.    [DONE] Dummy regressor
+1.    [DONE] Wuthrich features + inverse link
+2.    [DONE] inverse link + różne skalowania
+3.    TODO statsmodels log link + różne skalowania
+4.    TODO statsmodels log link + feature selection (liczba cech + pyglmnet)
+5.    TODO statsmodels log link: outliers (policy + threshold)
+6.    TODO sklearn log link: L2
+7.    TODO pyglm log link: L1 i L2
+8.    TOOO kalibracja (3 metody) wybranych modeli z 0.-7.
 
+TODO - eksperymenty - frequency:
+0.    TODO Dummy regressor
+1.    TODO Wuthrich features + inverse link
+    TODO statsmodels log link + różne skalowania
+    TODO statsmodels log link + feature selection (liczba cech + pyglmnet)
+    TODO statsmodels log link: outliers (policy + threshold)
+    TODO sklearn log link: L2
+    TODO pyglm log link: L1 i L2
+    TOOO kalibracja (3 metody) wybranych modeli z
+    TODO target ratio
 
 TODO - tekst:
 0. Ewaluacja (gini, lorentz, CC, krzywa kalibracji)
