@@ -233,7 +233,10 @@ data_science:
         link: inverse # 'log' (all families), 'inverse' (Gamma), 'power' (Tweedie)
         force_min_y_pred: True
         fit_intercept: True
-        intercept_scale: mean # the scale of the intercept - float or 'mean' (mean target value during fitting)
+        intercept_scale: # float or 'mean' - the scale of the intercept (intercept := intercept_scale), default is 1.0,
+                         # 'mean': intercept_scale := mean target value in train set
+        trg_divisor: # float or 'mean' - the divisor of the target value in train set (target := target / trg_divisor), default is 1.0,
+                     # 'mean': trg_divisor := mean target value in train set
 #      SklearnPoissonGLM:
 #        alpha: 1
 #        fit_intercept: True
