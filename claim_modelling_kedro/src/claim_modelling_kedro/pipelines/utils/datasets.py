@@ -2,7 +2,9 @@ import importlib
 import logging
 import os
 import tempfile
-from typing import Dict, Any
+import threading
+import time
+from typing import Dict, Any, Optional
 
 import mlflow
 import pandas as pd
@@ -78,34 +80,67 @@ def save_partitioned_dataset_in_mlflow(df: Dict[str, pd.DataFrame], artifact_pat
             mlflow.log_artifact(pq_path, artifact_path=artifact_path)
 
 
-def load_partitioned_dataset_from_mlflow(artifact_path: str, mlflow_run_id: str = None) -> Dict[str, pd.DataFrame]:
+def load_partitioned_dataset_from_mlflow(
+    artifact_path: str,
+    mlflow_run_id: Optional[str] = None,
+    time_limit: Optional[float] = None,
+    raise_on_failure: bool = True
+) -> Optional[Dict[str, pd.DataFrame]]:
+
     if mlflow_run_id is None:
         mlflow_run_id = mlflow.active_run().info.run_id
 
-    # Get the list of artifact URIs in the artifact path
-    artifacts = mlflow.artifacts.list_artifacts(run_id=mlflow_run_id, artifact_path=artifact_path)
+    try:
+        artifacts = mlflow.artifacts.list_artifacts(run_id=mlflow_run_id, artifact_path=artifact_path)
+        partitioned_dataset = {}
 
-    # Initialize an empty dictionary to hold the loaded partitions
-    partitioned_dataset = {}
+        with tempfile.TemporaryDirectory() as temp_dir:
+            for artifact in artifacts:
+                artifact_uri = f"runs:/{mlflow_run_id}/{artifact.path}"
+                result = {}
+                exception = {}
 
-    # Create a temporary directory to download the artifacts
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # Download each artifact and load it as a DataFrame
-        for artifact in artifacts:
-            logger.info(f"Loading artifact {artifact.path} from MLFlow...")
-            # Construct the artifact URI
-            artifact_uri = f"runs:/{mlflow_run_id}/{artifact.path}"
+                def download_partition():
+                    try:
+                        local_path = mlflow.tracking.artifact_utils._download_artifact_from_uri(artifact_uri, temp_dir)
+                        df = pd.read_parquet(local_path)
+                        result["df"] = df
+                    except Exception as e:
+                        exception["error"] = e
 
-            # Download the artifact to the temporary directory
-            local_path = mlflow.tracking.artifact_utils._download_artifact_from_uri(artifact_uri, temp_dir)
+                thread = threading.Thread(target=download_partition)
+                thread.start()
+                thread.join(timeout=time_limit)
 
-            # Load the artifact as a DataFrame
-            df = pd.read_parquet(local_path)
+                if thread.is_alive():
+                    msg = f"Timeout: downloading artifact exceeded {time_limit} seconds: {artifact_uri}"
+                    if raise_on_failure:
+                        logger.error(msg)
+                        raise TimeoutError(msg)
+                    else:
+                        logger.error(msg)
+                        return None
 
-            # Get the partition name from the artifact path
-            partition_name = os.path.splitext(os.path.basename(artifact.path))[0]
+                if "error" in exception:
+                    msg = f"Error loading artifact {artifact.path}: {exception['error']}"
+                    if raise_on_failure:
+                        logger.error(msg, exc_info=True)
+                        raise exception["error"]
+                    else:
+                        logger.error(msg)
+                        return None
 
-            # Add the DataFrame to the dictionary
-            partitioned_dataset[partition_name] = df
+                partition_name = os.path.splitext(os.path.basename(artifact.path))[0]
+                partitioned_dataset[partition_name] = result["df"]
 
-    return partitioned_dataset
+        return partitioned_dataset
+
+    except Exception as e:
+        msg = f"Failed to load partitioned dataset from MLflow: {e}"
+        if raise_on_failure:
+            logger.error(msg, exc_info=True)
+            raise
+        else:
+            logger.error(msg)
+            return None
+

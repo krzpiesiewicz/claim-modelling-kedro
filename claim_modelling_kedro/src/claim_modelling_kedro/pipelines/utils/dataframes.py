@@ -1,7 +1,9 @@
 import logging
 import os
 import tempfile
-from typing import Union, Dict, Tuple
+import threading
+import time
+from typing import Union, Dict, Tuple, Optional
 
 import mlflow
 import numpy as np
@@ -116,13 +118,19 @@ def save_predictions_and_target_in_mlflow(predictions_df: Dict[str, pd.DataFrame
     logger.info(f"Saved the predictions and the target from {dataset} dataset to MLFlow.")
 
 
-def load_predictions_and_target_from_mlflow(dataset: str,
-                                            mlflow_run_id: str = None) -> Tuple[Dict[str, pd.DataFrame]]:
+def load_predictions_and_target_from_mlflow(
+        dataset: str,
+        mlflow_run_id: str = None,
+        time_limit: float = None,
+        raise_on_failure: bool = True
+) -> Tuple[Dict[str, pd.DataFrame]]:
     logger.info(f"Loading the predictions and the target from {dataset} dataset from MLFlow...")
     predictions_df = load_partitioned_dataset_from_mlflow(artifact_path=f"predictions/{dataset}/prediction",
-                                                          mlflow_run_id=mlflow_run_id)
+                                                          mlflow_run_id=mlflow_run_id, time_limit=time_limit,
+                                                          raise_on_failure=raise_on_failure)
     target_df = load_partitioned_dataset_from_mlflow(artifact_path=f"predictions/{dataset}/target",
-                                                     mlflow_run_id=mlflow_run_id)
+                                                     mlflow_run_id=mlflow_run_id, time_limit=time_limit,
+                                                     raise_on_failure=raise_on_failure)
     logger.info(f"Loaded the predictions and the target from {dataset} dataset from MLFlow.")
     return predictions_df, target_df
 
@@ -138,18 +146,57 @@ def save_pd_dataframe_as_csv_in_mlflow(df: pd.DataFrame, artifact_path: str, csv
         return csv_path
 
 
-def load_pd_dataframe_csv_from_mlflow(artifact_path: str, filename: str = None, mlflow_run_id: str = None,
-                                      index_col=None,
-                                      columns_index_name=None) -> pd.DataFrame:
+def load_pd_dataframe_csv_from_mlflow(
+    artifact_path: str,
+    filename: Optional[str] = None,
+    mlflow_run_id: Optional[str] = None,
+    index_col=None,
+    columns_index_name=None,
+    time_limit: float = None,
+    raise_on_failure: bool = True
+) -> Optional[pd.DataFrame]:
+
     if mlflow_run_id is None:
         mlflow_run_id = mlflow.active_run().info.run_id
-    with tempfile.TemporaryDirectory() as temp_dir:
-        artifact_path = f"{artifact_path}/{filename}" if filename is not None else artifact_path
-        artifact_uri = f"runs:/{mlflow_run_id}/{artifact_path}"
-        local_path = mlflow.tracking.artifact_utils._download_artifact_from_uri(artifact_uri, temp_dir)
-        df = pd.read_csv(local_path, index_col=index_col)
-        df.columns.name = columns_index_name
-        return df
+
+    artifact_path = f"{artifact_path}/{filename}" if filename is not None else artifact_path
+    artifact_uri = f"runs:/{mlflow_run_id}/{artifact_path}"
+
+    result = {}
+    exception = {}
+
+    def download():
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                local_path = mlflow.tracking.artifact_utils._download_artifact_from_uri(artifact_uri, temp_dir)
+                df = pd.read_csv(local_path, index_col=index_col)
+                df.columns.name = columns_index_name
+                result["df"] = df
+        except Exception as e:
+            exception["error"] = e
+
+    thread = threading.Thread(target=download)
+    thread.start()
+    thread.join(timeout=time_limit)
+
+    if thread.is_alive():
+        msg = f"Timeout: downloading artifact exceeded {time_limit} seconds: {artifact_uri}"
+        if raise_on_failure:
+            logger.error(msg)
+            raise TimeoutError(msg)
+        else:
+            logger.error(msg)
+            return None
+
+    if "error" in exception:
+        if raise_on_failure:
+            logger.error("Failed to load DataFrame from MLflow", exc_info=True)
+            raise exception["error"]
+        else:
+            logger.error(f"Failed to load artifact {artifact_uri}: {exception['error']}")
+            return None
+
+    return result.get("df")
 
 
 def _file_name(dataset: str, prefix: str = None, suffix: str = None, ext: str = None) -> str:
@@ -169,10 +216,17 @@ def save_metrics_table_in_mlflow(metrics_df: pd.DataFrame, dataset: str, prefix:
     save_pd_dataframe_as_csv_in_mlflow(metrics_df, artifact_path=artifact_path, csv_filename=csv_filename)
 
 
-def load_metrics_table_from_mlflow(dataset: str, prefix: str = None, mlflow_run_id: str = None) -> pd.DataFrame:
+def load_metrics_table_from_mlflow(
+        dataset: str,
+        prefix: str = None,
+        mlflow_run_id: str = None,
+        time_limit: float = None,
+        raise_on_failure: bool = True
+) -> pd.DataFrame:
     filename, artifact_path = get_metrics_table_filname_and_artifact_path(dataset, prefix)
     metrics_df = load_pd_dataframe_csv_from_mlflow(artifact_path, filename, mlflow_run_id, index_col="metric",
-                                                   columns_index_name="part")
+                                                   columns_index_name="part", time_limit=time_limit,
+                                                   raise_on_failure=raise_on_failure)
     return metrics_df
 
 
@@ -187,7 +241,14 @@ def save_metrics_cv_stats_in_mlflow(metrics_cv_stats_df: pd.DataFrame, dataset: 
     save_pd_dataframe_as_csv_in_mlflow(metrics_cv_stats_df, artifact_path=artifact_path, csv_filename=csv_filename)
 
 
-def load_metrics_cv_stats_from_mlflow(dataset: str, prefix: str = None, mlflow_run_id: str = None) -> pd.DataFrame:
+def load_metrics_cv_stats_from_mlflow(
+        dataset: str,
+        prefix: str = None,
+        mlflow_run_id: str = None,
+        time_limit: float = None,
+        raise_on_failure: bool = True
+) -> pd.DataFrame:
     filename, artifact_path = get_metrics_cv_stats_filname_and_artifact_path(dataset, prefix)
-    metrics_cv_stats_df = load_pd_dataframe_csv_from_mlflow(artifact_path, filename, mlflow_run_id, index_col="metric")
+    metrics_cv_stats_df = load_pd_dataframe_csv_from_mlflow(artifact_path, filename, mlflow_run_id, index_col="metric",
+                                                            time_limit=time_limit, raise_on_failure=raise_on_failure)
     return metrics_cv_stats_df
