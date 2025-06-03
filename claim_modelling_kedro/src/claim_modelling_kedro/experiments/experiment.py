@@ -52,7 +52,7 @@ def create_experiment_run(experiment_name: str, run_name: str, template_paramete
     """
     Creates a new run directory for a specific experiment.
     """
-    experiment_dir = os.path.join("experiments", "experiment_name")
+    experiment_dir = os.path.join("experiments", experiment_name)
     templates_dir = os.path.join(experiment_dir, "templates")
     runs_dir = os.path.join(experiment_dir, "runs")
 
