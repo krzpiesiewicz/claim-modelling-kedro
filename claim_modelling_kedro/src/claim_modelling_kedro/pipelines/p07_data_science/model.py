@@ -137,10 +137,11 @@ class PredictiveModel(ABC):
         return hparams
 
     def update_hparams(self, hparams: Dict[str, Any] = None, call_updated_hparams: bool = True, **kwargs):
-        if self._hparams is None:
-            self._hparams = self.get_default_hparams().copy()
+        _current_hparams = self._hparams or {}
+        self._hparams = self.get_default_hparams().copy()
+        self._hparams.update(_current_hparams)
         if hparams is not None:
-            self._hparams.update(hparams)
+            self._hparams.update({hparam: value for hparam, value in hparams.items() if value is not None})
         self._hparams.update(kwargs)
         self._not_fitted = True
         if call_updated_hparams:
