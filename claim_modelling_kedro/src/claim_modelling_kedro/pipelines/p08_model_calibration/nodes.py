@@ -7,6 +7,7 @@ from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p06_data_engineering.utils import transform_features_by_mlflow_model
 from claim_modelling_kedro.pipelines.p07_data_science.model import predict_by_mlflow_model, evaluate_predictions
 from claim_modelling_kedro.pipelines.p07_data_science.select import select_features_by_mlflow_model
+from claim_modelling_kedro.pipelines.p07_data_science.transform_target import inverse_transform_predictions_by_mlflow_model
 from claim_modelling_kedro.pipelines.p08_model_calibration.utils import handle_outliers, \
     fit_transform_calibration_model
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition
@@ -49,6 +50,11 @@ def fit_calibration_model(config: Config, pure_sample_predictions_df: Dict[str, 
         # Predict by the pure MLflow model
         pure_calib_predictions_df = predict_by_mlflow_model(config, selected_calib_features_df,
                                                             mlflow_run_id=config.ds.mlflow_run_id)
+        if config.ds.target_transformer_enabled:
+            # Inverse transform the predictions
+            pure_calib_predictions_df = inverse_transform_predictions_by_mlflow_model(config, pure_calib_predictions_df,
+                                                                                      mlflow_run_id=config.ds.mlflow_run_id)
+
         # Fit the calibration model and transform the predictions
         calibrated_calib_predictions_df = fit_transform_calibration_model(config, pure_calib_predictions_df,
                                                                           calib_trg_df_handled_outliers)

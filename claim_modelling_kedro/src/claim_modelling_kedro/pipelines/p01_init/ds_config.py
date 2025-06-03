@@ -6,9 +6,10 @@ from typing import Dict, Any, List
 from claim_modelling_kedro.pipelines.p01_init.exprmnt import ExperimentInfo, Target
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum
 
-
 logger = logging.getLogger(__name__)
 
+class TargetTransformerEnum(Enum):
+    LOG_TARGET_TRANSFORMER: str = "LogTargetTransformer"
 
 class ModelEnum(Enum):
     DUMMY_MEAN_REGRESSOR: str = "DummyMeanRegressor"
@@ -42,6 +43,8 @@ class DataScienceConfig:
     model_class: str
     model_random_seed: int
     model_const_hparams: Dict[str, Any]
+    target_transformer_enabled: bool
+    target_transformer_class: str
     fs_enabled: bool
     fs_method: str
     fs_model_class: str
@@ -109,6 +112,17 @@ class DataScienceConfig:
         else:
             self.model_const_hparams = {}
         logger.debug(f"model_const_hparams: {self.model_const_hparams}")
+
+        self.target_transformer_enabled = params["target_transformer"]["enabled"]
+        if self.target_transformer_enabled:
+            model = TargetTransformerEnum(params["target_transformer"]["model"])
+            match model:
+                case TargetTransformerEnum.LOG_TARGET_TRANSFORMER:
+                    self.target_transformer_class = "claim_modelling_kedro.pipelines.p07_data_science.target_transformers.LogTargetTransformer"
+                case _:
+                    raise ValueError(f"Target transformer model \"{model}\" not supported.")
+        else:
+            self.target_transformer_class = None
 
         fs_params = params["feature_selection"]
         self.fs_enabled = fs_params["enabled"]

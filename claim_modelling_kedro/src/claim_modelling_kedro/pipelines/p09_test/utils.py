@@ -7,6 +7,8 @@ from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p06_data_engineering.utils import transform_features_by_mlflow_model
 from claim_modelling_kedro.pipelines.p07_data_science.model import predict_by_mlflow_model, evaluate_predictions
 from claim_modelling_kedro.pipelines.p07_data_science.select import select_features_by_mlflow_model
+from claim_modelling_kedro.pipelines.p07_data_science.transform_target import \
+    inverse_transform_predictions_by_mlflow_model
 from claim_modelling_kedro.pipelines.p08_model_calibration.utils import calibrate_predictions_by_mlflow_model
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition
 from claim_modelling_kedro.pipelines.utils.dataframes import save_predictions_and_target_in_mlflow
@@ -84,6 +86,9 @@ def run_eval_pipeline(
     pure_predictions = predict_by_mlflow_model(
         config, selected_features, mlflow_run_id=config.ds.mlflow_run_id
     )
+    if config.ds.target_transformer_enabled:
+        pure_predictions = inverse_transform_predictions_by_mlflow_model(config, pure_predictions,
+                                                                         mlflow_run_id=config.ds.mlflow_run_id)
     if config.clb.enabled:
         calibrated_predictions = calibrate_predictions_by_mlflow_model(
             config, pure_predictions, mlflow_run_id=config.clb.mlflow_run_id
