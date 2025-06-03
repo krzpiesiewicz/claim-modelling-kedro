@@ -100,6 +100,10 @@ loggers:
     formatter: simple
     level: INFO
 
+  claim_modelling_kedro.pipelines.p07_data_science.transform_target:
+    formatter: simple
+    level: INFO
+
   claim_modelling_kedro.pipelines.p07_data_science.models.sklearn_model:
     formatter: simple
     level: INFO
