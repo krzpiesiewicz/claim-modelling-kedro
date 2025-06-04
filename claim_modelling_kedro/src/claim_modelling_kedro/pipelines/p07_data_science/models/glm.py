@@ -350,7 +350,7 @@ class SklearnPoissonGLM(SklearnGLM):
     @classmethod
     def get_hparams_space(cls) -> Dict[str, Any]:
         return {
-            "alpha": hp.loguniform("alpha", -5, 10),
+            "alpha": hp.loguniform("alpha", -5, 1),
             "fit_intercept": hp.choice("fit_intercept", [True, False]),
             "solver": hp.choice("solver", cls._get_solver_options())
         }
@@ -395,7 +395,7 @@ class SklearnGammaGLM(SklearnGLM):
     @classmethod
     def get_hparams_space(cls) -> Dict[str, Any]:
         return {
-            "alpha": hp.loguniform("alpha", -5, 10),
+            "alpha": hp.loguniform("alpha", -5, 1),
             "fit_intercept": hp.choice("fit_intercept", [True, False]),
             "solver": hp.choice("solver", ["lbfgs", "newton-cholesky"])
         }
@@ -443,7 +443,7 @@ class SklearnTweedieGLM(SklearnGLM):
     @classmethod
     def get_hparams_space(cls) -> Dict[str, Any]:
         return {
-            "alpha": hp.loguniform("alpha", -5, 10),
+            "alpha": hp.loguniform("alpha", -5, 1),
             "fit_intercept": hp.choice("fit_intercept", [True, False]),
             "power": hp.uniform("power", 1.0, 2.0),
             "solver": hp.choice("solver", ["lbfgs", "newton-cholesky"])
@@ -565,10 +565,12 @@ class PyGLMNetGLM(PredictiveModel):
     def get_hparams_space(cls) -> Dict[str, Any]:
         return {
             "alpha": hp.uniform("alpha", 0.0, 1.0),
-            "reg_lambda": hp.loguniform("reg_lambda", -5, 2),
+            "reg_lambda": hp.choice("reg_lambda", [0, hp.loguniform("reg_lambda_positive", -5, 1)]),
             "fit_intercept": hp.choice("fit_intercept", [True, False]),
             "max_iter": hp.choice("max_iter", [100, 500, 1000]),
-            "tol": hp.choice("tol", [1e-4, 1e-5, 1e-6])
+            "tol": hp.choice("tol", [1e-4, 1e-5, 1e-6]),
+            "learning_rate": hp.uniform("learning_rate", 0.001, 0.1),
+            "solver": hp.choice("solver", ["batch-gradient", "cdfast"])
         }
 
     @classmethod
@@ -578,7 +580,9 @@ class PyGLMNetGLM(PredictiveModel):
             "reg_lambda": 0.1,
             "fit_intercept": True,
             "max_iter": 1000,
-            "tol": 1e-6
+            "tol": 1e-6,
+            "learing_rate": 0.01,
+            "solver": "batch-gradient",
         }
 
     def get_params(self, deep: bool = True) -> Dict[str, Any]:

@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 # Define the artifact path for prediction model
 _ds_artifact_path = "model_ds"
 _predictive_model_artifact_path = f"{_ds_artifact_path}/predictive_model"
-_features_importance_filename = "features_importance.csv"
+_features_importance_filename = "model_features_importance.csv"
 
 
 def get_sample_weight(config: Config, target_df: Union[pd.DataFrame, np.ndarray]) -> Union[pd.Series, None]:
