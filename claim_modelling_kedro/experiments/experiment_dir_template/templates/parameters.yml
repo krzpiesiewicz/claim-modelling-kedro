@@ -158,6 +158,9 @@ data_science:
     # downloaded from the MLflow run
   split_val_size: 0.3 # the part of data used for validation the final model
   split_random_seed: 0 # the random seed for splitting the data into train and validation sets
+  target_transformer:
+    enabled: False # whether to use the target transformer
+    model: LogTargetTransformer
   feature_selection:
     enabled: False # whether to use the feature selection
     max_n_features: # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
