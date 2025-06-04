@@ -60,10 +60,7 @@ def calibrate_predictions_by_mlflow_model_part(config: Config, pure_predictions_
                                                                   run_id=mlflow_run_id)
         # Make predictions
         calibrated_predictions_df = _calibrate_by_model(config, model, pure_predictions_df)
-        logger.info("Transformed the predictions.")
         logger.info("Calibrated predictions: %s", calibrated_predictions_df.head())
-        logger.info(f"logger: {logger}")
-        logger.info(f"logger.level: {logger.level}")
         return calibrated_predictions_df
     else:
         logger.info("Calibration is disabled. Hence, return the pure predictions.")
