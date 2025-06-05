@@ -207,7 +207,11 @@ data_science:
       # 'spearman_correlation', 'exposure_weighted_spearman_correlation', 'claim_nb_weighted_spearman_correlation'
       # tweedie_deviance(p), where p is a float number, e.g., tweedie_deviance(1.5)
       # exposure_weighted_tweedie_deviance(p) or claim_nb_weighted_tweedie_deviance(p), where p is a float number, e.g., weighted_tweedie_deviance(1.5)
-    max_evals: 10 # the maximum number of evaluations
+    max_evals: 100 # the maximum number of evaluations
+    early_stopping:
+      enabled: True # whether to use early stopping
+      iteration_stop_count: 50 # the number of trials after which the optimization is stopped if no improvement is observed
+      percent_increase: 0.01 # the percent increase in the metric that is required to continue the optimization
     algo: tpe # 'tpe', 'random'
     show_progressbar: True # whether to show the progress bar
     trial_verbose: True # whether to show each trial in the console

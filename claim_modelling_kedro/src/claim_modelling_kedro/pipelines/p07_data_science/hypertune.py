@@ -9,6 +9,7 @@ import mlflow
 import numpy as np
 import pandas as pd
 from hyperopt import fmin, Trials, space_eval, STATUS_OK, STATUS_FAIL
+from hyperopt.early_stop import no_progress_loss
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
@@ -292,13 +293,19 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
                         selected_sample_features_df=selected_sample_features_df,
                         sample_target_df=sample_target_df, sample_train_keys=sample_train_keys,
                         sample_val_keys=sample_val_keys, hyperopt_artifact_path=hyperopt_artifact_path)
+    if config.ds.hopt_early_stop_enabled:
+        hp_early_stop = no_progress_loss(iteration_stop_count=config.ds.hopt_early_iteration_stop_count,
+                                         percent_increase=config.ds.hopt_early_stop_percent_increase)
+    else:
+        hp_early_stop = None
     hp_assignment = fmin(
         fn=objective,
         space=hparam_space,
         algo=hopt_algo,
         max_evals=config.ds.hopt_max_evals,
         trials=trials,
-        rstate=np.random.default_rng(config.ds.hopt_fmin_random_seed)
+        rstate=np.random.default_rng(config.ds.hopt_fmin_random_seed),
+        early_stop_fn=hp_early_stop
     )
     best_trial = get_best_trial(trials)
     best_hparams = get_hparams_from_trial(best_trial, hparam_space)

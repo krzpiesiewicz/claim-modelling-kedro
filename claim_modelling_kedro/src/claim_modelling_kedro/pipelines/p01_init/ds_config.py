@@ -54,6 +54,9 @@ class DataScienceConfig:
     hopt_enabled: bool
     hopt_metric: MetricEnum
     hopt_max_evals: int
+    hopt_early_stop_enabled: bool
+    hopt_early_iteration_stop_count: int
+    hopt_early_stop_percent_increase: float
     hopt_algo: HyperoptAlgoEnum
     hopt_show_progressbar: bool
     hopt_trial_verbose: bool
@@ -168,6 +171,10 @@ class DataScienceConfig:
                 case _:
                     raise ValueError(f"Metric for target {exprmnt.target} is not defined -> see p01_init/config.py.")
         self.hopt_max_evals = hopt_params["max_evals"]
+        self.hopt_early_stop_enabled = hopt_params["early_stopping"]["enabled"]
+        if self.hopt_early_stop_enabled:
+            self.hopt_early_iteration_stop_count= hopt_params["early_stopping"]["iteration_stop_count"]
+            self.hopt_early_stop_percent_increase = hopt_params["early_stopping"]["percent_increase"]
         self.hopt_algo = HyperoptAlgoEnum(hopt_params["algo"])
         self.hopt_show_progressbar = hopt_params["show_progressbar"]
         self.hopt_trial_verbose = hopt_params["trial_verbose"]
