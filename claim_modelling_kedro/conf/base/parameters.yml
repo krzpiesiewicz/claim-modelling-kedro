@@ -153,6 +153,10 @@ data_engineering:
         with_centering: True # whether to center the data before scaling
         with_scaling: True # whether to scale the data to unit variance
         quantile_range: [25.0, 75.0]
+  pca:
+    enabled: False
+    n_components: 0.95 # (int or float) the number of components to keep or the explained variance ratio to keep
+    random_state: 0
 
 
 data_science:

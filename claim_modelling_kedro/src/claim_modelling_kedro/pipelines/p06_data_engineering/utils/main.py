@@ -21,6 +21,8 @@ from claim_modelling_kedro.pipelines.p06_data_engineering.utils.onehot_encoder i
     one_hot_encode_by_mlflow_model
 from claim_modelling_kedro.pipelines.p06_data_engineering.utils.scaler import fit_transform_scaler, \
     scale_features_by_mlflow_model
+from claim_modelling_kedro.pipelines.p06_data_engineering.utils.pca import transform_features_pca_by_mlflow_model, \
+    fit_transform_features_pca
 from claim_modelling_kedro.pipelines.p06_data_engineering.utils.utils import split_categories_and_numerics, join_features_dfs
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
 
@@ -95,6 +97,10 @@ def fit_transform_features_part(config: Config, features_df: pd.DataFrame, featu
     transformed_features_df = remove_features_from_blacklist(transformed_features_df, features_blacklist)
     save_features_blacklist_to_mlflow(features_blacklist_text)
 
+    # If PCA is enabled, transform the features using PCA
+    if config.de.is_pca_enabled:
+        transformed_features_df = fit_transform_features_pca(config, transformed_features_df)
+
     # Check that the indexes of the transformed features match the original features
     assert_features_dfs_have_same_indexes(features_df, transformed_features_df)
     return transformed_features_df
@@ -134,6 +140,10 @@ def transform_features_by_mlflow_model_part(config: Config, features_df: pd.Data
 
     # Remove features from the blacklist
     transformed_features_df = remove_features_from_mlflow_blacklist(transformed_features_df, mlflow_run_id)
+
+    # If PCA is enabled, transform the features using PCA
+    if config.de.is_pca_enabled:
+        transformed_features_df = transform_features_pca_by_mlflow_model(config, transformed_features_df, mlflow_run_id)
 
     # Check that the indexes of the transformed features match the original features
     assert_features_dfs_have_same_indexes(features_df, transformed_features_df)

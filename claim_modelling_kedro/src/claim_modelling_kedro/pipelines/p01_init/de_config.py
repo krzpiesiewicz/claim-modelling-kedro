@@ -46,6 +46,9 @@ class DataEngineeringConfig:
     ohe_min_frequency: int
     is_scaler_enabled: bool
     scaler_method: str
+    is_pca_enabled: bool
+    pca_n_components: Union[int, float]
+    pca_random_state: int
     join_exceeding_and_join_infrequent_values_warning: str = None
 
     def __init__(self, parameters: Dict):
@@ -91,3 +94,6 @@ class DataEngineeringConfig:
             self.scaler_params = scaler_params["params"][scaler_params["method"]]
         else:
             self.scaler_params = {}
+        self.is_pca_enabled = params["pca"]["enabled"]
+        self.pca_n_components = params["pca"]["n_components"]
+        self.pca_random_state = params["pca"]["random_state"]
