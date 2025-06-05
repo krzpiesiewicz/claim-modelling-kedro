@@ -31,11 +31,13 @@ def split_train_calib_test(
     logger.info(f"Stratifying on column: {stratify_target_col}")
 
     if config.data.cv_enabled:
+        sample_weight = get_sample_weight(config, target_df)
         train_keys, calib_keys, test_keys = get_stratified_train_calib_test_cv(
             target_df,
             stratify_target_col=stratify_target_col,
             cv_folds=config.data.cv_folds,
             cv_parts_names=config.data.cv_parts_names,
+            sample_weight=sample_weight,
             shuffle=True,
             random_seed=config.data.split_random_seed,
             verbose=True,
