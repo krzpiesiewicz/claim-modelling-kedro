@@ -38,7 +38,7 @@ data:
     # test_size has to be greater than 0.
     # => train_size = 1 - calib_data_size - calib_data_size (train_size has to be greater than 0)
   cross_validation:
-    enabled: True # whether to use cross-validation
+    enabled: False # whether to use cross-validation
     folds: 5 # the number of folds in cross-validation (repetitions of data splitting)
     # minimum number of folds is 3
     # test_size = 1 / folds
@@ -55,7 +55,7 @@ sampling:
   use_calib_data: False # whether to use also the calibration data for sampling
   random_seed: 1
   n_obs: # the number of samples which are used to train a model.
-  target_ratio: # the ratio of nonzero samples, if None, the ratio is not controlled
+  target_ratio: 0.5 # the ratio of nonzero samples, if None, the ratio is not controlled
                     # if target_ratio is not None and n_obs is None, then get all targets and complete the sample with zeros
                     # If both n_obs and target_ratio are Nones, then all training data is used
   allow_lower_ratio: True # allow the ratio of nonzero samples to be lower than target_ratio
@@ -64,6 +64,8 @@ sampling:
     policy: keep # 'keep', 'drop', 'clip'
     lower_bound:
     upper_bound:
+  split_val_size: 0.3 # the part of the sample used for validation the final model
+  split_val_random_seed: 0 # the random seed for splitting the sample into train and validation sets
 
 data_engineering:
   mlflow_run_id: # If provided a MLFLow run id, the de models are saved to / downloaded from the MLflow run
@@ -100,11 +102,11 @@ data_engineering:
         single_column: True
         description: "The logged value for density"
         model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.DensityCreatorModel
-      - name: "LogLinearArea"
-        type: "numerical"
-        single_column: True
-        description: "Log-linear scale of area-density level {A,...,F} -> {1,...,6}"
-        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.LogLinearAreaCreatorModel
+#      - name: "LogLinearArea"
+#        type: "numerical"
+#        single_column: True
+#        description: "Log-linear scale of area-density level {A,...,F} -> {1,...,6}"
+#        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.LogLinearAreaCreatorModel
       # Example entry below
 #      - name: str # e.g. "MyCustomFeature"
 #        type: str # "categorical" or "numerical"
@@ -116,7 +118,7 @@ data_engineering:
     max_categories: # the maximum number of categories in a feature
     join_exceeding_max_categories: "other" # (str) if nonempty, join categories exceeding max_categories
     # into one category with the name given in this parameter
-    min_frequency: 30 # the minimum frequency of a category in a feature
+    min_frequency: 20 # the minimum frequency of a category in a feature
     join_infrequent: "other" # (str) if nonempty, join categories with frequency lower than min_frequency
       # into one category with the name given in this parameter
       # ATTENTION: if both join_exceeding_max_categories and join_infrequent are provided,
@@ -134,16 +136,16 @@ data_engineering:
     drop_reference_cat: True # whether to drop the reference category
     drop_first: True # whether to drop the first category if drop_reference_cat is False
                      # or the feature does not have a reference category
-    drop_binary: True # whether to drop one of the two categories if the feature is binary
+    drop_binary: False # whether to drop one of the two categories if the feature is binary
                       # and none of the two categories was dropped as a reference category
     max_categories: # (int) the maximum number of categories in a feature
     min_frequency: # (int) the minimum frequency of a category in a feature
   scaler:
-    enabled: False # whether to use the scaler
-    method: # 'StandardScaler', 'MinMaxScaler', 'RobustScaler', 'MaxAbsScaler'
+    enabled: True # whether to use the scaler
+    method: StandardScaler # 'StandardScaler', 'MinMaxScaler', 'RobustScaler', 'MaxAbsScaler'
     params:
       StandardScaler:
-        with_mean: False # whether to center the data before scaling
+        with_mean: True # whether to center the data before scaling
         with_std: True # whether to scale the data to unit variance
       MinMaxScaler:
         feature_range: [0, 1] # the range of the scaled data
@@ -151,20 +153,22 @@ data_engineering:
         with_centering: True # whether to center the data before scaling
         with_scaling: True # whether to scale the data to unit variance
         quantile_range: [25.0, 75.0]
+  pca:
+    enabled: False
+    n_components: 0.95 # (int or float) the number of components to keep or the explained variance ratio to keep
+    random_state: 0
 
 
 data_science:
   mlflow_run_id: # If provided a MLFLow run id, the selector and prediction model are saved to /
     # downloaded from the MLflow run
-  split_val_size: 0.3 # the part of data used for validation the final model
-  split_random_seed: 0 # the random seed for splitting the data into train and validation sets
   target_transformer:
     enabled: False # whether to use the target transformer
     model: LogTargetTransformer
   feature_selection:
-    enabled: False # whether to use the feature selection
-    max_n_features: # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
-    min_importance: 0.001 # the minimum importance of a feature
+    enabled: True # whether to use the feature selection
+    max_n_features: 40 # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
+    min_importance: 0.00001 # the minimum importance of a feature
     max_iter: 100 # the maximum number of iterations
     method: pyglmnet # 'model', 'pyglmnet', 'lasso', 'rfe'
       # 'model' – uses the model from parameter model.model as a base model, e.g., PoissonGLM
@@ -179,12 +183,12 @@ data_science:
       pyglmnet: # applies when method is 'pyglmnet'
         distr: gamma # gamma, poisson
         alpha: 0.5 # the weighting between L1 penalty and L2 penalty term of the loss function
-        reg_lambda: 0.1 # the regularization parameter
+        reg_lambda: 0.0 # the regularization parameter
         solver: batch-gradient # optimization method, can be one of the following:
                                  # 'batch-gradient' (vanilla batch gradient descent) 'cdfast' (Newton coordinate gradient descent)
         learning_rate: 0.01 # the learning rate
         max_iter: 1000 # the maximum number of iterations
-        tol: 0.001 # the tolerance for convergence
+        tol: 0.0001 # the tolerance for convergence
         fit_intercept: True # whether to fit the intercept
       lasso: # applies when method is 'lasso'
         alpha: 0.001 # the regularization parameter
@@ -203,7 +207,11 @@ data_science:
       # 'spearman_correlation', 'exposure_weighted_spearman_correlation', 'claim_nb_weighted_spearman_correlation'
       # tweedie_deviance(p), where p is a float number, e.g., tweedie_deviance(1.5)
       # exposure_weighted_tweedie_deviance(p) or claim_nb_weighted_tweedie_deviance(p), where p is a float number, e.g., weighted_tweedie_deviance(1.5)
-    max_evals: 10 # the maximum number of evaluations
+    max_evals: 100 # the maximum number of evaluations
+    early_stopping:
+      enabled: True # whether to use early stopping
+      iteration_stop_count: 50 # the number of trials after which the optimization is stopped if no improvement is observed
+      percent_increase: 0.01 # the percent increase in the metric that is required to continue the optimization
     algo: tpe # 'tpe', 'random'
     show_progressbar: True # whether to show the progress bar
     trial_verbose: True # whether to show each trial in the console
@@ -216,10 +224,10 @@ data_science:
     split_val_size: 0.3 # the part of data used for validation – used only if cross_validation.enabled is False
     split_random_seed: 0 # the random seed for splitting the data into train and validation sets
     excluded_params:
-#      GradientBoostingRegressor:
-#        - n_estimators
+#      SklearnGammaGLM:
+#        - solver
   model:
-    model: StatsmodelsGammaGLM # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
+    model: SklearnGammaGLM # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
     # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM', 'PyGLMNetPoissonGLM', 'PyGLMNetGammaGLM',
     model_class: # model_class: str, e.g.,
                  # model_class: claim_modelling_kedro.pipelines.p07_data_science.models.SklearnPoissonGLM
@@ -240,11 +248,14 @@ data_science:
                          # 'mean': intercept_scale := mean target value in train set
         trg_divisor: # float or 'mean' - the divisor of the target value in train set (target := target / trg_divisor), default is 1.0,
                      # 'mean': trg_divisor := mean target value in train set
-#      SklearnPoissonGLM:
-#        alpha: 1
-#        fit_intercept: True
-#      GradientBoostingRegressor:
-#        n_estimators: 100
+      SklearnGammaGLM:
+        fit_intercept: True
+        alpha: 0
+      SklearnPoissonGLM:
+        fit_intercept: True
+        alpha: 1
+      PyGLMNetPoissonGLM:
+        fit_intercept: True
 
 
 calibration:
