@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Optional
 
 import mlflow
 import pandas as pd
@@ -37,13 +37,15 @@ def handle_outliers(
     return train_trg_df_handled_outliers
 
 
-def assert_train_size_gte_given_config_sample_size(config: Config, train_trg_df: pd.DataFrame) -> pd.DataFrame:
+def assert_train_size_gte_given_config_sample_size(config: Config, train_trg_df: pd.DataFrame, n_obs: Optional[int] = None) -> pd.DataFrame:
     train_size = train_trg_df.shape[0]
-    if train_size < config.smpl.n_obs:
+    n_obs = n_obs or config.smpl.n_obs
+    if train_size < n_obs:
         raise Exception(f"Cannot sample from the train dataset!!!\n"
                         f"The size of train dataset {train_size} (train_keys) is less than the size of the sample "
-                        f"{config.smpl.n_obs} (config.smpl.n_obs).\n"
-                        f"=> Consider changing the parameter sampling.n_obs to or lower than {train_size}.")
+                        f"{n_obs} ({n_obs}).\n"
+                        f"=> Consider changing the parameter to or lower than {train_size}.\n"
+                        f"Alternatively, set n_obs to None to sample all available observations.")
     return train_trg_df
 
 
@@ -64,16 +66,18 @@ def get_all_samples(config: Config, target_df: pd.DataFrame, train_keys: pd.Inde
     return train_keys
 
 
-def sample_with_no_condition(config: Config, target_df: pd.DataFrame, train_keys: pd.Index) -> pd.Index:
+def sample_with_no_condition(config: Config, target_df: pd.DataFrame, train_keys: pd.Index,
+                             n_obs: Optional[int] = None) -> pd.Index:
     train_trg_df = target_df.loc[train_keys, :]
-    assert_train_size_gte_given_config_sample_size(config, train_trg_df)
+    n_obs = n_obs or config.smpl.n_obs
+    assert_train_size_gte_given_config_sample_size(config, train_trg_df, n_obs=n_obs)
     train_size = train_trg_df.shape[0]
     logger.info(f"""Sampling from the train dataset:
     - target: {config.exprmnt.target}
     - all observations: {train_size}
-    - sample size: {config.smpl.n_obs}""")
+    - sample size: {n_obs}""")
     sample_keys = get_stratified_sample_keys(train_trg_df, config.mdl_task.target_col,
-                                             size=config.smpl.n_obs, shuffle=True,
+                                             size=n_obs, shuffle=True,
                                              random_seed=config.smpl.random_seed)
     sample_df = train_trg_df.loc[sample_keys, :]
     sample_size = sample_df.shape[0]
@@ -84,14 +88,15 @@ def sample_with_no_condition(config: Config, target_df: pd.DataFrame, train_keys
 
 
 def sample_with_target_ratio(config: Config, target_df: pd.DataFrame, train_keys: pd.Index,
-                             is_event: Callable[[Series], Series[bool]]) -> Tuple[pd.Index, float]:
+                             is_event: Callable[[Series], Series[bool]], n_obs: Optional[int] = None) -> Tuple[pd.Index, float]:
     train_trg_df = target_df.loc[train_keys, :]
     train_size = train_trg_df.shape[0]
     events_keys = train_trg_df[is_event(train_trg_df[config.mdl_task.target_col])].index
     n_events = events_keys.shape[0]
-    if config.smpl.n_obs is None:
+    n_obs = config.smpl.n_obs or n_obs
+    if n_obs is None:
         n_obs = round(n_events / config.smpl.target_ratio)
-        logger.info(f"""Parameter sampling.n_obs is not set. The sample size will be calculated based on the sampling.target_ratio and available events:
+        logger.info(f"""Parameter n_obs is not provided. The sample size will be calculated based on the sampling.target_ratio and available events:
         - events: {n_events}
         - target_ratio: {config.smpl.target_ratio}
         => n_obs := {n_obs}.""")
@@ -101,8 +106,7 @@ def sample_with_target_ratio(config: Config, target_df: pd.DataFrame, train_keys
                             f"{n_obs} (calculated based on the sampling.target_ratio and available events).\n"
                             f"=> Consider changing the parameter sampling.target_ratio to or lower than {n_events / train_size}.")
     else:
-        assert_train_size_gte_given_config_sample_size(config, train_trg_df)
-        n_obs = config.smpl.n_obs
+        assert_train_size_gte_given_config_sample_size(config, train_trg_df, n_obs=n_obs)
     n_events_in_sample = round(n_obs * config.smpl.target_ratio)
     n_non_events_in_sample = n_obs - n_events_in_sample
     logger.info(f"""Sampling from the train dataset:

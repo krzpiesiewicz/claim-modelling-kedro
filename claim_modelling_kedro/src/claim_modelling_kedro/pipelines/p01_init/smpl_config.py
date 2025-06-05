@@ -13,6 +13,8 @@ class SamplingConfig:
     allow_lower_ratio: bool
     include_zeros: bool
     outliers: OutliersConfig
+    use_calib_data_for_validation: bool
+    split_train_val_enabled: bool
     split_val_random_seed: int
     split_val_size: float
 
@@ -25,5 +27,9 @@ class SamplingConfig:
         self.allow_lower_ratio = params["allow_lower_ratio"]
         self.include_zeros = params["include_zeros"]
         self.outliers = OutliersConfig(params["outliers"])
-        self.split_val_random_seed = params["split_val_random_seed"]
-        self.split_val_size = params["split_val_size"]
+        self.use_calib_data_for_validation = params["use_calib_data_for_validation"]
+        self.split_train_val_enabled = params["split_train_val"]["enabled"]
+        if self.split_train_val_enabled and self.use_calib_data_for_validation:
+            raise ValueError("If use_calib_data_for_validation is True, split_train_val should be disabled.")
+        self.split_val_random_seed = params["split_train_val"]["random_seed"]
+        self.split_val_size = params["split_train_val"]["val_size"]

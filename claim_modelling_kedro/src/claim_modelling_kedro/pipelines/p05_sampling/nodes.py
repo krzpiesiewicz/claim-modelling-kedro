@@ -15,6 +15,29 @@ from claim_modelling_kedro.pipelines.utils.datasets import get_mlflow_run_id_for
 logger = logging.getLogger(__name__)
 
 
+def get_sample_keys(
+        config: Config,
+        trg_df_handled_outliers: pd.DataFrame,
+        is_event: Callable[[Series], Series[bool]]
+) -> pd.Index:
+    if config.smpl.target_ratio is not None and is_event is not return_none:
+        # Sample with target ratio condition
+        sample_keys = sample_with_target_ratio(config=config,
+                                               target_df=trg_df_handled_outliers,
+                                               train_keys=trg_df_handled_outliers.index,
+                                               is_event=is_event)
+    elif config.smpl.n_obs is not None:
+        # Sample without any condition
+        sample_keys = sample_with_no_condition(config=config,
+                                               target_df=trg_df_handled_outliers,
+                                               train_keys=trg_df_handled_outliers.index)
+    else:  # No sampling
+        sample_keys = get_all_samples(config=config,
+                                      target_df=trg_df_handled_outliers,
+                                      train_keys=trg_df_handled_outliers.index)
+    return sample_keys
+
+
 def sample_part(
         config: Config,
         features_df: pd.DataFrame,
@@ -29,22 +52,9 @@ def sample_part(
         logger.info(f"Using also the calibration data for sampling.")
     # Handle outliers in the train dataset
     train_trg_df_handled_outliers = handle_outliers(config=config, train_keys=train_keys, target_df=target_df)
-    if config.smpl.target_ratio is not None and is_event is not return_none:
-        # Sample with target ratio condition
-        sample_keys = sample_with_target_ratio(config=config,
-                                               target_df=train_trg_df_handled_outliers,
-                                               train_keys=train_trg_df_handled_outliers.index,
-                                               is_event=is_event)
-    elif config.smpl.n_obs is not None:
-        # Sample without any condition
-        sample_keys = sample_with_no_condition(config=config,
-                                               target_df=train_trg_df_handled_outliers,
-                                               train_keys=train_trg_df_handled_outliers.index)
-    else:  # No sampling
-        sample_keys = get_all_samples(config=config,
-                                      target_df=train_trg_df_handled_outliers,
-                                      train_keys=train_trg_df_handled_outliers.index)
-
+    sample_keys = get_sample_keys(config=config,
+                                  trg_df_handled_outliers=train_trg_df_handled_outliers,
+                                  is_event=is_event)
     sample_features_df = features_df.loc[sample_keys, :]
     sample_target_df = target_df.loc[sample_keys, :]
     actual_target_ratio = get_actual_target_ratio(config=config, sample_trg_df=sample_target_df, is_event=is_event)
@@ -92,7 +102,10 @@ def sample(
 def train_val_split(
         config: Config,
         sample_keys: Dict[str, pd.Index],
-        sample_target_df: Dict[str, pd.DataFrame]
+        calib_keys: Dict[str, pd.Index],
+        sample_target_df: Dict[str, pd.DataFrame],
+        target_df: Dict[str, pd.DataFrame],
+        is_event: Callable[[Series], Series[bool]]
 ) -> Tuple[Dict[str, pd.Index], Dict[str, pd.DataFrame]]:
     logger.info(f"Splitting the sample into train and validation datasets...")
     partitions_keys = sample_keys.keys()
@@ -100,14 +113,25 @@ def train_val_split(
     val_keys = {}
     for part in partitions_keys:
         logger.info(f"Splitting partition '{part}' of the sample into train and validation datasets...")
-        sample_keys_part = get_partition(sample_keys, part)
-        sample_target_df_part = get_partition(sample_target_df, part)
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
-        with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-            train_keys_part, val_keys_part = get_stratified_train_test_split_keys(target_df=sample_target_df_part.loc[sample_keys_part,:],
-                                                                                  stratify_target_col=config.mdl_task.target_col,
-                                                                                  test_size=config.smpl.split_val_size,
-                                                                                  random_seed=config.smpl.split_val_random_seed)
-            train_keys[part] = train_keys_part
-            val_keys[part] = val_keys_part
+        if config.smpl.use_calib_data_for_validation:
+            calib_keys_part = get_partition(calib_keys, part)
+            calib_target_df_part = target_df.loc[calib_keys_part, :]
+            trg_df_handled_outliers_part = handle_outliers(config=config, train_keys=calib_keys_part, target_df=calib_target_df_part)
+            train_keys = sample_keys
+            val_keys[part] = get_sample_keys(config=config, trg_df_handled_outliers=trg_df_handled_outliers_part, is_event=is_event)
+        elif config.smpl.split_train_val_enabled:
+            sample_keys_part = get_partition(sample_keys, part)
+            sample_target_df_part = get_partition(sample_target_df, part)
+            mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
+            with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
+                train_keys_part, val_keys_part = get_stratified_train_test_split_keys(target_df=sample_target_df_part.loc[sample_keys_part,:],
+                                                                                      stratify_target_col=config.mdl_task.target_col,
+                                                                                      test_size=config.smpl.split_val_size,
+                                                                                      random_seed=config.smpl.split_val_random_seed)
+                train_keys[part] = train_keys_part
+                val_keys[part] = val_keys_part
+        else:
+            # If no validation split is needed, use the whole sample as train
+            train_keys = sample_keys
+            val_keys[part] = pd.Index([])
     return train_keys, val_keys
