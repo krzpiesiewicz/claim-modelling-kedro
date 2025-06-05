@@ -361,7 +361,7 @@ class SklearnPoissonGLM(SklearnGLM):
             "alpha": 1.0,
             "fit_intercept": True,
             "solver": "lbfgs",
-            "max_iter": 100,
+            "max_iter": 1000,
             "tol": 0.0001,
             "warm_start": False,
             "verbose": 0
@@ -406,7 +406,7 @@ class SklearnGammaGLM(SklearnGLM):
             "alpha": 1.0,
             "fit_intercept": True,
             "solver": "lbfgs",
-            "max_iter": 100,
+            "max_iter": 1000,
             "tol": 0.0001,
             "warm_start": False,
             "verbose": 0
@@ -457,7 +457,7 @@ class SklearnTweedieGLM(SklearnGLM):
             "fit_intercept": True,
             "link": "auto",
             "solver": "lbfgs",
-            "max_iter": 100,
+            "max_iter": 1000,
             "tol": 0.0001,
             "warm_start": False,
             "verbose": 0
@@ -567,7 +567,7 @@ class PyGLMNetGLM(PredictiveModel):
             "alpha": hp.uniform("alpha", 0.0, 1.0),
             "reg_lambda": hp.choice("reg_lambda", [0, hp.loguniform("reg_lambda_positive", -5, 1)]),
             "fit_intercept": hp.choice("fit_intercept", [True, False]),
-            "max_iter": hp.choice("max_iter", [100, 500, 1000]),
+            "max_iter": hp.choice("max_iter", [1000, 2000]),
             "tol": hp.choice("tol", [1e-4, 1e-5, 1e-6]),
             "learning_rate": hp.uniform("learning_rate", 0.001, 0.1),
             "solver": hp.choice("solver", ["batch-gradient", "cdfast"])
