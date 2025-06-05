@@ -37,8 +37,6 @@ class HyperoptAlgoEnum(Enum):
 @dataclass
 class DataScienceConfig:
     mlflow_run_id: str
-    split_random_seed: int
-    split_val_size: float
     model: ModelEnum
     model_class: str
     model_random_seed: int
@@ -67,8 +65,6 @@ class DataScienceConfig:
     def __init__(self, parameters: Dict, exprmnt: ExperimentInfo):
         params = parameters["data_science"]
         self.mlflow_run_id = params["mlflow_run_id"]
-        self.split_random_seed = params["split_random_seed"]
-        self.split_val_size = params["split_val_size"]
 
         model_params = params["model"]
         self.model = ModelEnum(model_params["model"])

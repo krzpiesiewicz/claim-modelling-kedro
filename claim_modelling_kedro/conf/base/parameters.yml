@@ -64,6 +64,8 @@ sampling:
     policy: clip # 'keep', 'drop', 'clip'
     lower_bound:
     upper_bound:
+  split_val_size: 0.3 # the part of the sample used for validation the final model
+  split_val_random_seed: 0 # the random seed for splitting the sample into train and validation sets
 
 data_engineering:
   mlflow_run_id: # If provided a MLFLow run id, the de models are saved to / downloaded from the MLflow run
@@ -156,8 +158,6 @@ data_engineering:
 data_science:
   mlflow_run_id: # If provided a MLFLow run id, the selector and prediction model are saved to /
     # downloaded from the MLflow run
-  split_val_size: 0.3 # the part of data used for validation the final model
-  split_random_seed: 0 # the random seed for splitting the data into train and validation sets
   target_transformer:
     enabled: False # whether to use the target transformer
     model: LogTargetTransformer

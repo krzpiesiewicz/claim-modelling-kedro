@@ -13,6 +13,8 @@ class SamplingConfig:
     allow_lower_ratio: bool
     include_zeros: bool
     outliers: OutliersConfig
+    split_val_random_seed: int
+    split_val_size: float
 
     def __init__(self, parameters: Dict):
         params = parameters["sampling"]
@@ -23,3 +25,5 @@ class SamplingConfig:
         self.allow_lower_ratio = params["allow_lower_ratio"]
         self.include_zeros = params["include_zeros"]
         self.outliers = OutliersConfig(params["outliers"])
+        self.split_val_random_seed = params["split_val_random_seed"]
+        self.split_val_size = params["split_val_size"]

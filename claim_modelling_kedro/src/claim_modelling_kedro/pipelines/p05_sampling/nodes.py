@@ -106,8 +106,8 @@ def train_val_split(
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
             train_keys_part, val_keys_part = get_stratified_train_test_split_keys(target_df=sample_target_df_part.loc[sample_keys_part,:],
                                                                                   stratify_target_col=config.mdl_task.target_col,
-                                                                                  test_size=config.ds.split_val_size,
-                                                                                  random_seed=config.ds.split_random_seed)
+                                                                                  test_size=config.smpl.split_val_size,
+                                                                                  random_seed=config.smpl.split_val_random_seed)
             train_keys[part] = train_keys_part
             val_keys[part] = val_keys_part
     return train_keys, val_keys
