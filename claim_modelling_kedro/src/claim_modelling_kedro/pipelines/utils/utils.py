@@ -92,6 +92,8 @@ def convert_np_to_native(obj):
 def round_decimal(val: float, significant_digits: int) -> float | int:
     if val is None:
         return None
+    if not np.isfinite(val):
+        return val
     if val == 0:
         return 0
 
