@@ -67,7 +67,6 @@ sampling:
   use_calib_data_for_validation: False # whether to use the calibration data for validation of the final model
   split_train_val:
     enabled: True # whether to split the sample into train and validation sets
-    val_size: 0.1 # the part of the sample used for validation the final model if use_calib_data_for_validation is False
     val_size: 0.3 # the part of the sample used for validation the final model if use_calib_data_for_validation is False
     random_seed: 0 # the random seed for splitting the sample into train and validation sets
 
