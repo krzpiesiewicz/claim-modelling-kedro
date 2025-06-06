@@ -64,8 +64,12 @@ sampling:
     policy: keep # 'keep', 'drop', 'clip'
     lower_bound:
     upper_bound:
-  split_val_size: 0.3 # the part of the sample used for validation the final model
-  split_val_random_seed: 0 # the random seed for splitting the sample into train and validation sets
+  use_calib_data_for_validation: False # whether to use the calibration data for validation of the final model
+  split_train_val:
+    enabled: True # whether to split the sample into train and validation sets
+    val_size: 0.1 # the part of the sample used for validation the final model if use_calib_data_for_validation is False
+    val_size: 0.3 # the part of the sample used for validation the final model if use_calib_data_for_validation is False
+    random_seed: 0 # the random seed for splitting the sample into train and validation sets
 
 data_engineering:
   mlflow_run_id: # If provided a MLFLow run id, the de models are saved to / downloaded from the MLflow run
@@ -92,27 +96,27 @@ data_engineering:
         single_column: True
         description: "The capped bonus-malus value"
         model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.BonusMalusCreatorModel
-#      - name: "BonusMalusCat"
-#        type: "categorical"
-#        single_column: True
-#        description: "The capped bonus-malus value"
-#        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.BonusMalusCatCreatorModel
+      #      - name: "BonusMalusCat"
+      #        type: "categorical"
+      #        single_column: True
+      #        description: "The capped bonus-malus value"
+      #        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.BonusMalusCatCreatorModel
       - name: "LogDensity"
         type: "numerical"
         single_column: True
         description: "The logged value for density"
         model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.DensityCreatorModel
-#      - name: "LogLinearArea"
-#        type: "numerical"
-#        single_column: True
-#        description: "Log-linear scale of area-density level {A,...,F} -> {1,...,6}"
-#        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.LogLinearAreaCreatorModel
+      #      - name: "LogLinearArea"
+      #        type: "numerical"
+      #        single_column: True
+      #        description: "Log-linear scale of area-density level {A,...,F} -> {1,...,6}"
+      #        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.LogLinearAreaCreatorModel
       # Example entry below
-#      - name: str # e.g. "MyCustomFeature"
-#        type: str # "categorical" or "numerical"
-#        single_column: bool # whether the model generates feature as a single column
-#        description: str # e.g. "My custom feature is a combination of two other features"
-#        model_class: str # e.g. "p06_data_engineering.utils.custom_features.MyCustomFeatureCreatorModel"
+      #      - name: str # e.g. "MyCustomFeature"
+      #        type: str # "categorical" or "numerical"
+      #        single_column: bool # whether the model generates feature as a single column
+      #        description: str # e.g. "My custom feature is a combination of two other features"
+      #        model_class: str # e.g. "p06_data_engineering.utils.custom_features.MyCustomFeatureCreatorModel"
   reduce_categories:
     enabled: True # whether to reduce the number of categories in a feature
     max_categories: # the maximum number of categories in a feature
@@ -198,7 +202,7 @@ data_science:
           alpha: 0.01 # the regularization parameter
   hyperopt:
     enabled: False # whether to use the hyperopt
-    metric: cc_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
+    metric: claim_nb_weighted_normalized_cc_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
       # 'gamma_deviance', 'exposure_weighted_gamma_deviance', 'claim_nb_weighted_gamma_deviance',
       # 'rmse', 'exposure_weighted_rmse', 'claim_nb_weighted_rmse', 'r2', 'exposure_weighted_r2', 'claim_nb_weighted_r2',
       # 'lc_gini', 'exposure_weighted_lc_gini', 'claim_nb_weighted_lc_gini',
@@ -217,15 +221,20 @@ data_science:
     trial_verbose: True # whether to show each trial in the console
     random_seed: 0 # the random seed for the hyperopt fmin function
     cross_validation:
-      enabled: True # whether to use cross-validation
+      enabled: False # whether to use cross-validation
       folds: 10 # the number of folds in cross-validation
       # val_size = 1 / folds
       # train_size = 1 - val_size
     split_val_size: 0.3 # the part of data used for validation – used only if cross_validation.enabled is False
+    split_n_repeats: 10 # the number of times the data is split into train and validation sets
     split_random_seed: 0 # the random seed for splitting the data into train and validation sets
     excluded_params:
-#      SklearnGammaGLM:
-#        - solver
+      SklearnPoissonGLM:
+        - solver
+      SklearnGammaGLM:
+        - solver
+      SklearnTweedieGLM:
+        - solver
   model:
     model: SklearnGammaGLM # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
     # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM', 'PyGLMNetPoissonGLM', 'PyGLMNetGammaGLM',
