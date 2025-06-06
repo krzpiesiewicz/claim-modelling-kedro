@@ -7,6 +7,7 @@ import pandas as pd
 from pandera.typing import Series
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
+from claim_modelling_kedro.pipelines.p01_init.smpl_config import SampleValidationSet
 from claim_modelling_kedro.pipelines.p05_sampling.utils import sample_with_no_condition, \
     sample_with_target_ratio, get_all_samples, handle_outliers, get_actual_target_ratio, return_none
 from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_test_split_keys
@@ -52,10 +53,10 @@ def sample_part(
                                   trg_df_handled_outliers=train_trg_df_handled_outliers,
                                   is_event=is_event)
     # If set, use also the calibration data for sampling
-    if config.smpl.use_calib_data or config.smpl.use_calib_data_for_validation:
-        logger.info(f"Sampling also from the calibration data for:"
-                    "\n  - creating the training sample" if config.smpl.use_calib_data_for_validation else ""
-                    "\n  - creating the validation sample" if config.smpl.use_calib_data_for_validation else "")
+    if config.smpl.included_calib_set_in_train_sample or config.smpl.validation_set == SampleValidationSet.CALIB_SET:
+        logger.info(f"Sampling also from the calibration data for:" +
+                    ("\n  - creating the training sample" if config.smpl.included_calib_set_in_train_sample else "") +
+                    ("\n  - creating the validation sample" if config.smpl.validation_set == SampleValidationSet.CALIB_SET else ""))
         calib_trg_df_handled_outliers = handle_outliers(config=config, train_keys=calib_keys, target_df=target_df)
         sample_calib_keys = get_sample_keys(config=config,
                                       trg_df_handled_outliers=calib_trg_df_handled_outliers,
@@ -113,30 +114,34 @@ def train_val_split(
 ) -> Tuple[Dict[str, pd.Index], Dict[str, pd.DataFrame]]:
     logger.info(f"Splitting the sample into train and validation datasets...")
     partitions_keys = sample_keys.keys()
-    sample_train_keys = {}
-    sample_val_keys = {}
-    for part in partitions_keys:
-        logger.info(f"Splitting partition '{part}' of the sample into train and validation datasets...")
-        if config.smpl.use_calib_data_for_validation:
-            sample_keys_part = get_partition(sample_keys, part)
-            calib_keys_part = get_partition(calib_keys, part)
-            sample_train_keys[part] = sample_keys_part.difference(calib_keys_part)
-            sample_val_keys[part] = sample_keys_part.intersection(calib_keys_part)
-        elif config.smpl.split_train_val_enabled:
-            sample_keys_part = get_partition(sample_keys, part)
-            sample_target_df_part = get_partition(sample_target_df, part)
-            mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
-            with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-                sample_train_keys_part, sample_val_keys_part = get_stratified_train_test_split_keys(
-                    target_df=sample_target_df_part.loc[sample_keys_part,:],
-                    stratify_target_col=config.mdl_task.target_col,
-                    test_size=config.smpl.split_val_size,
-                    random_seed=config.smpl.split_val_random_seed
-                )
-                sample_train_keys[part] = sample_train_keys_part
-                sample_val_keys[part] = sample_val_keys_part
-        else:
-            # If no validation split is needed, use the whole sample as train
+    match config.smpl.validation_set:
+        case SampleValidationSet.NONE: # If no validation split is needed, use the whole sample as sample_train
             sample_train_keys = sample_keys
-            sample_val_keys[part] = pd.Index([])
+            sample_val_keys = {part: pd.Index([]) for part in partitions_keys}
+        case SampleValidationSet.CALIB_SET:
+            logger.info("Using the calibration set for validation")
+            sample_train_keys = {}
+            sample_val_keys = {}
+            for part in partitions_keys:
+                sample_keys_part = get_partition(sample_keys, part)
+                calib_keys_part = get_partition(calib_keys, part)
+                sample_train_keys[part] = sample_keys_part.difference(calib_keys_part)
+                sample_val_keys[part] = sample_keys_part.intersection(calib_keys_part)
+        case SampleValidationSet.SPLIT:
+            logger.info(f"Splitting the sample into train and validation datasets using a stratified split with")
+            sample_train_keys = {}
+            sample_val_keys = {}
+            for part in partitions_keys:
+                sample_keys_part = get_partition(sample_keys, part)
+                sample_target_df_part = get_partition(sample_target_df, part)
+                mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
+                with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
+                    sample_train_keys_part, sample_val_keys_part = get_stratified_train_test_split_keys(
+                        target_df=sample_target_df_part.loc[sample_keys_part,:],
+                        stratify_target_col=config.mdl_task.target_col,
+                        test_size=config.smpl.split_val_size,
+                        random_seed=config.smpl.split_val_random_seed
+                    )
+                    sample_train_keys[part] = sample_train_keys_part
+                    sample_val_keys[part] = sample_val_keys_part
     return sample_train_keys, sample_val_keys

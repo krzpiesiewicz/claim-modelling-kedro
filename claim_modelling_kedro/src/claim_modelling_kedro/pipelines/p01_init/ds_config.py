@@ -5,6 +5,7 @@ from typing import Dict, Any, List
 
 from claim_modelling_kedro.pipelines.p01_init.exprmnt import ExperimentInfo, Target
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum
+from claim_modelling_kedro.pipelines.p01_init.smpl_config import SamplingConfig, SampleValidationSet
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +75,7 @@ class DataScienceConfig:
     hopt_repeated_split_random_seed: int
     hopt_excluded_params: List[str]
 
-    def __init__(self, parameters: Dict, exprmnt: ExperimentInfo):
+    def __init__(self, parameters: Dict, exprmnt: ExperimentInfo, smpl: SamplingConfig):
         params = parameters["data_science"]
         self.mlflow_run_id = params["mlflow_run_id"]
 
@@ -196,9 +197,15 @@ class DataScienceConfig:
         self.hopt_repeated_split_val_size = hopt_val_params["repeated_split"]["val_size"]
         self.hopt_repeated_split_n_repeats = hopt_val_params["repeated_split"]["n_repeats"]
         self.hopt_repeated_split_random_seed = hopt_val_params["repeated_split"]["random_seed"]
-        if self.hopt_validation_method == HypertuneValidationEnum.CROSS_VALIDATION:
-            if self.hopt_cv_folds <= 1:
-                raise ValueError("Number of folds should be greater than 1.")
+        match self.hopt_validation_method:
+            case HypertuneValidationEnum.CROSS_VALIDATION:
+                if self.hopt_cv_folds <= 1:
+                    raise ValueError("Number of folds should be greater than 1.")
+            case HypertuneValidationEnum.SAMPLE_VAL_SET:
+                if smpl.validation_set == SampleValidationSet.NONE:
+                    raise ValueError("Sample validation set hypertuning method is not supported when no validation set is created in sampling pipeline.\n"
+                                     "Please set `sampling.validation.val_set` to `calib_set` or `split_train_val`.\n"
+                                     "Alternatively, set `data_science.hyperopt.validation.method` to `cross_validation` or `repeated_split`.")
 
         if (hopt_params["excluded_params"] is not None
                 and self.model.value in hopt_params["excluded_params"]
