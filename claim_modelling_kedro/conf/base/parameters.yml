@@ -220,11 +220,12 @@ data_science:
     trial_verbose: True # whether to show each trial in the console
     random_seed: 0 # the random seed for the hyperopt fmin function
     cross_validation:
-      enabled: True # whether to use cross-validation
+      enabled: False # whether to use cross-validation
       folds: 10 # the number of folds in cross-validation
       # val_size = 1 / folds
       # train_size = 1 - val_size
     split_val_size: 0.3 # the part of data used for validation – used only if cross_validation.enabled is False
+    split_n_repeats: 10 # the number of times the data is split into train and validation sets
     split_random_seed: 0 # the random seed for splitting the data into train and validation sets
     excluded_params:
 #      SklearnGammaGLM:

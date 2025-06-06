@@ -1,5 +1,6 @@
 import logging
 import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import timedelta
 from functools import partial
 from typing import Dict, Any, Tuple
@@ -10,18 +11,17 @@ import numpy as np
 import pandas as pd
 from hyperopt import fmin, Trials, space_eval, STATUS_OK, STATUS_FAIL
 from hyperopt.early_stop import no_progress_loss
-from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.ds_config import HyperoptAlgoEnum
 from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel
+from claim_modelling_kedro.pipelines.utils.dataframes import save_pd_dataframe_as_csv_in_mlflow
+from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
 from claim_modelling_kedro.pipelines.utils.metrics import get_metric_from_enum, Metric
 from claim_modelling_kedro.pipelines.utils.stratified_cv_split import get_stratified_train_test_cv
 from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_test_split_keys
-from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
 from claim_modelling_kedro.pipelines.utils.utils import get_class_from_path, \
     round_decimal
-from claim_modelling_kedro.pipelines.utils.dataframes import save_pd_dataframe_as_csv_in_mlflow
 
 logger = logging.getLogger(__name__)
 
@@ -172,8 +172,6 @@ def fit_model(hparams: Dict[str, any],
         msg += f"    - {param}: {value}\n"
     msg += f"Fitting the predictive model(s) for hyperopt trial {trial_no}..."
     logger.info(msg)
-    log_trials_info_to_mlflow(trials, space, log_folds_metrics=config.ds.hopt_cv_enabled,
-                              artifact_path=hyperopt_artifact_path)
 
     if config.ds.hopt_cv_enabled:
         train_keys_cv, val_keys_cv = get_stratified_train_test_cv(sample_target_df,
@@ -181,16 +179,30 @@ def fit_model(hparams: Dict[str, any],
                                                                   cv_folds=config.ds.hopt_cv_folds, shuffle=True,
                                                                   random_seed=config.ds.hopt_split_random_seed,
                                                                   verbose=False)
-    elif sample_val_keys is None:
-        sample_train_keys, sample_val_keys = get_stratified_train_test_split_keys(sample_target_df,
-                                                                     stratify_target_col=config.mdl_task.target_col,
-                                                                     test_size=config.ds.hopt_split_val_size,
-                                                                     shuffle=True,
-                                                                     random_seed=config.ds.hopt_split_random_seed,
-                                                                     verbose=False)
-    if not config.ds.hopt_cv_enabled:
+        logger.debug(f"train_keys_cv: {train_keys_cv}")
+        logger.debug(f"train_keys_cv: {val_keys_cv}")
+    elif sample_val_keys is not None and len(sample_val_keys) > 0:
         train_keys_cv = {"0": sample_train_keys}
         val_keys_cv = {"0": sample_val_keys}
+        logger.debug(f"train_keys_cv: {train_keys_cv}")
+        logger.debug(f"train_keys_cv: {val_keys_cv}")
+    else:
+        train_keys_cv = {}
+        val_keys_cv = {}
+        for fold in range(config.ds.hopt_split_n_repeats):
+            sample_train_keys, sample_val_keys = get_stratified_train_test_split_keys(sample_target_df,
+                                                                                      stratify_target_col=config.mdl_task.target_col,
+                                                                                      test_size=config.ds.hopt_split_val_size,
+                                                                                      shuffle=True,
+                                                                                      random_seed=max(config.ds.hopt_split_random_seed + 100, 1) * (100 * fold + 1),
+                                                                                      verbose=False)
+            train_keys_cv[str(fold)] = sample_train_keys
+            val_keys_cv[str(fold)] = sample_val_keys
+        logger.debug(f"train_keys_cv: {train_keys_cv}")
+        logger.debug(f"train_keys_cv: {val_keys_cv}")
+
+    log_trials_info_to_mlflow(trials, space, log_folds_metrics=(len(train_keys_cv) > 1),
+                              artifact_path=hyperopt_artifact_path)
 
     train_scores = []
     val_scores = []
@@ -215,7 +227,7 @@ def fit_model(hparams: Dict[str, any],
         train_score_mean = np.mean(train_scores)
         val_score_mean = np.mean(val_scores)
         loss = -val_score_mean if metric.is_larger_better() else val_score_mean
-        if config.ds.hopt_cv_enabled:
+        if len(train_keys_cv) > 1:
             train_score_std = np.std(train_scores)
             val_score_std = np.std(val_scores)
         status = STATUS_OK
@@ -234,7 +246,7 @@ def fit_model(hparams: Dict[str, any],
         f"{metric_name}_valid": val_score_mean,
         f"{metric_name}_train": train_score_mean,
     }
-    if config.ds.hopt_cv_enabled:
+    if len(train_keys_cv) > 1:
         metrics_results.update({
             f"{metric_name}_std_valid": val_score_std,
             f"{metric_name}_std_train": train_score_std,
@@ -257,7 +269,7 @@ def fit_model(hparams: Dict[str, any],
     trial["result"] = trial_result
     msg = create_hyperopt_result_message(trial)
     logger.info(msg)
-    log_trials_info_to_mlflow(trials, space, log_folds_metrics=config.ds.hopt_cv_enabled,
+    log_trials_info_to_mlflow(trials, space, log_folds_metrics=(len(train_keys_cv) > 1),
                               artifact_path=hyperopt_artifact_path)
     return {
         **trial_result,
@@ -280,7 +292,7 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
                                                        pred_col=config.mdl_task.prediction_col)
     model.update_hparams(config.ds.model_const_hparams)
     metric = model.metric() if config.ds.hopt_metric is None else get_metric_from_enum(config, config.ds.hopt_metric,
-                                                                                   pred_col=config.mdl_task.prediction_col)
+                                                                                       pred_col=config.mdl_task.prediction_col)
     hparam_space = model.get_hparams_space()
     for hparam in config.ds.hopt_excluded_params + list(config.ds.model_const_hparams.keys()):
         if hparam in hparam_space:
@@ -317,7 +329,8 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
 
 def process_hypertune_part(config: Config, part: str, selected_sample_features_df: Dict[str, pd.DataFrame],
                            sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
-                           sample_val_keys: Dict[str, pd.Index], save_best_hparams_in_mlfow: bool) -> Tuple[str, Dict[str, Any]]:
+                           sample_val_keys: Dict[str, pd.Index], save_best_hparams_in_mlfow: bool
+                           ) -> Tuple[str, Dict[str, Any]]:
     selected_sample_features_part_df = get_partition(selected_sample_features_df, part)
     sample_target_part_df = get_partition(sample_target_df, part)
     sample_train_keys_part = get_partition(sample_train_keys, part)
@@ -338,9 +351,11 @@ def process_hypertune_part(config: Config, part: str, selected_sample_features_d
         logger.info(msg)
     return part, best_hparams_part
 
+
 def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFrame],
               sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
-              sample_val_keys: Dict[str, pd.Index], save_best_hparams_in_mlfow: bool = True) -> Dict[str, Dict[str, Any]]:
+              sample_val_keys: Dict[str, pd.Index], save_best_hparams_in_mlfow: bool = True
+              ) -> Dict[str, Dict[str, Any]]:
     logger.info(f"Tuning the hyper parameters of the predictive model {config.ds.model_class}...")
     best_hparams = {}
 
@@ -358,4 +373,3 @@ def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFram
     if save_best_hparams_in_mlfow:
         mlflow.log_dict(best_hparams, f"{_hypertune_artifact_path}/best_hparams.yml")
     return best_hparams
-

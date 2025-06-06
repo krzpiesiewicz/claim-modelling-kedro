@@ -63,6 +63,7 @@ class DataScienceConfig:
     hopt_fmin_random_seed: int
     hopt_split_random_seed: int
     hopt_split_val_size: float
+    hopt_split_n_repeats: int
     hopt_excluded_params: List[str]
 
     def __init__(self, parameters: Dict, exprmnt: ExperimentInfo):
@@ -189,6 +190,7 @@ class DataScienceConfig:
         else:
             self.hopt_cv_folds = None
             self.hopt_split_val_size = hopt_params["split_val_size"]
+            self.hopt_split_n_repeats = hopt_params["split_n_repeats"]
         if (hopt_params["excluded_params"] is not None
                 and self.model.value in hopt_params["excluded_params"]
                 and hopt_params["excluded_params"][self.model.value] is not None):
