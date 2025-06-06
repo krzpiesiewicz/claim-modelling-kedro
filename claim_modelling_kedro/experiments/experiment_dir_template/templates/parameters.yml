@@ -38,7 +38,7 @@ data:
     # test_size has to be greater than 0.
     # => train_size = 1 - calib_data_size - calib_data_size (train_size has to be greater than 0)
   cross_validation:
-    enabled: False # whether to use cross-validation
+    enabled: True # whether to use cross-validation
     folds: 5 # the number of folds in cross-validation (repetitions of data splitting)
     # minimum number of folds is 3
     # test_size = 1 / folds
@@ -52,7 +52,7 @@ data:
 
 
 sampling:
-  use_calib_data: False # whether to use also the calibration data for sampling
+  included_calib_set_in_train_sample: False # whether to use also the calibration data for creating a training sample
   random_seed: 1
   n_obs: # the number of samples which are used to train a model.
   target_ratio: 0.5 # the ratio of nonzero samples, if None, the ratio is not controlled
@@ -64,8 +64,14 @@ sampling:
     policy: keep # 'keep', 'drop', 'clip'
     lower_bound:
     upper_bound:
-  split_val_size: 0.3 # the part of the sample used for validation the final model
-  split_val_random_seed: 0 # the random seed for splitting the sample into train and validation sets
+  validation:
+    val_set: 'calib_set' # 'none', 'calib_set' or 'split_train_val'
+    # if val_set is 'none', then no validation set is used
+    # if val_set is 'calib_set', then the calib set is used for validation (as sample_val set)
+    # if val_set is 'split_train_val', then the sample is split into sample_train and sample_val sets
+    split_train_val: # used only if val_set is 'split_train_val'
+      val_size: 0.3 # the part of the sample used for validation
+      random_seed: 0 # the random seed for splitting the sample into sample_train and sample_val sets
 
 data_engineering:
   mlflow_run_id: # If provided a MLFLow run id, the de models are saved to / downloaded from the MLflow run
@@ -92,27 +98,27 @@ data_engineering:
         single_column: True
         description: "The capped bonus-malus value"
         model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.BonusMalusCreatorModel
-#      - name: "BonusMalusCat"
-#        type: "categorical"
-#        single_column: True
-#        description: "The capped bonus-malus value"
-#        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.BonusMalusCatCreatorModel
+      #      - name: "BonusMalusCat"
+      #        type: "categorical"
+      #        single_column: True
+      #        description: "The capped bonus-malus value"
+      #        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.BonusMalusCatCreatorModel
       - name: "LogDensity"
         type: "numerical"
         single_column: True
         description: "The logged value for density"
         model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.DensityCreatorModel
-#      - name: "LogLinearArea"
-#        type: "numerical"
-#        single_column: True
-#        description: "Log-linear scale of area-density level {A,...,F} -> {1,...,6}"
-#        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.LogLinearAreaCreatorModel
+      #      - name: "LogLinearArea"
+      #        type: "numerical"
+      #        single_column: True
+      #        description: "Log-linear scale of area-density level {A,...,F} -> {1,...,6}"
+      #        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.LogLinearAreaCreatorModel
       # Example entry below
-#      - name: str # e.g. "MyCustomFeature"
-#        type: str # "categorical" or "numerical"
-#        single_column: bool # whether the model generates feature as a single column
-#        description: str # e.g. "My custom feature is a combination of two other features"
-#        model_class: str # e.g. "p06_data_engineering.utils.custom_features.MyCustomFeatureCreatorModel"
+      #      - name: str # e.g. "MyCustomFeature"
+      #        type: str # "categorical" or "numerical"
+      #        single_column: bool # whether the model generates feature as a single column
+      #        description: str # e.g. "My custom feature is a combination of two other features"
+      #        model_class: str # e.g. "p06_data_engineering.utils.custom_features.MyCustomFeatureCreatorModel"
   reduce_categories:
     enabled: True # whether to reduce the number of categories in a feature
     max_categories: # the maximum number of categories in a feature
@@ -198,7 +204,7 @@ data_science:
           alpha: 0.01 # the regularization parameter
   hyperopt:
     enabled: False # whether to use the hyperopt
-    metric: cc_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
+    metric: claim_nb_weighted_normalized_cc_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
       # 'gamma_deviance', 'exposure_weighted_gamma_deviance', 'claim_nb_weighted_gamma_deviance',
       # 'rmse', 'exposure_weighted_rmse', 'claim_nb_weighted_rmse', 'r2', 'exposure_weighted_r2', 'claim_nb_weighted_r2',
       # 'lc_gini', 'exposure_weighted_lc_gini', 'claim_nb_weighted_lc_gini',
@@ -216,16 +222,29 @@ data_science:
     show_progressbar: True # whether to show the progress bar
     trial_verbose: True # whether to show each trial in the console
     random_seed: 0 # the random seed for the hyperopt fmin function
-    cross_validation:
-      enabled: True # whether to use cross-validation
-      folds: 10 # the number of folds in cross-validation
-      # val_size = 1 / folds
-      # train_size = 1 - val_size
-    split_val_size: 0.3 # the part of data used for validation – used only if cross_validation.enabled is False
-    split_random_seed: 0 # the random seed for splitting the data into train and validation sets
+    validation:
+      method: sample_val_set # 'sample_val_set', 'cross_validation', 'repeated_split'
+      # if method is 'sample_val_set', then the sample_val_keys set is used (created in sampling pipeline)
+      # if method is 'cross_validation' or 'repeated_split', the union of sample_train_keys and sample_val_keys
+      # is used for splitting in cross-validation or repeated splitting
+      # if method is 'cross_validation', then the data is split into folds and the model is trained on each fold
+      # if method is 'repeated_split', then the data is split into train and validation sets
+      cross_validation:
+        folds: 10 # the number of folds in cross-validation
+                  # val_size = 1 / folds
+                  # train_size = 1 - val_size
+        random_seed: 0 # the random seed for stratified splitting the data into folds
+      repeated_split:
+        val_size: 0.25 # the part of data used for validation – used only if cross_validation.enabled is False
+        n_repeats: 10 # the number of times the data is split into train and validation sets
+        random_seed: 0 # the random seed for stratified splitting the data into train and validation sets
     excluded_params:
-#      SklearnGammaGLM:
-#        - solver
+      SklearnPoissonGLM:
+        - solver
+      SklearnGammaGLM:
+        - solver
+      SklearnTweedieGLM:
+        - solver
   model:
     model: SklearnGammaGLM # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
     # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM', 'PyGLMNetPoissonGLM', 'PyGLMNetGammaGLM',
