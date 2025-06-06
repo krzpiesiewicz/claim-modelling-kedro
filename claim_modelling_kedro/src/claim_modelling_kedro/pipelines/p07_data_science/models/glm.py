@@ -323,6 +323,11 @@ class SklearnGLM(SklearnModel, ABC):
             features_importance.index = self.model.feature_names_in_
         self._set_features_importance(features_importance)
 
+    def _updated_hparams(self):
+        if "max_iter" in self._hparams and self._hparams["max_iter"] is not None and not np.isnan(self._hparams["max_iter"]):
+            self._hparams["max_iter"] = int(self._hparams["max_iter"])
+        SklearnModel._updated_hparams(self)
+
 
 class SklearnPoissonGLM(SklearnGLM):
     def __init__(self, config: Config, **kwargs):
