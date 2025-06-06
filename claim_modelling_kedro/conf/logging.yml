@@ -76,6 +76,10 @@ loggers:
     formatter: simple
     level: INFO
 
+  claim_modelling_kedro.pipelines.p05_sampling.nodes:
+    formatter: simple
+    level: INFO
+
   claim_modelling_kedro.pipelines.p05_sampling:
     formatter: simple
     level: INFO
