@@ -355,7 +355,9 @@ class SklearnPoissonGLM(SklearnGLM):
     @classmethod
     def get_hparams_space(cls) -> Dict[str, Any]:
         return {
-            "alpha": hp.loguniform("alpha", -5, 1),
+            "alpha": hp.loguniform("alpha", np.log(1e-6), np.log(100)),
+            "max_iter": hp.quniform("max_iter", 50, 500, 10),
+            "tol": hp.loguniform("tol", np.log(1e-6), np.log(1e-2)),
             "fit_intercept": hp.choice("fit_intercept", [True, False]),
             "solver": hp.choice("solver", cls._get_solver_options())
         }
@@ -365,7 +367,7 @@ class SklearnPoissonGLM(SklearnGLM):
         return {
             "alpha": 1.0,
             "fit_intercept": True,
-            "solver": "lbfgs",
+            "solver": "newton-cholesky",
             "max_iter": 1000,
             "tol": 0.0001,
             "warm_start": False,
@@ -400,9 +402,11 @@ class SklearnGammaGLM(SklearnGLM):
     @classmethod
     def get_hparams_space(cls) -> Dict[str, Any]:
         return {
-            "alpha": hp.loguniform("alpha", -5, 1),
+            "alpha": hp.loguniform("alpha", np.log(1e-6), np.log(100)),
+            "max_iter": hp.quniform("max_iter", 50, 500, 10),
+            "tol": hp.loguniform("tol", np.log(1e-6), np.log(1e-2)),
             "fit_intercept": hp.choice("fit_intercept", [True, False]),
-            "solver": hp.choice("solver", ["lbfgs", "newton-cholesky"])
+            "solver": hp.choice("solver", cls._get_solver_options())
         }
 
     @classmethod
@@ -410,7 +414,7 @@ class SklearnGammaGLM(SklearnGLM):
         return {
             "alpha": 1.0,
             "fit_intercept": True,
-            "solver": "lbfgs",
+            "solver": "newton-cholesky",
             "max_iter": 1000,
             "tol": 0.0001,
             "warm_start": False,
@@ -448,7 +452,9 @@ class SklearnTweedieGLM(SklearnGLM):
     @classmethod
     def get_hparams_space(cls) -> Dict[str, Any]:
         return {
-            "alpha": hp.loguniform("alpha", -5, 1),
+            "alpha": hp.loguniform("alpha", np.log(1e-6), np.log(100)),
+            "max_iter": hp.quniform("max_iter", 50, 500, 10),
+            "tol": hp.loguniform("tol", np.log(1e-6), np.log(1e-2)),
             "fit_intercept": hp.choice("fit_intercept", [True, False]),
             "power": hp.uniform("power", 1.0, 2.0),
             "solver": hp.choice("solver", ["lbfgs", "newton-cholesky"])
@@ -461,7 +467,7 @@ class SklearnTweedieGLM(SklearnGLM):
             "alpha": 1.0,
             "fit_intercept": True,
             "link": "auto",
-            "solver": "lbfgs",
+            "solver": "newton-cholesky",
             "max_iter": 1000,
             "tol": 0.0001,
             "warm_start": False,
