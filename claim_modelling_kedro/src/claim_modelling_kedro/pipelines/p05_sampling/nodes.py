@@ -46,15 +46,21 @@ def sample_part(
         calib_keys: pd.Index,
         is_event: Callable[[Series], Series[bool]]
 ) -> Tuple[Dict[str, pd.Index], pd.DataFrame, pd.DataFrame, float]:
-    # If set, use also the calibration data for sampling
-    if config.smpl.use_calib_data:
-        train_keys = train_keys.union(calib_keys)
-        logger.info(f"Using also the calibration data for sampling.")
     # Handle outliers in the train dataset
     train_trg_df_handled_outliers = handle_outliers(config=config, train_keys=train_keys, target_df=target_df)
     sample_keys = get_sample_keys(config=config,
                                   trg_df_handled_outliers=train_trg_df_handled_outliers,
                                   is_event=is_event)
+    # If set, use also the calibration data for sampling
+    if config.smpl.use_calib_data or config.smpl.use_calib_data_for_validation:
+        logger.info(f"Sampling also from the calibration data for:"
+                    "\n  - creating the training sample" if config.smpl.use_calib_data_for_validation else ""
+                    "\n  - creating the validation sample" if config.smpl.use_calib_data_for_validation else "")
+        calib_trg_df_handled_outliers = handle_outliers(config=config, train_keys=calib_keys, target_df=target_df)
+        sample_calib_keys = get_sample_keys(config=config,
+                                      trg_df_handled_outliers=calib_trg_df_handled_outliers,
+                                      is_event=is_event)
+        sample_keys = sample_keys.union(sample_calib_keys)
     sample_features_df = features_df.loc[sample_keys, :]
     sample_target_df = target_df.loc[sample_keys, :]
     actual_target_ratio = get_actual_target_ratio(config=config, sample_trg_df=sample_target_df, is_event=is_event)
@@ -103,35 +109,34 @@ def train_val_split(
         config: Config,
         sample_keys: Dict[str, pd.Index],
         calib_keys: Dict[str, pd.Index],
-        sample_target_df: Dict[str, pd.DataFrame],
-        target_df: Dict[str, pd.DataFrame],
-        is_event: Callable[[Series], Series[bool]]
+        sample_target_df: Dict[str, pd.DataFrame]
 ) -> Tuple[Dict[str, pd.Index], Dict[str, pd.DataFrame]]:
     logger.info(f"Splitting the sample into train and validation datasets...")
     partitions_keys = sample_keys.keys()
-    train_keys = {}
-    val_keys = {}
+    sample_train_keys = {}
+    sample_val_keys = {}
     for part in partitions_keys:
         logger.info(f"Splitting partition '{part}' of the sample into train and validation datasets...")
         if config.smpl.use_calib_data_for_validation:
+            sample_keys_part = get_partition(sample_keys, part)
             calib_keys_part = get_partition(calib_keys, part)
-            calib_target_df_part = target_df.loc[calib_keys_part, :]
-            trg_df_handled_outliers_part = handle_outliers(config=config, train_keys=calib_keys_part, target_df=calib_target_df_part)
-            train_keys = sample_keys
-            val_keys[part] = get_sample_keys(config=config, trg_df_handled_outliers=trg_df_handled_outliers_part, is_event=is_event)
+            sample_train_keys[part] = sample_keys_part.difference(calib_keys_part)
+            sample_val_keys[part] = sample_keys_part.intersection(calib_keys_part)
         elif config.smpl.split_train_val_enabled:
             sample_keys_part = get_partition(sample_keys, part)
             sample_target_df_part = get_partition(sample_target_df, part)
             mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
             with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-                train_keys_part, val_keys_part = get_stratified_train_test_split_keys(target_df=sample_target_df_part.loc[sample_keys_part,:],
-                                                                                      stratify_target_col=config.mdl_task.target_col,
-                                                                                      test_size=config.smpl.split_val_size,
-                                                                                      random_seed=config.smpl.split_val_random_seed)
-                train_keys[part] = train_keys_part
-                val_keys[part] = val_keys_part
+                sample_train_keys_part, sample_val_keys_part = get_stratified_train_test_split_keys(
+                    target_df=sample_target_df_part.loc[sample_keys_part,:],
+                    stratify_target_col=config.mdl_task.target_col,
+                    test_size=config.smpl.split_val_size,
+                    random_seed=config.smpl.split_val_random_seed
+                )
+                sample_train_keys[part] = sample_train_keys_part
+                sample_val_keys[part] = sample_val_keys_part
         else:
             # If no validation split is needed, use the whole sample as train
-            train_keys = sample_keys
-            val_keys[part] = pd.Index([])
-    return train_keys, val_keys
+            sample_train_keys = sample_keys
+            sample_val_keys[part] = pd.Index([])
+    return sample_train_keys, sample_val_keys

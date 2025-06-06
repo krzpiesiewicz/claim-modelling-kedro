@@ -14,7 +14,7 @@ def create_pipeline(**kwargs) -> Pipeline:
             ),
             node(
                 func=train_val_split,
-                inputs=["config", "sample_keys", "calib_keys", "sample_target_df", "target_df", "is_event"],
+                inputs=["config", "sample_keys", "calib_keys", "sample_target_df"],
                 outputs=["sample_train_keys", "sample_val_keys"],
                 name="train_val_split",
             ),
