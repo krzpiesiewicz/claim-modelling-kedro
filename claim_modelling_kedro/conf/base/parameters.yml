@@ -64,9 +64,9 @@ sampling:
     policy: keep # 'keep', 'drop', 'clip'
     lower_bound:
     upper_bound:
-  use_calib_data_for_validation: False # whether to use the calibration data for validation of the final model
+  use_calib_data_for_validation: True # whether to use the calibration data for validation of the final model
   split_train_val:
-    enabled: True # whether to split the sample into train and validation sets
+    enabled: False # whether to split the sample into train and validation sets
     val_size: 0.3 # the part of the sample used for validation the final model if use_calib_data_for_validation is False
     random_seed: 0 # the random seed for splitting the sample into train and validation sets
 
@@ -219,14 +219,22 @@ data_science:
     show_progressbar: True # whether to show the progress bar
     trial_verbose: True # whether to show each trial in the console
     random_seed: 0 # the random seed for the hyperopt fmin function
-    cross_validation:
-      enabled: False # whether to use cross-validation
-      folds: 10 # the number of folds in cross-validation
-      # val_size = 1 / folds
-      # train_size = 1 - val_size
-    split_val_size: 0.3 # the part of data used for validation – used only if cross_validation.enabled is False
-    split_n_repeats: 10 # the number of times the data is split into train and validation sets
-    split_random_seed: 0 # the random seed for splitting the data into train and validation sets
+    validation:
+      method: sample_val_set # 'sample_val_set', 'cross_validation', 'repeated_split'
+      # if method is 'sample_val_set', then the sample_val_keys set is used (created in sampling pipeline)
+      # if method is 'cross_validation' or 'repeated_split', the union of sample_train_keys and sample_val_keys
+      # is used for splitting in cross-validation or repeated splitting
+      # if method is 'cross_validation', then the data is split into folds and the model is trained on each fold
+      # if method is 'repeated_split', then the data is split into train and validation sets
+      cross_validation:
+        folds: 10 # the number of folds in cross-validation
+                  # val_size = 1 / folds
+                  # train_size = 1 - val_size
+        random_seed: 0 # the random seed for stratified splitting the data into folds
+      repeated_split:
+        val_size: 0.25 # the part of data used for validation – used only if cross_validation.enabled is False
+        n_repeats: 10 # the number of times the data is split into train and validation sets
+        random_seed: 0 # the random seed for stratified splitting the data into train and validation sets
     excluded_params:
       SklearnPoissonGLM:
         - solver

@@ -34,6 +34,11 @@ class HyperoptAlgoEnum(Enum):
     TPE: str = "tpe"
     RANDOM: str = "random"
 
+class HypertuneValidationEnum(Enum):
+    SAMPLE_VAL_SET: str = "sample_val_set"
+    CROSS_VALIDATION: str = "cross_validation"
+    REPEATED_SPLIT: str = "repeated_split"
+
 @dataclass
 class DataScienceConfig:
     mlflow_run_id: str
@@ -61,9 +66,12 @@ class DataScienceConfig:
     hopt_show_progressbar: bool
     hopt_trial_verbose: bool
     hopt_fmin_random_seed: int
-    hopt_split_random_seed: int
-    hopt_split_val_size: float
-    hopt_split_n_repeats: int
+    hopt_validation_method: HypertuneValidationEnum
+    hopt_cv_folds: int
+    hopt_cv_random_seed: int
+    hopt_repeated_split_val_size: float
+    hopt_repeated_split_n_repeats: int
+    hopt_repeated_split_random_seed: int
     hopt_excluded_params: List[str]
 
     def __init__(self, parameters: Dict, exprmnt: ExperimentInfo):
@@ -180,17 +188,18 @@ class DataScienceConfig:
         self.hopt_show_progressbar = hopt_params["show_progressbar"]
         self.hopt_trial_verbose = hopt_params["trial_verbose"]
         self.hopt_fmin_random_seed = hopt_params["random_seed"]
-        self.hopt_split_random_seed = hopt_params["split_random_seed"]
-        self.hopt_cv_enabled = hopt_params["cross_validation"]["enabled"]
-        if self.hopt_cv_enabled:
-            self.hopt_cv_folds = hopt_params["cross_validation"]["folds"]
+
+        hopt_val_params = hopt_params["validation"]
+        self.hopt_validation_method = HypertuneValidationEnum(hopt_val_params["method"])
+        self.hopt_cv_folds = hopt_val_params["cross_validation"]["folds"]
+        self.hopt_cv_random_seed = hopt_val_params["cross_validation"]["random_seed"]
+        self.hopt_repeated_split_val_size = hopt_val_params["repeated_split"]["val_size"]
+        self.hopt_repeated_split_n_repeats = hopt_val_params["repeated_split"]["n_repeats"]
+        self.hopt_repeated_split_random_seed = hopt_val_params["repeated_split"]["random_seed"]
+        if self.hopt_validation_method == HypertuneValidationEnum.CROSS_VALIDATION:
             if self.hopt_cv_folds <= 1:
                 raise ValueError("Number of folds should be greater than 1.")
-            self.hopt_split_val_size = None
-        else:
-            self.hopt_cv_folds = None
-            self.hopt_split_val_size = hopt_params["split_val_size"]
-            self.hopt_split_n_repeats = hopt_params["split_n_repeats"]
+
         if (hopt_params["excluded_params"] is not None
                 and self.model.value in hopt_params["excluded_params"]
                 and hopt_params["excluded_params"][self.model.value] is not None):

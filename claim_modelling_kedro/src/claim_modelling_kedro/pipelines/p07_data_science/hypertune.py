@@ -13,7 +13,7 @@ from hyperopt import fmin, Trials, space_eval, STATUS_OK, STATUS_FAIL
 from hyperopt.early_stop import no_progress_loss
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p01_init.ds_config import HyperoptAlgoEnum
+from claim_modelling_kedro.pipelines.p01_init.ds_config import HyperoptAlgoEnum, HypertuneValidationEnum
 from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel
 from claim_modelling_kedro.pipelines.utils.dataframes import save_pd_dataframe_as_csv_in_mlflow
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
@@ -173,33 +173,29 @@ def fit_model(hparams: Dict[str, any],
     msg += f"Fitting the predictive model(s) for hyperopt trial {trial_no}..."
     logger.info(msg)
 
-    if config.ds.hopt_cv_enabled:
-        train_keys_cv, val_keys_cv = get_stratified_train_test_cv(sample_target_df,
-                                                                  stratify_target_col=config.mdl_task.target_col,
-                                                                  cv_folds=config.ds.hopt_cv_folds, shuffle=True,
-                                                                  random_seed=config.ds.hopt_split_random_seed,
-                                                                  verbose=False)
-        logger.debug(f"train_keys_cv: {train_keys_cv}")
-        logger.debug(f"train_keys_cv: {val_keys_cv}")
-    elif sample_val_keys is not None and len(sample_val_keys) > 0:
-        train_keys_cv = {"0": sample_train_keys}
-        val_keys_cv = {"0": sample_val_keys}
-        logger.debug(f"train_keys_cv: {train_keys_cv}")
-        logger.debug(f"train_keys_cv: {val_keys_cv}")
-    else:
-        train_keys_cv = {}
-        val_keys_cv = {}
-        for fold in range(config.ds.hopt_split_n_repeats):
-            sample_train_keys, sample_val_keys = get_stratified_train_test_split_keys(sample_target_df,
-                                                                                      stratify_target_col=config.mdl_task.target_col,
-                                                                                      test_size=config.ds.hopt_split_val_size,
-                                                                                      shuffle=True,
-                                                                                      random_seed=max(config.ds.hopt_split_random_seed + 100, 1) * (100 * fold + 1),
-                                                                                      verbose=False)
-            train_keys_cv[str(fold)] = sample_train_keys
-            val_keys_cv[str(fold)] = sample_val_keys
-        logger.debug(f"train_keys_cv: {train_keys_cv}")
-        logger.debug(f"train_keys_cv: {val_keys_cv}")
+    match config.ds.hopt_validation_method:
+        case HypertuneValidationEnum.SAMPLE_VAL_SET:
+            train_keys_cv = {"0": sample_train_keys}
+            val_keys_cv = {"0": sample_val_keys}
+        case HypertuneValidationEnum.CROSS_VALIDATION:
+            train_keys_cv, val_keys_cv = get_stratified_train_test_cv(sample_target_df,
+                                                                      stratify_target_col=config.mdl_task.target_col,
+                                                                      cv_folds=config.ds.hopt_cv_folds, shuffle=True,
+                                                                      random_seed=config.ds.hopt_cv_random_seed,
+                                                                      verbose=False)
+        case HypertuneValidationEnum.REPEATED_SPLIT:
+            train_keys_cv = {}
+            val_keys_cv = {}
+            for fold in range(config.ds.hopt_repeated_split_n_repeats):
+                train_keys, val_keys = get_stratified_train_test_split_keys(
+                    sample_target_df,
+                    stratify_target_col=config.mdl_task.target_col,
+                    test_size=config.ds.hopt_repeated_split_val_size,
+                    shuffle=True,
+                    random_seed=max(config.ds.hopt_repeated_split_random_seed + 100, 1) * (100 * fold + 1),
+                    verbose=False)
+                train_keys_cv[str(fold)] = train_keys
+                val_keys_cv[str(fold)] = val_keys
 
     log_trials_info_to_mlflow(trials, space, log_folds_metrics=(len(train_keys_cv) > 1),
                               artifact_path=hyperopt_artifact_path)
