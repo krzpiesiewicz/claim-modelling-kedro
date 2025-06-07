@@ -159,6 +159,11 @@ data_engineering:
         with_centering: True # whether to center the data before scaling
         with_scaling: True # whether to scale the data to unit variance
         quantile_range: [25.0, 75.0]
+  polynomial_features:
+    enabled: False # whether to use the polynomial features
+    degree: 2 # (int) the degree of the polynomial features
+    interaction_only: False # (bool) whether to include only interaction features
+    include_bias: False # (bool) whether to include a bias term
   pca:
     enabled: False
     n_components: 0.95 # (int or float) the number of components to keep or the explained variance ratio to keep
