@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 from hyperopt import fmin, Trials, space_eval, STATUS_OK, STATUS_FAIL
 from hyperopt.early_stop import no_progress_loss
+from tabulate import tabulate
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.ds_config import HyperoptAlgoEnum, HypertuneValidationEnum
@@ -47,7 +48,9 @@ def get_best_trial(trials: Trials) -> Dict[str, Any]:
 
 def log_best_trials_info_to_mlflow(
         best_trials: Dict[str, Dict[str, Any]],
-        best_hparams: Dict[str, Dict[str, Any]]
+        best_hparams: Dict[str, Dict[str, Any]],
+        log_folds_metrics: bool,
+        artifact_path: str
 ) -> None:
     best_metrics = {part: copy.deepcopy(best_trial.get("attachments", {}).get("metrics", {})) for part, best_trial in best_trials.items()}
     for part, best_metrics_part in best_metrics.items():
@@ -55,9 +58,30 @@ def log_best_trials_info_to_mlflow(
             best_metrics_part[metric_name] = round_decimal(best_metrics_part[metric_name], significant_digits=4)
     best_trials_dct = {part: best_metrics[part] | best_hparams[part] for part in best_hparams.keys()}
     columns = list(best_trials_dct[next(iter(best_trials_dct))].keys())
-    best_trials_df = pd.DataFrame.from_dict(best_trials_dct, orient="index", columns=columns)
+    best_trials_df = pd.DataFrame.from_dict(best_trials_dct, orient="index", columns=columns).sort_index()
     best_trials_df.index.name = "part"
-    save_pd_dataframe_as_csv_in_mlflow(best_trials_df, _hypertune_artifact_path, "best_trials.csv", index=True)
+    save_pd_dataframe_as_csv_in_mlflow(best_trials_df, artifact_path, "best_trials.csv", index=True)
+    logger.info("Best hypertune results for each partition:\n" +
+                tabulate(best_trials_df, headers="keys", tablefmt="psql", stralign="right", showindex=True) + "\n")
+
+    if log_folds_metrics:
+        for dataset in ["valid", "train"]:
+            rows = []
+            for part, trial in best_trials.items():
+                folds_scores = (trial.get("attachments") or {}).get(f"{dataset}_scores") or []
+                row_dct = {
+                    "part": part,
+                    "mean": round_decimal(np.mean(folds_scores), significant_digits=4),
+                    "std": round_decimal(np.std(folds_scores), significant_digits=4) if len(folds_scores) > 1 else "",
+                    **{fold: round_decimal(score, significant_digits=4) for fold, score in
+                       enumerate(folds_scores)},
+                }
+                rows.append(row_dct)
+            best_trials_scores_df = pd.DataFrame(rows).sort_index()
+            file_name = f"best_trials_{dataset}_scores.csv"
+            save_pd_dataframe_as_csv_in_mlflow(best_trials_scores_df, artifact_path, file_name, index=False)
+            logger.info(f"Best hypertune trials folds {dataset.upper()} scores for each partition:\n" +
+                        tabulate(best_trials_scores_df, headers="keys", tablefmt="psql", stralign="right", showindex=False) + "\n")
 
 
 def log_trials_info_to_mlflow(
@@ -388,5 +412,6 @@ def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFram
             best_trials[part] = best_trial
     if save_best_hparams_in_mlfow:
         mlflow.log_dict(best_hparams, f"{_hypertune_artifact_path}/best_trials_hparams.yml")
-    log_best_trials_info_to_mlflow(best_trials, best_hparams)
+    log_best_trials_info_to_mlflow(best_trials, best_hparams, artifact_path=_hypertune_artifact_path,
+                                   log_folds_metrics=(config.ds.hopt_validation_method != HypertuneValidationEnum.SAMPLE_VAL_SET))
     return best_hparams
