@@ -7,7 +7,7 @@ from claim_modelling_kedro.pipelines.utils.mlflow_model import MLFlowModelLogger
 
 logger = logging.getLogger(__name__)
 
-_pca_artifact_path = "model_ds/pca"
+_pca_artifact_path = "model_de/pca"
 _pca_model_name = "features pca model"
 
 
