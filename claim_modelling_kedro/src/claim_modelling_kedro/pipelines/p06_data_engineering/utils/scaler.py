@@ -42,7 +42,10 @@ def fit_transform_scaler(config: Config, features_df: pd.DataFrame) -> pd.DataFr
         case "StandardScaler":
             scaler = StandardScaler(**config.de.scaler_params)
         case "MinMaxScaler":
-            scaler = MinMaxScaler(**config.de.scaler_params)
+            params = config.de.scaler_params.copy()
+            if "feature_range" in params:
+                params["feature_range"] = tuple(params["feature_range"])
+            scaler = MinMaxScaler(**params)
         case "RobustScaler":
             params = config.de.scaler_params.copy()
             if "quantile_range" in params:
