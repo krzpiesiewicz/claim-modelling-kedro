@@ -143,7 +143,7 @@ def transform_features_by_mlflow_model_part(config: Config, features_df: pd.Data
 
     # If PCA is enabled, transform the features using PCA
     if config.de.is_pca_enabled:
-        transformed_features_df = transform_features_pca_by_mlflow_model(config, transformed_features_df, mlflow_run_id)
+        transformed_features_df = transform_features_pca_by_mlflow_model(transformed_features_df, mlflow_run_id)
 
     # Check that the indexes of the transformed features match the original features
     assert_features_dfs_have_same_indexes(features_df, transformed_features_df)

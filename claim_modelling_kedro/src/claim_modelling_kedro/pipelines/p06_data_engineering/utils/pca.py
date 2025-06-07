@@ -40,69 +40,32 @@ def add_index_and_pc_columns(
     return pd.DataFrame(transformed_fearues, index=index, columns=columns)
 
 
-def process_features_pca_partition(config: Config, part: str, transformed_features_df: Dict[str, pd.DataFrame],
-                                   mlflow_run_id: str) -> Tuple[str, pd.DataFrame]:
-    logger.info(f"Transforming features for partition '{part}' using PCA from MLFlow model...")
-    features_part_df = get_partition(transformed_features_df, part)
-    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mflow_run_id=mlflow_run_id)
-    pca_model = MLFlowModelLoader(_pca_model_name).load_model(path=_pca_artifact_path, run_id=mlflow_subrun_id)
-    transformed_df = pca_model.transform(features_part_df)
-    transformed_df = add_index_and_pc_columns(transformed_df, index=features_part_df.index)
-    logger.info(f"Transformed features for partition '{part}' with PCA.")
-    return part, transformed_df
+def transform_features_pca_by_mlflow_model(features_df: pd.DataFrame, mlflow_run_id: str = None) -> pd.DataFrame:
+    logger.info("Transforming features using PCA from MLFlow model...")
+    pca_model = MLFlowModelLoader(_pca_model_name).load_model(path=_pca_artifact_path, run_id=mlflow_run_id)
+    transformed_df = pca_model.transform(features_df)
+    transformed_df = add_index_and_pc_columns(transformed_df, index=features_df.index)
+    logger.info(f"Transformed features with PCA.")
+    logger.info(f"Transformed features with PCA, resulting in {transformed_df.shape[1]} components.")
+    return transformed_df
 
 
-def transform_features_pca_by_mlflow_model(config: Config, transformed_features_df: Dict[str, pd.DataFrame],
-                                           mlflow_run_id: str = None) -> Dict[str, pd.DataFrame]:
-    logger.info("Transforming all partitions using PCA from MLFlow model...")
-    transformed_data = {}
-    parts_cnt = len(transformed_features_df)
-    with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
-        futures = {
-            executor.submit(process_features_pca_partition, config, part, transformed_features_df, mlflow_run_id): part
-            for part in transformed_features_df.keys()
-        }
-        for future in as_completed(futures):
-            part, transformed_part = future.result()
-            transformed_data[part] = transformed_part
-    logger.info("Finished PCA transformation for all partitions.")
-    return transformed_data
-
-
-def fit_transform_features_pca_part(config: Config, transformed_sample_features_df: pd.DataFrame) -> pd.DataFrame:
-    pca_model = PCA(n_components=config.de.pca_n_components)
+def fit_transform_features_pca(config: Config, sample_features_df: pd.DataFrame) -> pd.DataFrame:
+    pca_model = PCA(n_components=config.de.pca_n_components, random_state=config.de.pca_random_state)
     logger.info("Fitting PCA model...")
-    pca_transformed_df = pca_model.fit_transform(transformed_sample_features_df, random_state=config.de.pca_random_state)
-    pca_transformed_df = add_index_and_pc_columns(pca_transformed_df, index=transformed_sample_features_df.index)
+    transformed_df = pca_model.fit_transform(sample_features_df)
+    transformed_df = add_index_and_pc_columns(transformed_df, index=sample_features_df.index)
     logger.info("Fitted PCA model.")
     # Log the PCA model to MLFlow
     MLFlowModelLogger(pca_model, _pca_model_name).log_model(_pca_artifact_path)
     logger.info("Logged PCA model to MLFlow.")
-    return pca_transformed_df
+    explained_var_ratio = pca_model.explained_variance_ratio_
+    explained_variance_df = pd.DataFrame({
+        "explained_variance_percent": explained_var_ratio * 100,
+        "cumulative_variance_percent": explained_var_ratio.cumsum() * 100
+    }, index=transformed_df.columns).round(2)
+    explained_variance_df = explained_variance_df.astype(str) + '%'
+    logger.info(f"Transformed features with PCA, resulting in {transformed_df.shape[1]} components.\n"
+                f"Explained variance per PCA component (%):\n{explained_variance_df}")
+    return transformed_df
 
-
-def process_fit_transform_pca_partition(config: Config, part: str,
-                                        sample_features_df: Dict[str, pd.DataFrame]) -> Tuple[str, pd.DataFrame]:
-    features_part_df = get_partition(sample_features_df, part)
-    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
-
-    logger.info(f"Fitting PCA model on partition '{part}'...")
-    with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-        transformed_df = fit_transform_features_pca_part(config, features_part_df)
-    return part, transformed_df
-
-
-def fit_transform_features_pca(config: Config, sample_features_df: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
-    logger.info("Fitting PCA model on all sample partitions...")
-    transformed_data = {}
-    parts_cnt = len(sample_features_df)
-    with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
-        futures = {
-            executor.submit(process_fit_transform_pca_partition, config, part, sample_features_df): part
-            for part in sample_features_df.keys()
-        }
-        for future in as_completed(futures):
-            part, transformed_part = future.result()
-            transformed_data[part] = transformed_part
-    logger.info("Finished fitting PCA models on all partitions.")
-    return transformed_data

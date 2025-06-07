@@ -34,6 +34,19 @@ TODO – framework:
 20.   [DONE] Sprawdzić wszystko dla Poissona
 20.1  [DONE] Znaleźć błąd w ewNCI
 21.   [DONE] Dummy regressor - stała wartość jako predykcja (średnia targetu)
+
+
+___________________________________________________________________________________
+
+22.   DONE   Zdebugować PCA
+23.   TODO   Polynomial features
+24.   TODO   Sstratified sampling (bez CV) - heurystyka dodawania do kubełków train/calib/test, aby zgadzały się ważone sumy targetu
+___________________________________________________________________________________
+
+
+
+
+
 X.    BACKLOG Dopisać w IsotonicLikeCalibrationModel ustawianie _set_y_min i _set_y_max dla parametrów y_min_bin_size i y_max_bin_size
 X.    BACKLOG Dodać hyperopta dla modeli kalibracji
 
