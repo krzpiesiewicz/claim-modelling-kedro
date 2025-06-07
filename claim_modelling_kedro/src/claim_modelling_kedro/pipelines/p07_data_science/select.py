@@ -9,6 +9,7 @@ import mlflow
 import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
+from claim_modelling_kedro.pipelines.utils.dataframes import save_pd_dataframe_as_csv_in_mlflow
 from claim_modelling_kedro.pipelines.utils.mlflow_model import MLFlowModelLogger, MLFlowModelLoader
 from claim_modelling_kedro.pipelines.utils.datasets import get_class_from_path, get_partition, get_mlflow_run_id_for_partition
 
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 # Define the artifact path for selector
 _selector_artifact_path = "model_ds/selector"
 _select_artifact_path = "model_ds"
-_selected_features_filename = "selected_features.txt"
+_selected_features_filename = "selected_features.csv"
 _features_importance_filename = "features_importance.csv"
 
 
@@ -114,20 +115,13 @@ def fit_transform_features_selector_part(config: Config, transformed_sample_feat
     - max: {sel_ftrs_imp.max()}""")
     # Save the selected features
     logger.info("Saving the selected features...")
-    with tempfile.TemporaryDirectory() as tempdir:
-        file_path = os.path.join(tempdir, _selected_features_filename)
-        with open(file_path, "w") as f:
-            content = "\n".join(selected_features.tolist())
-            f.write(content)
-        mlflow.log_artifact(file_path, _select_artifact_path)
+    save_pd_dataframe_as_csv_in_mlflow(sel_ftrs_imp.reset_index(), _select_artifact_path, _selected_features_filename, index=True)
     logger.info(
         f"Successfully saved the selected features to MLFlow path {os.path.join(_select_artifact_path, _selected_features_filename)}")
     # Save the features importance
     logger.info("Saving the features importance...")
-    with tempfile.TemporaryDirectory() as tempdir:
-        file_path = os.path.join(tempdir, _features_importance_filename)
-        features_importance.to_csv(file_path)
-        mlflow.log_artifact(file_path, _select_artifact_path)
+    save_pd_dataframe_as_csv_in_mlflow(features_importance.reset_index(), _select_artifact_path, _features_importance_filename,
+                                       index=True)
     logger.info(
         f"Successfully saved the features importance to MLFlow path {os.path.join(_select_artifact_path, _features_importance_filename)}")
     selected_features_df = selector.transform(transformed_sample_features_df)
