@@ -62,6 +62,10 @@ def fit_transform_features_part(config: Config, features_df: pd.DataFrame, featu
     if config.de.is_num_imputer_enabled:
         numerical_features_df = fit_transform_numerical_imputer(config, numerical_features_df)
 
+    # Scale numerical features
+    if config.de.is_scaler_enabled:
+        numerical_features_df = fit_transform_scaler(config, numerical_features_df)
+
     # Apply data engineering steps to categorical features
     # Reduce number of categories
     if config.de.is_cat_reducer_enabled:
@@ -100,10 +104,6 @@ def fit_transform_features_part(config: Config, features_df: pd.DataFrame, featu
     if config.de.is_polynomial_features_enabled:
         transformed_features_df = fit_transform_features_polynomial(config, transformed_features_df)
 
-    # Scale numerical features
-    if config.de.is_scaler_enabled:
-        transformed_features_df = fit_transform_scaler(config, transformed_features_df)
-
     # If PCA is enabled, transform the features using PCA
     if config.de.is_pca_enabled:
         transformed_features_df = fit_transform_features_pca(config, transformed_features_df)
@@ -128,6 +128,10 @@ def transform_features_by_mlflow_model_part(config: Config, features_df: pd.Data
     if config.de.is_num_imputer_enabled:
         numerical_features_df = impute_numeric_by_mlflow_model(config, numerical_features_df, mlflow_run_id)
 
+    # Scale numerical features
+    if config.de.is_scaler_enabled:
+        numerical_features_df = scale_features_by_mlflow_model(config, numerical_features_df, mlflow_run_id)
+
     # Apply data engineering steps to categorical features
     # Reduce number of categories
     if config.de.is_cat_reducer_enabled:
@@ -149,9 +153,7 @@ def transform_features_by_mlflow_model_part(config: Config, features_df: pd.Data
     if config.de.is_polynomial_features_enabled:
         transformed_features_df = transform_features_polynomial_by_mlflow_model(transformed_features_df, mlflow_run_id)
 
-    # Scale numerical features
-    if config.de.is_scaler_enabled:
-        transformed_features_df = scale_features_by_mlflow_model(config, transformed_features_df, mlflow_run_id)
+
 
     # If PCA is enabled, transform the features using PCA
     if config.de.is_pca_enabled:

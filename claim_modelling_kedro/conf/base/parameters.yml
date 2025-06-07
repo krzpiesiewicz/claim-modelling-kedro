@@ -137,6 +137,19 @@ data_engineering:
     enabled: True # whether to use the imputer
     strategy: constant # 'mean', 'median', 'most_frequent', 'constant'
     fill_value: 0 # the value used to fill missing values
+  scaler:
+    enabled: True # whether to use the scaler
+    method: StandardScaler # 'StandardScaler', 'MinMaxScaler', 'RobustScaler', 'MaxAbsScaler'
+    params:
+      StandardScaler:
+        with_mean: True # whether to center the data before scaling
+        with_std: True # whether to scale the data to unit variance
+      MinMaxScaler:
+        feature_range: [ 0, 1 ] # the range of the scaled data
+      RobustScaler:
+        with_centering: True # whether to center the data before scaling
+        with_scaling: True # whether to scale the data to unit variance
+        quantile_range: [ 25.0, 75.0 ]
   ohe:
     enabled: True # whether to use the OHE
     drop_reference_cat: True # whether to drop the reference category
