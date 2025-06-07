@@ -106,8 +106,7 @@ def fit_transform_features_selector_part(config: Config, transformed_sample_feat
     features_importance = selector.get_features_importance()
     # Log info about the features importance and selected features
     logger.info(f"Features importance:\n{features_importance.reset_index()}")
-    logger.info(f"Selected {len(selected_features)} / {len(features_importance)} features:\n" + \
-                ",\n".join(f"    - {ftr}" for ftr in selected_features))
+    logger.info(f"Selected {len(selected_features)} / {len(features_importance)} features:\n{pd.Series(selected_features, name='feature')}")
     sel_ftrs_imp = features_importance[selected_features]
     logger.info(f"""importance of the selected features:
     - min: {sel_ftrs_imp.min()}
