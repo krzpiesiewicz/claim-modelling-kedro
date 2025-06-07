@@ -218,6 +218,9 @@ data_science:
       # 'spearman_correlation', 'exposure_weighted_spearman_correlation', 'claim_nb_weighted_spearman_correlation'
       # tweedie_deviance(p), where p is a float number, e.g., tweedie_deviance(1.5)
       # exposure_weighted_tweedie_deviance(p) or claim_nb_weighted_tweedie_deviance(p), where p is a float number, e.g., weighted_tweedie_deviance(1.5)
+    overfit_penalty: 0.5 # the penalty for overfitting (>= 0) added to hyperopt loss; penalty = overfit_penalty * max(0, loss_val - loss_train)
+                         # where loss_{set} = -metric_{set} if large is better else metric_{set}
+                         # if overfit_penalty == 0, then no penalty is applied
     max_evals: 100 # the maximum number of evaluations
     early_stopping:
       enabled: True # whether to use early stopping
