@@ -501,7 +501,7 @@ class PyGLMNetGLM(PredictiveModel):
         self._alpha = self._hparams.get("alpha")
         self._reg_lambda = self._hparams.get("reg_lambda")
         self._fit_intercept = self._hparams.get("fit_intercept")
-        self._max_iter = self._hparams.get("max_iter")
+        self._max_iter = int(self._hparams.get("max_iter"))
         self._tol = self._hparams.get("tol")
         self._distr = self._hparams.get("distr")
         if self._distr is None:
@@ -576,11 +576,11 @@ class PyGLMNetGLM(PredictiveModel):
     def get_hparams_space(cls) -> Dict[str, Any]:
         return {
             "alpha": hp.uniform("alpha", 0.0, 1.0),
-            "reg_lambda": hp.choice("reg_lambda", [0, hp.loguniform("reg_lambda_positive", -5, 1)]),
+            "reg_lambda": hp.loguniform("reg_lambda", np.log(1e-6), np.log(1)),
+            "max_iter": hp.quniform("max_iter", 50, 500, 10),
+            "tol": hp.loguniform("tol", np.log(1e-5), np.log(1e-2)),
             "fit_intercept": hp.choice("fit_intercept", [True, False]),
-            "max_iter": hp.choice("max_iter", [1000, 2000]),
-            "tol": hp.choice("tol", [1e-4, 1e-5, 1e-6]),
-            "learning_rate": hp.uniform("learning_rate", 0.001, 0.1),
+            "learning_rate": hp.uniform("learning_rate", 0.001, 0.5),
             "solver": hp.choice("solver", ["batch-gradient", "cdfast"])
         }
 
@@ -590,6 +590,7 @@ class PyGLMNetGLM(PredictiveModel):
             "alpha": 0.5,
             "reg_lambda": 0.1,
             "fit_intercept": True,
+            "force_min_y_pred": False,
             "max_iter": 1000,
             "tol": 1e-6,
             "learing_rate": 0.01,
