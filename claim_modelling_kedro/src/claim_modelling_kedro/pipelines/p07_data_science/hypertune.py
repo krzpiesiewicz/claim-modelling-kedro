@@ -143,11 +143,16 @@ def create_hyperopt_result_message(trials: Trials, current_trial: Dict[str, Any]
     train_scores = attachments.get("train_scores", [])
     val_scores = attachments.get("valid_scores", [])
 
-    n_trials = len(trials.trials) if is_best else max_evals
     if is_best:
-        msg = (f"Final hyperopt results for partition: '{part}':\nbest hyperopt trial: {trial_no}/{n_trials} - eval_time: {eval_time} - status: {status} - loss: {loss}\nMetrics:\n")
+        n_trials = len(trials.trials)
+        msg = (f"Final hyperopt results for partition: '{part}':\nbest trial: {trial_no}/{n_trials} - evaluation time: {eval_time}, status: {status}, loss: {loss}\nmetrics:\n")
     else:
-        msg = f"Hyperopt trial {trial_no}/{n_trials} for partition '{part}' – eval_time: {eval_time} - status: {status} - loss: {loss}\nMetrics:\n"
+        best_trial = get_best_trial(trials)
+        best_trial_no = best_trial["tid"] + 1
+        best_loss = best_trial["result"].get("loss")
+        msg = (f"Hyperopt trial {trial_no}/{max_evals} for partition '{part}' - evaluation time: {eval_time}, status: {status}\n" +
+               f"loss: {loss} \[best trial {best_trial_no}/{max_evals} - best loss: {best_loss}]\n" +
+               f"metrics:\n")
 
     if metrics:
         train_mean = round_decimal(metrics.get(f"{metric_name}_train"), significant_digits=4)
