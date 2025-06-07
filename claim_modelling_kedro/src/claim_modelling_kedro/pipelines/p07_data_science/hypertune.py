@@ -46,10 +46,10 @@ def get_best_trial(trials: Trials) -> Dict[str, Any]:
 
 
 def log_best_trials_info_to_mlflow(
-        best_metrics: Dict[str, Dict[str, Any]],
+        best_trials: Dict[str, Dict[str, Any]],
         best_hparams: Dict[str, Dict[str, Any]]
 ) -> None:
-    best_metrics = copy.deepcopy(best_metrics)
+    best_metrics = {part: copy.deepcopy(best_trial.get("attachments", {}).get("metrics", {})) for part, best_trial in best_trials.items()}
     for part, best_metrics_part in best_metrics.items():
         for metric_name in best_metrics_part:
             best_metrics_part[metric_name] = round_decimal(best_metrics_part[metric_name], significant_digits=4)
@@ -337,11 +337,10 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
     )
     best_trial = get_best_trial(trials)
     best_hparams = get_hparams_from_trial(best_trial, hparam_space)
-    best_metrics = best_trial.get("attachments", {}).get("metrics", {})
 
     if save_best_hparams_in_mlfow:
         mlflow.log_dict(best_hparams, f"{_hypertune_artifact_path}/best_hparams.yml")
-    return trials, best_trial, best_hparams, best_metrics
+    return trials, best_trial, best_hparams
 
 
 def process_hypertune_part(config: Config, part: str, selected_sample_features_df: Dict[str, pd.DataFrame],
@@ -355,17 +354,17 @@ def process_hypertune_part(config: Config, part: str, selected_sample_features_d
     mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
     logger.info(f"Tuning the hyper parameters of the predictive model on partition '{part}' of the sample dataset...")
     with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-        trials, best_trial_part, best_hparams_part, best_metrics_part = hypertune_part(
+        trials, best_trial, best_hparams_part = hypertune_part(
             config, selected_sample_features_part_df, sample_target_part_df,
             sample_train_keys_part, sample_val_keys_part, part=part,
             hyperopt_artifact_path=f"{_hypertune_artifact_path}"
         )
-        msg = create_hyperopt_result_message(trials, best_trial_part, part=part, is_best=True, max_evals=config.ds.hopt_max_evals)
+        msg = create_hyperopt_result_message(trials, best_trial, part=part, is_best=True, max_evals=config.ds.hopt_max_evals)
         msg += f"\nThe best hyperparameters for partition '{part}':\n"
         for param, value in best_hparams_part.items():
             msg += f"    - {param}: {value}\n"
         logger.info(msg)
-    return part, best_hparams_part, best_metrics_part
+    return part, best_hparams_part, best_trial
 
 
 def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFrame],
@@ -374,7 +373,7 @@ def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFram
               ) -> Dict[str, Dict[str, Any]]:
     logger.info(f"Tuning the hyper parameters of the predictive model {config.ds.model_class}...")
     best_hparams = {}
-    best_metrics = {}
+    best_trials = {}
 
     parts_cnt = len(selected_sample_features_df)
     with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
@@ -384,10 +383,10 @@ def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFram
             for part in selected_sample_features_df.keys()
         }
         for future in as_completed(futures):
-            part, best_hparams_part, best_metrics_part = future.result()
+            part, best_hparams_part, best_trial = future.result()
             best_hparams[part] = best_hparams_part
-            best_metrics[part] = best_metrics_part
+            best_trials[part] = best_trial
     if save_best_hparams_in_mlfow:
         mlflow.log_dict(best_hparams, f"{_hypertune_artifact_path}/best_trials_hparams.yml")
-    log_best_trials_info_to_mlflow(best_metrics, best_hparams)
+    log_best_trials_info_to_mlflow(best_trials, best_hparams)
     return best_hparams
