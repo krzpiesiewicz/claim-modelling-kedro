@@ -271,7 +271,9 @@ def fit_model(hparams: Dict[str, any],
 
         train_score_mean = np.mean(train_scores)
         val_score_mean = np.mean(val_scores)
-        loss = -val_score_mean if metric.is_larger_better() else val_score_mean
+        loss_val = -val_score_mean if metric.is_larger_better() else val_score_mean
+        loss_train = -train_score_mean if metric.is_larger_better() else train_score_mean
+        loss = loss_val + config.ds.hopt_overfit_penalty * max(0, loss_val - loss_train)
         if len(train_keys_cv) > 1:
             train_score_std = np.std(train_scores)
             val_score_std = np.std(val_scores)

@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from claim_modelling_kedro.pipelines.p01_init.exprmnt import ExperimentInfo, Target
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum
@@ -60,6 +60,7 @@ class DataScienceConfig:
     hopt_enabled: bool
     hopt_metric: MetricEnum
     hopt_max_evals: int
+    hopt_overfit_penalty: float
     hopt_early_stop_enabled: bool
     hopt_early_iteration_stop_count: int
     hopt_early_stop_percent_increase: float
@@ -180,6 +181,7 @@ class DataScienceConfig:
                     self.hopt_metric = MetricEnum.GAMMA_DEV
                 case _:
                     raise ValueError(f"Metric for target {exprmnt.target} is not defined -> see p01_init/config.py.")
+        self.hopt_overfit_penalty = hopt_params["overfit_penalty"]
         self.hopt_max_evals = hopt_params["max_evals"]
         self.hopt_early_stop_enabled = hopt_params["early_stopping"]["enabled"]
         if self.hopt_early_stop_enabled:
