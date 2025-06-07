@@ -1,5 +1,5 @@
 import logging
-from typing import Tuple, Union
+from typing import List, Tuple, Union, Optional
 
 import numpy as np
 import pandas as pd
@@ -7,129 +7,175 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-def get_stratified_sample_keys(target_df: pd.DataFrame, stratify_target_col: str, size: Union[int, float],
-                               shuffle: bool = True, random_seed: int = 0, verbose: bool = True) -> pd.Index:
+def _get_stratified_bin_labels_by_proportions(
+    target: pd.Series,
+    sample_weight: pd.Series,
+    proportions: List[float],
+    random_seed: int = 0
+) -> pd.Series:
     """
-    Performs a stratified sampling by dividing the data into buckets and selecting one observation from each bucket.
+    Assigns observations to bins (e.g., train/test/validation) so that the weighted sum of the target
+    in each bin approximates the given proportions.
+
+    This is useful for creating stratified splits based on a continuous target, particularly when observations
+    have associated weights (e.g., exposure or policy weight).
 
     Args:
-        target_df (pd.DataFrame): The DataFrame containing the data to sample from.
-        stratify_target_col (str): The column to stratify on.
-        size (Union[int, float]): The number of buckets (int) or fraction of the dataset (float) to sample.
-        shuffle (bool): Whether to shuffle the data within each bucket before sampling. Default is True.
-        random_seed (int): The random seed for reproducibility. Default is 0.
-        verbose (bool): Whether to log information about the sampling process. Default is True.
+        target (pd.Series): A continuous target variable (e.g., average claim severity).
+        sample_weight (pd.Series): Observation weights, same index as `target`.
+        proportions (List[float]): A list of proportions for the bins. Must sum to 1.0.
+                                   Example: [0.6, 0.2, 0.2] for train/val/test.
+        random_seed (int): Random seed used for shuffling equal target values for stability.
 
     Returns:
-        pd.Index: A Index containing the stratified sample keys.
+        pd.Series: A Series of bin assignments (integer labels from 0 to len(proportions) - 1),
+                   indexed the same as `target`.
     """
-    # Ensure size is valid
-    n_samples = target_df.shape[0]
-    if isinstance(size, float):
-        if not (0 < size <= 1):
-            raise ValueError("If size is a float, it must be in the range (0, 1]. But got {size=}.")
-        n_buckets = int(n_samples * size)
-    elif isinstance(size, int):
-        if size <= 0 or size > n_samples:
-            raise ValueError(
-                f"If size is an int, it must be in the range from 1 to {n_samples=}. But got {size=}.")
-        n_buckets = size
+    # Sanity checks
+    if not np.isclose(sum(proportions), 1.0):
+        raise ValueError("Proportions must sum to 1.0")
+
+    n_bins = len(proportions)
+    sample_weight = sample_weight.loc[target.index]
+
+    # Prepare a DataFrame for sorting and computation
+    df = pd.DataFrame({
+        "target": target,
+        "weight": sample_weight
+    })
+    df["weighted_target"] = df["target"] * df["weight"]
+
+    # Shuffle observations with identical target values, then sort descending
+    df = df.sample(frac=1.0, random_state=random_seed).sort_values(by="target", ascending=False)
+
+    # Initialize containers to track current sums and assignment
+    bin_sums = [0.0 for _ in range(n_bins)]  # current weighted target per bin
+    weighted_target_sum = df["weighted_target"].sum()  # total weighted target sum
+    bin_targets = [p * weighted_target_sum for p in proportions]  # target sum per bin
+    bin_assignments = [[] for _ in range(n_bins)]
+
+    # Assign each observation to the bin currently furthest below its target sum
+    for idx, row in df.iterrows():
+        residuals = [current_sum / target_sum for target_sum, current_sum in zip(bin_targets, bin_sums)]
+        best_bin = int(np.argmin(residuals))
+        bin_assignments[best_bin].append(idx)
+        bin_sums[best_bin] += row["weighted_target"]
+
+    # Create output Series with assigned bin labels
+    bin_labels = pd.Series(index=target.index, dtype=int)
+    for bin_id, indices in enumerate(bin_assignments):
+        bin_labels.loc[indices] = bin_id
+
+    return bin_labels
+
+
+def _get_size_proportion(sample_size: Union[int, float], data_size: int) -> float:
+    if isinstance(sample_size, float):
+        return sample_size
+    elif isinstance(sample_size, int):
+        return sample_size / data_size
     else:
-        raise TypeError(f"Size must be either an int or a float. But got {size=} of type {type(size)}.")
-
-    # Sort the DataFrame by the stratify_target_col
-    sorted_indices = target_df.sort_values(by=stratify_target_col, ascending=False).index.values
-
-    buckets_beginings = np.linspace(0, n_samples, n_buckets + 1).astype(int)
-
-    # Optional: Shuffle the indicies within a bucket (if shuffle is enabled)
-    if shuffle:
-        rng = np.random.default_rng(random_seed)
-        for left, right in zip(buckets_beginings[:-1], buckets_beginings[1:]):
-            rng.shuffle(sorted_indices[left:right])
-
-    # Sample one observation from each bucket
-    sampled_indices = sorted_indices[buckets_beginings[:-1]]
-    return target_df.loc[sampled_indices, :].index
+        raise ValueError("Size must be float or int")
 
 
-def get_stratified_train_calib_test_split_keys(target_df: pd.DataFrame, stratify_target_col: str,
-                                               test_size: Union[int, float], shuffle: bool = True,
-                                               random_seed: int = 0, verbose: bool = True,
-                                               calib_size: Union[int, float] = None) -> Tuple[
-    pd.Index, pd.Index, pd.Index]:
+def get_stratified_train_calib_test_split_keys(
+    target_df: pd.DataFrame,
+    stratify_target_col: str,
+    test_size: Union[int, float],
+    shuffle: bool = True,
+    random_seed: int = 0,
+    verbose: bool = True,
+    calib_size: Union[int, float] = None,
+    sample_weight: Optional[pd.Series] = None
+) -> Tuple[pd.Index, Optional[pd.Index], pd.Index]:
     """
-    Splits the dataset into stratified train, calibration, and test sets.
+    Splits the dataset into stratified train, calibration, and test sets using bin proportions.
 
     Args:
         target_df (pd.DataFrame): The DataFrame containing the target column.
-        stratify_target_col (str): The column to stratify on.
-        test_size (Union[int, float]): The size of the test set (int for absolute, float for fraction).
-        shuffle (bool): Whether to shuffle the data before sampling. Default is True.
-        random_seed (int): The random seed for reproducibility. Default is 0.
-        verbose (bool): Whether to log information about the splits. Default is True.
-        calib_size (Union[int, float], optional): The size of the calibration set (int for absolute, float for fraction).
+        stratify_target_col (str): Column used for stratification (e.g., severity).
+        test_size (Union[int, float]): Size of the test set (float = percentage, int = absolute).
+        shuffle (bool): Shuffle observations before sorting. Default is True.
+        random_seed (int): Seed for reproducibility.
+        verbose (bool): Whether to log messages.
+        calib_size (Union[int, float], optional): Size of the calibration set (float or int).
+        sample_weight (pd.Series, optional): Optional observation weights.
 
     Returns:
-        Tuple[pd.Index, pd.Index, pd.Index]: Indices for the train, calibration, and test sets.
+        Tuple[pd.Index, Optional[pd.Index], pd.Index]: Train, calibration (or None), and test indices.
     """
-    # Calculate the number of test samples
-    if isinstance(test_size, float):
-        n_test = int(target_df.shape[0] * test_size)
-    elif isinstance(test_size, int):
-        n_test = test_size
-    else:
-        raise ValueError("test_size must be either an int or a float.")
+    # Total number of observations
+    n = len(target_df)
 
-    # Get test keys
-    test_keys = get_stratified_sample_keys(target_df, stratify_target_col, size=n_test,
-                                           shuffle=shuffle, random_seed=random_seed, verbose=verbose)
+    # Compute proportions from sizes
 
-    # Exclude test keys from the dataset
-    remaining_df = target_df.drop(index=test_keys)
 
-    calib_keys = None
-    if calib_size is not None:
-        # Calculate the number of calibration samples
-        if isinstance(calib_size, float):
-            n_calib = int(target_df.shape[0] * calib_size)
-        elif isinstance(calib_size, int):
-            n_calib = calib_size
-        else:
-            raise ValueError("calib_size must be either an int or a float.")
+    p_test = _get_size_proportion(test_size, n)
+    p_calib = _get_size_proportion(calib_size, n) if calib_size is not None else 0.0
+    p_train = 1.0 - p_test - p_calib
 
-        # Get calibration keys
-        calib_keys = get_stratified_sample_keys(remaining_df, stratify_target_col, size=n_calib,
-                                                shuffle=shuffle, random_seed=random_seed, verbose=verbose)
+    if p_train < 0:
+        raise ValueError("Combined test_size and calib_size exceed 1.0")
 
-        # Exclude calibration keys from the dataset
-        remaining_df = remaining_df.drop(index=calib_keys)
+    proportions = [p_train, p_calib, p_test] if calib_size is not None else [p_train, p_test]
 
-    # Remaining keys are for the train set
-    train_keys = remaining_df.index
+    # Run stratified binning
+    target = target_df[stratify_target_col]
+    weights = sample_weight if sample_weight is not None else pd.Series(1, index=target.index)
+
+    bin_labels = _get_stratified_bin_labels_by_proportions(target, weights, proportions, random_seed=random_seed)
+
+    # Extract index masks
+    train_keys = bin_labels[bin_labels == 0].index
+    calib_keys = bin_labels[bin_labels == 1].index if calib_size is not None else None
+    test_keys = bin_labels[bin_labels == 2].index if calib_size is not None else bin_labels[bin_labels == 1].index
 
     if verbose:
-        logger.info(
-            f"Split completed: {len(train_keys)} train, {len(calib_keys) if calib_keys is not None else 0} calibration, {len(test_keys)} test samples.")
-
-    if verbose:
-        n_samples = target_df.shape[0]
-        msg = (f"Stratified Train/Calib/Test Split. Data is split into:\n"
-               f"    – train: {len(train_keys)} samples ({len(train_keys) / n_samples:.2%})\n")
+        msg = (
+            f"Stratified Train/Calib/Test Split completed with {len(target_df)} rows:\n"
+            f"    – train: {len(train_keys)} ({len(train_keys) / n:.2%})"
+        )
         if calib_size is not None:
-            msg = f"{msg}\n    – calibration: {len(calib_keys)} samples ({len(calib_keys) / n_samples:.2%})\n"
-        msg = f"{msg}\n    – test: {len(test_keys)} samples ({len(test_keys) / n_samples:.2%})"
+            msg += f"\n    – calibration: {len(calib_keys)} ({len(calib_keys) / n:.2%})"
+        msg += f"\n    – test: {len(test_keys)} ({len(test_keys) / n:.2%})"
         logger.info(msg)
+        
+    if shuffle:
+        # Shuffle the keys to ensure randomness
+        train_keys = train_keys.to_series().sample(frac=1.0, random_state=random_seed).index
+        if calib_keys is not None:
+            calib_keys = calib_keys.to_series().sample(frac=1.0, random_state=random_seed).index
+        test_keys = test_keys.to_series().sample(frac=1.0, random_state=random_seed).index
+
     return train_keys, calib_keys, test_keys
 
 
+def get_stratified_sample_keys(target_df: pd.DataFrame, stratify_target_col: str, size: Union[int, float],
+                               shuffle: bool = True, random_seed: int = 0, verbose: bool = True,
+                               sample_weight: Optional[pd.Series] = None) -> pd.Index:
+    """
+    Samples a stratified subset of keys from the target DataFrame based on the specified size.
+    """
+    # Total number of observations
+    n = len(target_df)
+    size = _get_size_proportion(size, n)
+    _, _, keys = get_stratified_train_calib_test_split_keys(target_df, stratify_target_col, test_size=size,
+                                                            shuffle=shuffle, random_seed=random_seed, verbose=verbose,
+                                                            sample_weight=sample_weight)
+    if shuffle:
+        keys = keys.to_series().sample(frac=1.0, random_state=random_seed).index
+    return keys
+
+
+
 def get_stratified_train_test_split_keys(target_df: pd.DataFrame, stratify_target_col: str,
-                                         test_size: Union[int, float],
-                                         shuffle: bool = True, random_seed: int = 0,
-                                         verbose: bool = True) -> Tuple[pd.Index, pd.Index]:
+                                         test_size: Union[int, float], shuffle: bool = True, random_seed: int = 0,
+                                         verbose: bool = True, sample_weight: Optional[pd.Series] = None
+                                         ) -> Tuple[pd.Index, pd.Index]:
     train_keys, _, test_keys = get_stratified_train_calib_test_split_keys(target_df, stratify_target_col,
                                                                           test_size=test_size,
                                                                           shuffle=shuffle,
                                                                           random_seed=random_seed,
-                                                                          verbose=verbose)
+                                                                          verbose=verbose,
+                                                                          sample_weight=sample_weight)
     return train_keys, test_keys

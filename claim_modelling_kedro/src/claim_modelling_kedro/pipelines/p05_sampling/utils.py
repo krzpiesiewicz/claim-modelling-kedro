@@ -50,7 +50,8 @@ def assert_train_size_gte_given_config_sample_size(config: Config, train_trg_df:
 
 
 def get_actual_target_ratio(config: Config, sample_trg_df: pd.DataFrame,
-                            is_event: Callable[[Series], Series[bool]]) -> float:
+                            is_event: Callable[[Series], Series[bool]],
+                            sample_weight: Optional[pd.Series] = None) -> float:
     if is_event is return_none:
         return None
     sampled_events = is_event(sample_trg_df[config.mdl_task.target_col]).sum()
@@ -67,7 +68,7 @@ def get_all_samples(config: Config, target_df: pd.DataFrame, train_keys: pd.Inde
 
 
 def sample_with_no_condition(config: Config, target_df: pd.DataFrame, train_keys: pd.Index,
-                             n_obs: Optional[int] = None) -> pd.Index:
+                             n_obs: Optional[int] = None, sample_weight: Optional[pd.Series] = None) -> pd.Index:
     train_trg_df = target_df.loc[train_keys, :]
     n_obs = n_obs or config.smpl.n_obs
     assert_train_size_gte_given_config_sample_size(config, train_trg_df, n_obs=n_obs)
@@ -78,7 +79,8 @@ def sample_with_no_condition(config: Config, target_df: pd.DataFrame, train_keys
     - sample size: {n_obs}""")
     sample_keys = get_stratified_sample_keys(train_trg_df, config.mdl_task.target_col,
                                              size=n_obs, shuffle=True,
-                                             random_seed=config.smpl.random_seed)
+                                             random_seed=config.smpl.random_seed,
+                                             sample_weight=sample_weight)
     sample_df = train_trg_df.loc[sample_keys, :]
     sample_size = sample_df.shape[0]
     train_size = train_trg_df.shape[0]
@@ -88,7 +90,8 @@ def sample_with_no_condition(config: Config, target_df: pd.DataFrame, train_keys
 
 
 def sample_with_target_ratio(config: Config, target_df: pd.DataFrame, train_keys: pd.Index,
-                             is_event: Callable[[Series], Series[bool]], n_obs: Optional[int] = None) -> Tuple[pd.Index, float]:
+                             is_event: Callable[[Series], Series[bool]], n_obs: Optional[int] = None,
+                             sample_weight: Optional[pd.Series] = None) -> Tuple[pd.Index, float]:
     train_trg_df = target_df.loc[train_keys, :]
     train_size = train_trg_df.shape[0]
     events_keys = train_trg_df[is_event(train_trg_df[config.mdl_task.target_col])].index
@@ -137,18 +140,22 @@ def sample_with_target_ratio(config: Config, target_df: pd.DataFrame, train_keys
     if n_events_in_sample == 0:
         sample_events_keys = pd.Index([], name=train_trg_df.index.name)
     else:
+        events_sample_weight = sample_weight.loc[events_keys] if sample_weight is not None else None
         sample_events_keys = get_stratified_sample_keys(train_trg_df.loc[events_keys, :],
                                                         config.mdl_task.target_col,
                                                         size=n_events_in_sample, shuffle=True,
-                                                        random_seed=config.smpl.random_seed)
+                                                        random_seed=config.smpl.random_seed,
+                                                        sample_weight=events_sample_weight)
     non_events_keys = train_keys.difference(events_keys)
     if n_non_events_in_sample == 0:
         sample_non_events_keys = pd.Index([], name=train_trg_df.index.name)
     else:
+        non_events_sample_weight = sample_weight.loc[non_events_keys] if sample_weight is not None else None
         sample_non_events_keys = get_stratified_sample_keys(train_trg_df.loc[non_events_keys, :],
                                                             config.mdl_task.target_col,
                                                             size=n_non_events_in_sample, shuffle=True,
-                                                            random_seed=config.smpl.random_seed)
+                                                            random_seed=config.smpl.random_seed,
+                                                            sample_weight=non_events_sample_weight)
     sample_keys = sample_events_keys.union(sample_non_events_keys)
     sample_df = train_trg_df.loc[sample_keys, :]
     sampled_events = is_event(sample_df[config.mdl_task.target_col]).sum()

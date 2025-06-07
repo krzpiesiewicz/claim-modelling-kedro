@@ -10,6 +10,7 @@ from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.smpl_config import SampleValidationSet
 from claim_modelling_kedro.pipelines.p05_sampling.utils import sample_with_no_condition, \
     sample_with_target_ratio, get_all_samples, handle_outliers, get_actual_target_ratio, return_none
+from claim_modelling_kedro.pipelines.p07_data_science.model import get_sample_weight
 from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_test_split_keys
 from claim_modelling_kedro.pipelines.utils.datasets import get_mlflow_run_id_for_partition, get_partition
 
@@ -21,17 +22,20 @@ def get_sample_keys(
         trg_df_handled_outliers: pd.DataFrame,
         is_event: Callable[[Series], Series[bool]]
 ) -> pd.Index:
+    sample_weight = get_sample_weight(config=config, target_df=trg_df_handled_outliers)
     if config.smpl.target_ratio is not None and is_event is not return_none:
         # Sample with target ratio condition
         sample_keys = sample_with_target_ratio(config=config,
                                                target_df=trg_df_handled_outliers,
                                                train_keys=trg_df_handled_outliers.index,
-                                               is_event=is_event)
+                                               is_event=is_event,
+                                               sample_weight=sample_weight)
     elif config.smpl.n_obs is not None:
         # Sample without any condition
         sample_keys = sample_with_no_condition(config=config,
                                                target_df=trg_df_handled_outliers,
-                                               train_keys=trg_df_handled_outliers.index)
+                                               train_keys=trg_df_handled_outliers.index,
+                                               sample_weight=sample_weight)
     else:  # No sampling
         sample_keys = get_all_samples(config=config,
                                       target_df=trg_df_handled_outliers,
@@ -136,11 +140,14 @@ def train_val_split(
                 sample_target_df_part = get_partition(sample_target_df, part)
                 mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
                 with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
+                    sample_weight = get_sample_weight(config=config, target_df=sample_target_df_part.loc[sample_keys_part,:])
                     sample_train_keys_part, sample_val_keys_part = get_stratified_train_test_split_keys(
                         target_df=sample_target_df_part.loc[sample_keys_part,:],
                         stratify_target_col=config.mdl_task.target_col,
                         test_size=config.smpl.split_val_size,
-                        random_seed=config.smpl.split_val_random_seed
+                        random_seed=config.smpl.split_val_random_seed,
+                        shuffle=True,
+                        sample_weight=sample_weight
                     )
                     sample_train_keys[part] = sample_train_keys_part
                     sample_val_keys[part] = sample_val_keys_part

@@ -30,8 +30,8 @@ def split_train_calib_test(
         stratify_target_col = config.mdl_task.target_col
     logger.info(f"Stratifying on column: {stratify_target_col}")
 
+    sample_weight = get_sample_weight(config, target_df)
     if config.data.cv_enabled:
-        sample_weight = get_sample_weight(config, target_df)
         train_keys, calib_keys, test_keys = get_stratified_train_calib_test_cv(
             target_df,
             stratify_target_col=stratify_target_col,
@@ -56,6 +56,7 @@ def split_train_calib_test(
             stratify_target_col=stratify_target_col,
             test_size=config.data.test_size,
             calib_size=config.data.calib_size,
+            sample_weight=sample_weight,
             shuffle=True,
             random_seed=config.data.split_random_seed,
             verbose=True,
