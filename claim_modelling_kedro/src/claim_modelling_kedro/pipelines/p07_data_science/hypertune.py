@@ -81,31 +81,33 @@ def log_trials_info_to_mlflow(
         save_pd_dataframe_as_csv_in_mlflow(trials_scores_df, artifact_path, "trials_folds_scores.csv", index=False)
 
 
-def create_hyperopt_result_message(trial: Dict[str, Any], is_best: bool = False) -> str:
+def create_hyperopt_result_message(trials: Trials, current_trial: Dict[str, Any], part: str, max_evals: int, is_best: bool = False) -> str:
     """
     Create a message summarizing the results of a hyperopt trial.
 
     Args:
-        trial (Dict[str, Any]): A dictionary containing trial information.
+        current_trial (Dict[str, Any]): A dictionary containing trial information.
+        part (str): The partition of the dataset for which the trial was run.
         is_best (bool): A flag indicating if this is the best trial.
 
     Returns:
         str: A formatted message summarizing the trial results.
     """
-    trial_no = trial["tid"] + 1
-    eval_time = trial["result"].get("eval_time")
-    status = trial["result"].get("status")
-    loss = trial["result"].get("loss")
-    attachments = trial.get("attachments", {})
+    trial_no = current_trial["tid"] + 1
+    eval_time = current_trial["result"].get("eval_time")
+    status = current_trial["result"].get("status")
+    loss = current_trial["result"].get("loss")
+    attachments = current_trial.get("attachments", {})
     metrics = attachments.get("metrics", {})
     metric_name = attachments.get("metric_name")
     train_scores = attachments.get("train_scores", [])
     val_scores = attachments.get("valid_scores", [])
 
+    n_trials = len(trials.trials) if is_best else max_evals
     if is_best:
-        msg = f"The best hyperopt trial {trial_no} – eval_time: {eval_time} - status: {status} - loss: {loss}"
+        msg = (f"Final hyperopt results for partition: '{part}':\nbest hyperopt trial: {trial_no}/{n_trials} - eval_time: {eval_time} - status: {status} - loss: {loss}\nMetrics:\n")
     else:
-        msg = f"Hyperopt trial {trial_no} – eval_time: {eval_time} - status: {status} - loss: {loss}"
+        msg = f"Hyperopt trial {trial_no}/{n_trials} for partition '{part}' – eval_time: {eval_time} - status: {status} - loss: {loss}\nMetrics:\n"
 
     if metrics:
         train_mean = round_decimal(metrics.get(f"{metric_name}_train"), significant_digits=4)
@@ -120,8 +122,8 @@ def create_hyperopt_result_message(trial: Dict[str, Any], is_best: bool = False)
 
         if train_std is not None and valid_std is not None:
             msg += (
-                f"\n{metric_name}_valid: {valid_mean} ± {valid_std} (std)\n"
-                f"{metric_name}_train: {train_mean} ± {train_std} (std)\n"
+                f"\n{metric_name}_valid: {valid_mean}  (std: {valid_std})\n"
+                f"{metric_name}_train: {train_mean}  (std: {train_std})\n"
                 f"{metric_name}_scores:\n{scores_df}"
             )
         else:
@@ -164,10 +166,12 @@ def fit_model(hparams: Dict[str, any],
               sample_target_df: pd.DataFrame,
               sample_train_keys: pd.Index,
               sample_val_keys: pd.Index,
-              hyperopt_artifact_path: str) -> float:
+              hyperopt_artifact_path: str,
+              part: str) -> float:
     trial = trials.trials[-1]
     trial_no = len(trials.trials)
-    msg = f"Hyperopt trial {trial_no}. Hyperparameters:\n"
+    max_evals = config.ds.hopt_max_evals
+    msg = f"Hyperopt trial {trial_no}/{max_evals} for partition '{part}'. Hyperparameters:\n"
     for param, value in hparams.items():
         msg += f"    - {param}: {value}\n"
     msg += f"Fitting the predictive model(s) for hyperopt trial {trial_no}..."
@@ -218,7 +222,7 @@ def fit_model(hparams: Dict[str, any],
                 train_scores.append(train_score)
                 val_scores.append(val_score)
                 logger.debug(
-                    f"Hyperopt fold: {futures[future]}. Train score ({metric_name}): {train_score}, Validation score ({metric_name}): {val_score}.")
+                    f"Part '{part}'. Hyperopt fold: {futures[future]}. Train score ({metric_name}): {train_score}, Validation score ({metric_name}): {val_score}.")
 
         train_score_mean = np.mean(train_scores)
         val_score_mean = np.mean(val_scores)
@@ -263,7 +267,7 @@ def fit_model(hparams: Dict[str, any],
     }
     trial["attachments"] = attachments
     trial["result"] = trial_result
-    msg = create_hyperopt_result_message(trial)
+    msg = create_hyperopt_result_message(trials, trial, part=part, max_evals=config.ds.hopt_max_evals)
     logger.info(msg)
     log_trials_info_to_mlflow(trials, space, log_folds_metrics=(len(train_keys_cv) > 1),
                               artifact_path=hyperopt_artifact_path)
@@ -275,8 +279,8 @@ def fit_model(hparams: Dict[str, any],
 
 def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
                    sample_target_df: pd.DataFrame, sample_train_keys: pd.Index,
-                   sample_val_keys: pd.Index, hyperopt_artifact_path: str,
-                   save_best_hparams_in_mlfow: bool = True) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+                   sample_val_keys: pd.Index, part: str, hyperopt_artifact_path: str,
+                   save_best_hparams_in_mlfow: bool = True) -> Tuple[Trials, Dict[str, Any], Dict[str, Any]]:
     match config.ds.hopt_algo:
         case HyperoptAlgoEnum.TPE:
             hopt_algo = hyperopt.tpe.suggest
@@ -300,7 +304,7 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
     objective = partial(fit_model, config=config, model=model, trials=trials, space=hparam_space, metric=metric,
                         selected_sample_features_df=selected_sample_features_df,
                         sample_target_df=sample_target_df, sample_train_keys=sample_train_keys,
-                        sample_val_keys=sample_val_keys, hyperopt_artifact_path=hyperopt_artifact_path)
+                        sample_val_keys=sample_val_keys, part=part, hyperopt_artifact_path=hyperopt_artifact_path)
     if config.ds.hopt_early_stop_enabled:
         hp_early_stop = no_progress_loss(iteration_stop_count=config.ds.hopt_early_iteration_stop_count,
                                          percent_increase=config.ds.hopt_early_stop_percent_increase)
@@ -320,7 +324,7 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
 
     if save_best_hparams_in_mlfow:
         mlflow.log_dict(best_hparams, f"{_hypertune_artifact_path}/best_hparams.yml")
-    return best_trial, best_hparams
+    return trials, best_trial, best_hparams
 
 
 def process_hypertune_part(config: Config, part: str, selected_sample_features_df: Dict[str, pd.DataFrame],
@@ -334,14 +338,13 @@ def process_hypertune_part(config: Config, part: str, selected_sample_features_d
     mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
     logger.info(f"Tuning the hyper parameters of the predictive model on partition '{part}' of the sample dataset...")
     with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-        best_trial_part, best_hparams_part = hypertune_part(
+        trials, best_trial_part, best_hparams_part = hypertune_part(
             config, selected_sample_features_part_df, sample_target_part_df,
-            sample_train_keys_part, sample_val_keys_part,
+            sample_train_keys_part, sample_val_keys_part, part=part,
             hyperopt_artifact_path=f"{_hypertune_artifact_path}"
         )
-        msg = create_hyperopt_result_message(best_trial_part, is_best=True)
-        logger.info(msg)
-        msg = f"The best hyperparameters for partition '{part}':\n"
+        msg = create_hyperopt_result_message(trials, best_trial_part, part=part, is_best=True, max_evals=config.ds.hopt_max_evals)
+        msg += f"\nThe best hyperparameters for partition '{part}':\n"
         for param, value in best_hparams_part.items():
             msg += f"    - {param}: {value}\n"
         logger.info(msg)
