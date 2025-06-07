@@ -42,7 +42,7 @@ def get_best_trial(trials: Trials) -> Dict[str, Any]:
     """
     Get the best trial from the trials.
     """
-    best_index = np.argmin([trial["result"]["loss"] for trial in trials.trials])
+    best_index = np.argmin([trial["result"]["loss"] for trial in trials.trials if trial["result"]["status"] == STATUS_OK])
     return trials.trials[best_index]
 
 
