@@ -4,11 +4,13 @@ import tempfile
 import time
 from abc import ABC, abstractmethod
 from datetime import timedelta
+from functools import partial
 from typing import Any, Dict, Union, List, Tuple
 
 import mlflow
 import numpy as np
 import pandas as pd
+from tabulate import tabulate
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum
@@ -201,14 +203,14 @@ def fit_transform_predictive_model_part(config: Config, selected_sample_features
 
 
 def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
-                              target_df: pd.DataFrame, prefix: str,
-                              log_metrics_to_mlflow: bool, keys: pd.Index = None) -> List[Tuple[MetricEnum, str, float]]:
+                              target_df: pd.DataFrame, prefix: str, log_metrics_to_mlflow: bool,
+                              log_metrics_to_console: bool = True, keys: pd.Index = None) -> List[Tuple[MetricEnum, str, float]]:
     """
     prefix: str - default None, but can by any string like train, test, pure, cal etc.
     If prefix is not None, it will be added to the metric name separated by underscore.
     E.g., train_RMSE
     """
-    logger.info("Evaluating the predictions:")
+    logger.info("Evaluating the predictions...")
     scores = {}
     for metric_enum in config.mdl_task.evaluation_metrics:
         metric = get_metric_from_enum(config, metric_enum, pred_col=config.mdl_task.prediction_col)
@@ -225,7 +227,8 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
         if prefix is not None:
             metric_name = f"{prefix}_{metric_name}"
         scores[(metric_enum, metric_name)] = score
-    logger.info(f"Evaluated the predictions:\n" +
+    if log_metrics_to_console:
+        logger.info(f"Evaluated the predictions:\n" +
                 "\n".join(f"    - {name}: {score}" for (_, name), score in scores.items()))
     if log_metrics_to_mlflow:
         logger.info("Logging the metrics to MLFlow...")
@@ -308,6 +311,7 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
     scores_by_part = {}
     scores_by_names = {}
     logger.info("Evaluating the predictions...")
+    joined_prefix = f"{dataset}_{prefix}" if prefix is not None else dataset
     for part in predictions_df.keys():
         predictions_part_df = get_partition(predictions_df, part)
         target_part_df = get_partition(target_df, part)
@@ -315,9 +319,9 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
         mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
         logger.info(f"Evaluating the predictions on partition '{part}' of the dataset...")
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-            joined_prefix = f"{dataset}_{prefix}" if prefix is not None else dataset
             scores_by_part[part] = evaluate_predictions_part(config, predictions_part_df, target_part_df,
-                                                             joined_prefix, log_metrics_to_mlflow, keys=keys_part)
+                                                             joined_prefix, log_metrics_to_mlflow, keys=keys_part,
+                                                             log_metrics_to_console=False)
         for (metric_enum, metric_name), score in scores_by_part[part].items():
             if metric_name not in scores_by_names:
                 scores_by_names[metric_name] = {}
@@ -344,4 +348,13 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
         for metric_name, score in scores_df.iloc[:, 0].items():
             # metric_name = f"{prefix}_{metric_name}" if prefix is not None else metric_name
             mlflow.log_metric(metric_name, score)
+    scores_table = scores_df.T.sort_index()
+    scores_table.index.name = joined_prefix
+    scores_table.columns = [name.replace(f"{joined_prefix}_", "") for name in scores_table.columns]
+    mean_and_std_table = pd.DataFrame.from_records([scores_table.mean(), scores_table.std()], index=pd.Index(["mean", "std"], name=joined_prefix))
+    scores_table = scores_table.map(partial(round, ndigits=4))
+    mean_and_std_table = mean_and_std_table.map(partial(round, ndigits=4))
+    logger.info(f"Scores of {joined_prefix} predictions:\n" +
+                tabulate(scores_table, headers="keys", tablefmt="psql", showindex=True) + "\n" +
+                tabulate(mean_and_std_table, headers="keys", tablefmt="psql", showindex=True))
     return scores_by_part, scores_df
