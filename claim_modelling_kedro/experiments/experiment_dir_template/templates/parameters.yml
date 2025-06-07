@@ -30,7 +30,7 @@ data:
   split_random_seed: 1
   stratify_target_col: # the target column used for stratification;
     # possible values: 'ClaimNb_TRG', 'ClaimFreq_TRG', 'ClaimTotalAmount_TRG', 'ClaimSeverity_TRG', 'ClaimPurePremium_TRG';
-    # if empty, the column coresponding to the model.target is used.
+    # if empty, the column corresponding to the model.target is used.
   calib_size: 0.2 # [0,1) - the part of policies used for model calibration
     # if calib_size is None or zero, then calibration.enabled has to be set to False
   test_size: 0.2 # (0, 1) the part of policies used for test if cross_validation.enabled is False
