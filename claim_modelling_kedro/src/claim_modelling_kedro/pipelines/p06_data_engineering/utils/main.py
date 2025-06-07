@@ -19,6 +19,8 @@ from claim_modelling_kedro.pipelines.p06_data_engineering.utils.imputer import f
     impute_categories_by_mlflow_model, impute_numeric_by_mlflow_model
 from claim_modelling_kedro.pipelines.p06_data_engineering.utils.onehot_encoder import fit_transform_one_hot_encoder, \
     one_hot_encode_by_mlflow_model
+from claim_modelling_kedro.pipelines.p06_data_engineering.utils.polynomial import fit_transform_features_polynomial, \
+    transform_features_polynomial_by_mlflow_model
 from claim_modelling_kedro.pipelines.p06_data_engineering.utils.scaler import fit_transform_scaler, \
     scale_features_by_mlflow_model
 from claim_modelling_kedro.pipelines.p06_data_engineering.utils.pca import transform_features_pca_by_mlflow_model, \
@@ -97,6 +99,10 @@ def fit_transform_features_part(config: Config, features_df: pd.DataFrame, featu
     transformed_features_df = remove_features_from_blacklist(transformed_features_df, features_blacklist)
     save_features_blacklist_to_mlflow(features_blacklist_text)
 
+    # If polynomial features are enabled, transform the features using PolynomialFeatures
+    if config.de.is_polynomial_features_enabled:
+        transformed_features_df = fit_transform_features_polynomial(config, transformed_features_df)
+
     # If PCA is enabled, transform the features using PCA
     if config.de.is_pca_enabled:
         transformed_features_df = fit_transform_features_pca(config, transformed_features_df)
@@ -140,6 +146,10 @@ def transform_features_by_mlflow_model_part(config: Config, features_df: pd.Data
 
     # Remove features from the blacklist
     transformed_features_df = remove_features_from_mlflow_blacklist(transformed_features_df, mlflow_run_id)
+
+    # If polynomial features are enabled, transform the features using PolynomialFeatures
+    if config.de.is_polynomial_features_enabled:
+        transformed_features_df = transform_features_polynomial_by_mlflow_model(transformed_features_df, mlflow_run_id)
 
     # If PCA is enabled, transform the features using PCA
     if config.de.is_pca_enabled:

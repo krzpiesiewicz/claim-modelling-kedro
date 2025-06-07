@@ -45,6 +45,10 @@ class DataEngineeringConfig:
     ohe_min_frequency: int
     is_scaler_enabled: bool
     scaler_method: str
+    is_polynomial_features_enabled: bool
+    poly_degree: int
+    poly_include_bias: bool
+    poly_interaction_only: bool
     is_pca_enabled: bool
     pca_n_components: Union[int, float]
     pca_random_state: int
@@ -93,6 +97,10 @@ class DataEngineeringConfig:
             self.scaler_params = scaler_params["params"][scaler_params["method"]]
         else:
             self.scaler_params = {}
+        self.is_polynomial_features_enabled = params["polynomial_features"]["enabled"]
+        self.poly_degree = params["polynomial_features"]["degree"]
+        self.poly_include_bias = params["polynomial_features"]["include_bias"]
+        self.poly_interaction_only = params["polynomial_features"]["interaction_only"]
         self.is_pca_enabled = params["pca"]["enabled"]
         self.pca_n_components = params["pca"]["n_components"]
         self.pca_random_state = params["pca"]["random_state"]
