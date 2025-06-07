@@ -17,31 +17,58 @@ logger = logging.getLogger(__name__)
 
 class IsotonicLikeCalibrationModel(CalibrationModel, ABC):
     def __init__(self, config: Config, **kwargs):
-        logger.debug(f"IsotonicLikeCalibrationModel.__init__")
+        logger.debug("IsotonicLikeCalibrationModel.__init__")
         CalibrationModel.__init__(self, config, **kwargs)
         self._y_min = None
+        self._y_max = None
+        self._clip_low_bin = 0.0
+        self._clip_high_bin = 0.0
 
     def _set_y_min(self, pure_predictions_df: pd.DataFrame, target_df: pd.DataFrame) -> pd.DataFrame:
-        combined_df = pd.concat([pure_predictions_df[[self.pure_pred_col]], target_df[[self.target_col]]], axis=1)
+        combined_df = pd.concat(
+            [pure_predictions_df[[self.pure_pred_col]], target_df[[self.target_col]]], axis=1
+        )
         sorted_df = combined_df.sort_values(by=self.pure_pred_col, ascending=True)
-        logger.debug(f"{sorted_df=}")
-        # Find the first non-zero position and replace the values before it (including that position)
-        # with the mean of the target values up to that position so that the balance is preserved
-        first_nonzero_position = sorted_df[sorted_df[self.target_col] > 0].index[0]
-        logger.debug(f"{first_nonzero_position=}")
-        pos = first_nonzero_position
-        smallest_df = sorted_df.loc[:pos, self.target_col]
-        logger.debug(f"{smallest_df=}")
-        self._y_min = np.mean(smallest_df)
-        logger.debug(f"{self._y_min=}")
-        smallest_idx = smallest_df.index
-        logger.debug(f"{smallest_idx=}")
+        n_obs = len(sorted_df)
+
         adjusted_target_df = target_df.copy()
-        adjusted_target_df.loc[smallest_idx, self.target_col] = self._y_min
+
+        # Clip lower bin
+        n_low = int(n_obs * self._clip_low_bin)
+
+        lowest_idx = sorted_df.index[:n_low] if n_low > 0 else None
+        if self._force_positive:
+            if n_low > 0:
+                if sorted_df.loc[lowest_idx, self.target_col].max() <= 0:
+                    logger.info("All values in the lowest bin are non-positive. The first position of positive value will be found.")
+                    find_first_positive = True
+                else:
+                    find_first_positive = False
+            else:
+                find_first_positive = True
+            if find_first_positive:
+                first_positive_position = sorted_df[sorted_df[self.target_col] > 0].index[0]
+                lowest_idx = sorted_df.index[:first_positive_position]
+        if lowest_idx is not None:
+            self._y_min = sorted_df.loc[lowest_idx, self.target_col].mean()
+            adjusted_target_df.loc[lowest_idx, self.target_col] = self._y_min
+            logger.debug(f"Clipped lower bin: {n_low} obs → mean={self._y_min}")
+
+        # Clip upper bin
+        n_high = int(n_obs * self._clip_high_bin)
+        if n_high > 0:
+            highest_idx = sorted_df.index[-n_high:]
+            self._y_max = sorted_df.loc[highest_idx, self.target_col].mean()
+            adjusted_target_df.loc[highest_idx, self.target_col] = self._y_max
+            logger.debug(f"Clipped upper bin: {n_high} obs → mean={self._y_max}")
+
         return adjusted_target_df
 
     def get_y_min(self) -> float:
         return self._y_min
+
+    def get_y_max(self) -> float:
+        return self._y_max
 
     def metric(self) -> Metric:
         return RootMeanSquaredError(self.config, pred_col=self.pred_col)
@@ -54,21 +81,30 @@ class SklearnLikeIsotonicRegression(IsotonicLikeCalibrationModel, SklearnModel):
                               pred_col=self.pred_col, target_col=self.target_col, **kwargs)
 
     def _fit(self, pure_predictions_df: pd.DataFrame, target_df: pd.DataFrame, **kwargs):
-        logger.debug(f"CSklearnLikeIsotonicRegression._fit called with kwargs: {kwargs}")
-        if self.force_positive:
+        logger.debug("SklearnLikeIsotonicRegression._fit called")
+        if self._force_positive:
             target_df = self._set_y_min(pure_predictions_df, target_df)
         pure_predictions_df = pure_predictions_df[self.pure_pred_col]
         SklearnModel._fit(self, pure_predictions_df, target_df, **kwargs)
 
     def _predict(self, pure_predictions_df: pd.DataFrame) -> Union[pd.DataFrame, pd.Series, np.ndarray]:
         pure_predictions_df = pure_predictions_df[self.pure_pred_col]
-        pred = SklearnModel._predict(self, pure_predictions_df)
-        return pred
+        return SklearnModel._predict(self, pure_predictions_df)
 
     def _updated_hparams(self):
         logger.debug(f"_updated_hparams - self._hparams: {self._hparams}")
-        self.force_positive = self.get_hparams().get("force_positive")
+        self._force_positive = self.get_hparams().get("force_positive")
+        self._clip_low_bin = float(self.get_hparams().get("clip_low_bin", 0.0))
+        self._clip_high_bin = float(self.get_hparams().get("clip_high_bin", 0.0))
+
+        if not (0.0 <= self._clip_low_bin <= 1.0) or not (0.0 <= self._clip_high_bin <= 1.0):
+            raise ValueError("clip_low_bin and clip_high_bin must be between 0.0 and 1.0")
+
+        if self._clip_low_bin + self._clip_high_bin > 1.0:
+            raise ValueError("The sum of clip_low_bin and clip_high_bin must not exceed 1.0")
+
         self._y_min = None
+        self._y_max = None
         SklearnModel._updated_hparams(self)
 
     @classmethod
@@ -76,7 +112,9 @@ class SklearnLikeIsotonicRegression(IsotonicLikeCalibrationModel, SklearnModel):
         return {
             "increasing": True,
             "out_of_bounds": "clip",
-            "force_positive": True
+            "force_positive": True,
+            "clip_low_bin": 0.0,
+            "clip_high_bin": 0.0,
         }
 
     @classmethod
