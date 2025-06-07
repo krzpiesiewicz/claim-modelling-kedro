@@ -279,6 +279,10 @@ data_science:
         - solver
       SklearnTweedieGLM:
         - solver
+      PyGLMNetPoissonGLM:
+        - solver
+      PyGLMNetGammaGLM:
+        - solver
   model:
     model: SklearnGammaGLM # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
     # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM', 'PyGLMNetPoissonGLM', 'PyGLMNetGammaGLM',
@@ -308,6 +312,8 @@ data_science:
         fit_intercept: True
         alpha: 1
       PyGLMNetPoissonGLM:
+        fit_intercept: True
+      PyGLMNetGammaGLM:
         fit_intercept: True
 
 
