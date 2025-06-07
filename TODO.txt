@@ -36,14 +36,19 @@ TODO – framework:
 21.   [DONE] Dummy regressor - stała wartość jako predykcja (średnia targetu)
 22.   [DONE] Zdebugować PCA
 23.   [DONE] Polynomial features
-24.   TODO   Sstratified sampling (bez CV) - heurystyka dodawania do kubełków train/calib/test, aby zgadzały się ważone sumy targetu
+24.   [DONE] Stratified sampling (bez CV) - heurystyka dodawania do kubełków train/calib/test, aby zgadzały się ważone sumy targetu
+25.   TODO Wyświetlanie numeru partycji w logach hyperopt
+26.   TODO Logowanie do głównego mlflow_run_id tabelki wyników hyperopta - dwie tabelki:
+26.1. TODO Dla najlepszych trials wyniki wszystkich foldów train/val, średnia i std
+26.2. TODO Wspólna tabelka dla najlepszych trials: wartości hiperparametrów z odpowiadającymi wynikami (mean i std)
+X.    TODO Dopisać w IsotonicLikeCalibrationModel ustawianie _set_y_min i _set_y_max dla parametrów y_min_bin_size i y_max_bin_size
+
 ___________________________________________________________________________________
 
 
 
 
 
-X.    BACKLOG Dopisać w IsotonicLikeCalibrationModel ustawianie _set_y_min i _set_y_max dla parametrów y_min_bin_size i y_max_bin_size
 X.    BACKLOG Dodać hyperopta dla modeli kalibracji
 
 X.    BACKLOG Dodać RGLMNet - bo tam jest L1 dla Poisson i obsługa wag (wagi nie są obsługiwne w pyglmnet)
