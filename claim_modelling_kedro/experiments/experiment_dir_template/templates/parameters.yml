@@ -208,7 +208,7 @@ data_science:
           max_iter: 100
           alpha: 0.01 # the regularization parameter
   hyperopt:
-    enabled: False # whether to use the hyperopt
+    enabled: True # whether to use the hyperopt
     metric: claim_nb_weighted_normalized_cc_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
       # 'gamma_deviance', 'exposure_weighted_gamma_deviance', 'claim_nb_weighted_gamma_deviance',
       # 'rmse', 'exposure_weighted_rmse', 'claim_nb_weighted_rmse', 'r2', 'exposure_weighted_r2', 'claim_nb_weighted_r2',
@@ -281,10 +281,8 @@ data_science:
                      # 'mean': trg_divisor := mean target value in train set
       SklearnGammaGLM:
         fit_intercept: True
-        alpha: 0
       SklearnPoissonGLM:
         fit_intercept: True
-        alpha: 1
       PyGLMNetPoissonGLM:
         fit_intercept: True
       PyGLMNetGammaGLM:
