@@ -194,7 +194,7 @@ data_science:
       pyglmnet: # applies when method is 'pyglmnet'
         distr: gamma # gamma, poisson
         alpha: 0.5 # the weighting between L1 penalty and L2 penalty term of the loss function
-        reg_lambda: 0.0 # the regularization parameter
+        reg_lambda: 0.01 # the regularization parameter
         solver: batch-gradient # optimization method, can be one of the following:
                                  # 'batch-gradient' (vanilla batch gradient descent) 'cdfast' (Newton coordinate gradient descent)
         learning_rate: 0.01 # the learning rate
@@ -281,10 +281,8 @@ data_science:
                      # 'mean': trg_divisor := mean target value in train set
       SklearnGammaGLM:
         fit_intercept: True
-        alpha: 0
       SklearnPoissonGLM:
         fit_intercept: True
-        alpha: 1
       PyGLMNetPoissonGLM:
         fit_intercept: True
       PyGLMNetGammaGLM:
