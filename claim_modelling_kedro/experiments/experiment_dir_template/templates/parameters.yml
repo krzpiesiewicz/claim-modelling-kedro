@@ -127,8 +127,8 @@ data_engineering:
     min_frequency: 20 # the minimum frequency of a category in a feature
     join_infrequent: "other" # (str) if nonempty, join categories with frequency lower than min_frequency
       # into one category with the name given in this parameter
-      # ATTENTION: if both join_exceeding_max_categories and join_infrequent are provided,
-      # the join_exceeding_max_categories is used instead of join_infrequent.
+    # ATTENTION: if both join_exceeding_max_categories and join_infrequent are provided,
+    # the join_exceeding_max_categories is used instead of join_infrequent.
   cat_ftrs_imputer:
     enabled: True # whether to use the imputer
     strategy: constant # 'most_frequent', 'constant'
@@ -154,42 +154,16 @@ data_engineering:
     enabled: True # whether to use the OHE
     drop_reference_cat: True # whether to drop the reference category
     drop_first: True # whether to drop the first category if drop_reference_cat is False
-                     # or the feature does not have a reference category
+    # or the feature does not have a reference category
     drop_binary: False # whether to drop one of the two categories if the feature is binary
-                      # and none of the two categories was dropped as a reference category
+    # and none of the two categories was dropped as a reference category
     max_categories: # (int) the maximum number of categories in a feature
     min_frequency: # (int) the minimum frequency of a category in a feature
-  scaler:
-    enabled: True # whether to use the scaler
-    method: StandardScaler # 'StandardScaler', 'MinMaxScaler', 'RobustScaler', 'MaxAbsScaler'
-    params:
-      StandardScaler:
-        with_mean: True # whether to center the data before scaling
-        with_std: True # whether to scale the data to unit variance
-      MinMaxScaler:
-        feature_range: [0, 1] # the range of the scaled data
-      RobustScaler:
-        with_centering: True # whether to center the data before scaling
-        with_scaling: True # whether to scale the data to unit variance
-        quantile_range: [25.0, 75.0]
   polynomial_features:
     enabled: False # whether to use the polynomial features
     degree: 2 # (int) the degree of the polynomial features
     interaction_only: False # (bool) whether to include only interaction features
     include_bias: False # (bool) whether to include a bias term
-  scaler:
-    enabled: True # whether to use the scaler
-    method: StandardScaler # 'StandardScaler', 'MinMaxScaler', 'RobustScaler', 'MaxAbsScaler'
-    params:
-      StandardScaler:
-        with_mean: True # whether to center the data before scaling
-        with_std: True # whether to scale the data to unit variance
-      MinMaxScaler:
-        feature_range: [0, 1] # the range of the scaled data
-      RobustScaler:
-        with_centering: True # whether to center the data before scaling
-        with_scaling: True # whether to scale the data to unit variance
-        quantile_range: [25.0, 75.0]
   pca:
     enabled: False
     n_components: 0.95 # (int or float) the number of components to keep or the explained variance ratio to keep
