@@ -96,38 +96,38 @@ def select_features_by_mlflow_model(config: Config, transformed_features_df: Dic
 
 def fit_transform_features_selector_part(config: Config, transformed_sample_features_df: pd.DataFrame,
                                          sample_target_df: pd.DataFrame, sample_train_keys: pd.Index,
-                                         sample_val_keys: pd.Index) -> pd.DataFrame:
+                                         sample_val_keys: pd.Index, part: str) -> pd.DataFrame:
     selector = get_class_from_path(config.ds.fs_model_class)(config=config)
-    logger.info("Fitting the features selector...")
+    logger.info(f"Fitting the features selector for partition '{part}'...")
     selector.fit(transformed_sample_features_df.loc[sample_train_keys,:], sample_target_df.loc[sample_train_keys,:])
-    logger.info("Fitted the features selector.")
+    logger.info(f"Fitted the features selector for partition '{part}'.")
     # Save the selector
     MLFlowModelLogger(selector, f"features selector model").log_model(_selector_artifact_path)
     selected_features = selector.get_selected_features()
     features_importance = selector.get_features_importance()
     # Log info about the features importance and selected features
-    logger.info(f"Features importance:\n{features_importance.reset_index()}")
-    logger.info(f"Selected {len(selected_features)} / {len(features_importance)} features:\n{pd.Series(selected_features, name='feature')}")
+    logger.info(f"Features importance for partition '{part}':\n{features_importance.reset_index()}\n"
+                f"Selected {len(selected_features)} / {len(features_importance)} features  for partition '{part}':\n{pd.Series(selected_features, name='feature')}")
     if len(selected_features) == 0:
-        raise ValueError("No features were selected by the selector. Please check the configuration, the data, and the features importance.")
+        raise ValueError(f"No features were selected by the selector for partition '{part}'. Please check the configuration, the data, and the features importance.")
     sel_ftrs_imp = features_importance[selected_features]
-    logger.info(f"""importance of the selected features:
+    logger.info(f"""Importance of the selected features for partition '{part}':
     - min: {sel_ftrs_imp.min()}
     - mean: {sel_ftrs_imp.mean()}
     - max: {sel_ftrs_imp.max()}""")
     # Save the selected features
-    logger.info("Saving the selected features...")
+    logger.info(f"Saving the selected features for partition '{part}'...")
     save_pd_dataframe_as_csv_in_mlflow(sel_ftrs_imp.reset_index(), _select_artifact_path, _selected_features_filename, index=True)
     logger.info(
-        f"Successfully saved the selected features to MLFlow path {os.path.join(_select_artifact_path, _selected_features_filename)}")
+        f"Successfully saved the selected features to MLFlow path {os.path.join(_select_artifact_path, _selected_features_filename)} for partition '{part}'.")
     # Save the features importance
-    logger.info("Saving the features importance...")
+    logger.info("Saving the features importance for partition '{part}'...")
     save_pd_dataframe_as_csv_in_mlflow(features_importance.reset_index(), _select_artifact_path, _features_importance_filename,
                                        index=True)
     logger.info(
-        f"Successfully saved the features importance to MLFlow path {os.path.join(_select_artifact_path, _features_importance_filename)}")
+        f"Successfully saved the features importance to MLFlow path {os.path.join(_select_artifact_path, _features_importance_filename)} for partition '{part}'.")
     selected_features_df = selector.transform(transformed_sample_features_df)
-    logger.info("Selected the features.")
+    logger.info(f"Selected the features for partition '{part}'.")
     return selected_features_df
 
 
@@ -141,8 +141,12 @@ def process_fit_transform_partition(config: Config, part: str, sample_features_d
     mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
     logger.info(f"Fitting selector on partition '{part}' of the sample dataset...")
     with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-        selected_part_df = fit_transform_features_selector_part(config, features_part_df, target_part_df,
-                                                                sample_train_keys_part, sample_val_keys_part)
+        try:
+            selected_part_df = fit_transform_features_selector_part(config, features_part_df, target_part_df,
+                                                                    sample_train_keys_part, sample_val_keys_part, part=part)
+        except Exception as e:
+            logger.error(f"Error while fitting the features selector for partition '{part}': {e}")
+            raise e
     return part, selected_part_df
 
 
