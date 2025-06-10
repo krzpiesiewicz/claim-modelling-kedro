@@ -180,15 +180,19 @@ def fit_transform_features(config: Config, features_df: Dict[str, pd.DataFrame],
     logger.info(f"Fitting features transformers on the sample dataset...")
     transformed_features_df = {}
 
-    parts_cnt = len(features_df)
-    with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
-        futures = {
-            executor.submit(process_partition, config, part, features_df, features_blacklist_text, reference_categories): part
-            for part in features_df.keys()
-        }
-        for future in as_completed(futures):
-            part, transformed_part_df = future.result()
-            transformed_features_df[part] = transformed_part_df
+    for part in features_df.keys():
+        part, transformed_part_df = process_partition(config, part, features_df,
+                                                      features_blacklist_text, reference_categories)
+        transformed_features_df[part] = transformed_part_df
+    # parts_cnt = len(features_df)
+    # with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
+    #     futures = {
+    #         executor.submit(process_partition, config, part, features_df, features_blacklist_text, reference_categories): part
+    #         for part in features_df.keys()
+    #     }
+    #     for future in as_completed(futures):
+    #         part, transformed_part_df = future.result()
+    #         transformed_features_df[part] = transformed_part_df
 
     return transformed_features_df
 

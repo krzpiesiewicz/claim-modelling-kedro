@@ -108,6 +108,8 @@ def fit_transform_features_selector_part(config: Config, transformed_sample_feat
     # Log info about the features importance and selected features
     logger.info(f"Features importance:\n{features_importance.reset_index()}")
     logger.info(f"Selected {len(selected_features)} / {len(features_importance)} features:\n{pd.Series(selected_features, name='feature')}")
+    if len(selected_features) == 0:
+        raise ValueError("No features were selected by the selector. Please check the configuration, the data, and the features importance.")
     sel_ftrs_imp = features_importance[selected_features]
     logger.info(f"""importance of the selected features:
     - min: {sel_ftrs_imp.min()}
