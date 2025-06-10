@@ -46,7 +46,9 @@ def transform_features_pca_by_mlflow_model(features_df: pd.DataFrame, mlflow_run
 
 
 def fit_transform_features_pca(config: Config, sample_features_df: pd.DataFrame) -> pd.DataFrame:
-    pca_model = PCA(n_components=config.de.pca_n_components, random_state=config.de.pca_random_state)
+    svd_solver = "auto"
+    pca_model = PCA(n_components=config.de.pca_n_components, random_state=config.de.pca_random_state,
+                    svd_solver=svd_solver)
     logger.info("Fitting PCA model...")
     transformed_df = pca_model.fit_transform(sample_features_df)
     transformed_df = add_index_and_pc_columns(transformed_df, index=sample_features_df.index)
