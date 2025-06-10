@@ -465,9 +465,6 @@ def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFram
         except Exception:
             logger.error(f"Task hypertune was cancelled due to failure in a subprocess.")
             mlflow.set_tag("task_status", "failed")
-            mlflow.end_run(status="FAILED")
-            client = MlflowClient()
-            client.set_terminated(mlflow_run_id, status="FAILED")
             raise
 
     if save_best_hparams_in_mlflow:
