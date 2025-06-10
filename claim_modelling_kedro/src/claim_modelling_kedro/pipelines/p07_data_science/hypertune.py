@@ -1,7 +1,9 @@
 import copy
 import logging
 import time
+import traceback
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from multiprocessing import Event, Manager
 from datetime import timedelta
 from functools import partial
 from typing import Dict, Any, Tuple
@@ -12,6 +14,7 @@ import numpy as np
 import pandas as pd
 from hyperopt import fmin, Trials, space_eval, STATUS_OK, STATUS_FAIL
 from hyperopt.early_stop import no_progress_loss
+from mlflow import MlflowClient
 from tabulate import tabulate
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
@@ -42,7 +45,8 @@ def get_best_trial(trials: Trials) -> Dict[str, Any]:
     """
     Get the best trial from the trials.
     """
-    best_index = np.argmin([trial["result"]["loss"] for trial in trials.trials if trial["result"]["status"] == STATUS_OK])
+    trials_losses = [(trial["result"]["loss"] if trial["result"]["status"] == STATUS_OK else np.inf) for trial in trials.trials ]
+    best_index = np.argmin(trials_losses)
     return trials.trials[best_index]
 
 
@@ -201,6 +205,14 @@ def process_fold(fold: str, train_keys_cv: Dict[str, pd.Index], val_keys_cv: Dic
     return train_score, val_score
 
 
+class TaskCancelledError(Exception):
+    """
+    Raised when a task is cancelled due to a global failure in another parallel task.
+    """
+    def __init__(self, message="Task was cancelled due to another failure."):
+        super().__init__(message)
+
+
 def fit_model(hparams: Dict[str, any],
               model: PredictiveModel,
               config: Config,
@@ -212,7 +224,10 @@ def fit_model(hparams: Dict[str, any],
               sample_train_keys: pd.Index,
               sample_val_keys: pd.Index,
               hyperopt_artifact_path: str,
-              part: str) -> float:
+              part: str,
+              cancel_event: Event) -> float:
+    if cancel_event.is_set():
+        raise TaskCancelledError(f"Task for part {part} was cancelled due to earlier failure.")
     trial = trials.trials[-1]
     trial_no = len(trials.trials)
     max_evals = config.ds.hopt_max_evals
@@ -327,7 +342,9 @@ def fit_model(hparams: Dict[str, any],
 def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
                    sample_target_df: pd.DataFrame, sample_train_keys: pd.Index,
                    sample_val_keys: pd.Index, part: str, hyperopt_artifact_path: str,
-                   save_best_hparams_in_mlfow: bool = True) -> Tuple[Trials, Dict[str, Any], Dict[str, Any]]:
+                   save_best_hparams_in_mlfow: bool = True, cancel_event: Event = None
+) -> Tuple[Trials, Dict[str, Any], Dict[str, Any]]:
+    assert part != '3', "Dummy error"
     match config.ds.hopt_algo:
         case HyperoptAlgoEnum.TPE:
             hopt_algo = hyperopt.tpe.suggest
@@ -351,21 +368,35 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
     objective = partial(fit_model, config=config, model=model, trials=trials, space=hparam_space, metric=metric,
                         selected_sample_features_df=selected_sample_features_df,
                         sample_target_df=sample_target_df, sample_train_keys=sample_train_keys,
-                        sample_val_keys=sample_val_keys, part=part, hyperopt_artifact_path=hyperopt_artifact_path)
+                        sample_val_keys=sample_val_keys, part=part, hyperopt_artifact_path=hyperopt_artifact_path,
+                        cancel_event=cancel_event)
     if config.ds.hopt_early_stop_enabled:
         hp_early_stop = no_progress_loss(iteration_stop_count=config.ds.hopt_early_iteration_stop_count,
                                          percent_increase=config.ds.hopt_early_stop_percent_increase)
     else:
         hp_early_stop = None
-    hp_assignment = fmin(
-        fn=objective,
-        space=hparam_space,
-        algo=hopt_algo,
-        max_evals=config.ds.hopt_max_evals,
-        trials=trials,
-        rstate=np.random.default_rng(config.ds.hopt_fmin_random_seed),
-        early_stop_fn=hp_early_stop
-    )
+    try:
+        hp_assignment = fmin(
+            fn=objective,
+            space=hparam_space,
+            algo=hopt_algo,
+            max_evals=config.ds.hopt_max_evals,
+            trials=trials,
+            rstate=np.random.default_rng(config.ds.hopt_fmin_random_seed),
+            early_stop_fn=hp_early_stop
+        )
+    except TaskCancelledError as e:
+        logger.error(f"Task for partition '{part}' was cancelled due to earlier failure.")
+        mlflow.set_tag("task_status", "cancelled")
+        mlflow.end_run(status="FAILED")
+        raise e
+    except Exception as e:
+        logger.error(f"Error during hyperopt tuning for partition '{part}': {e}\n"
+                     f"{traceback.format_exc()}")
+        mlflow.set_tag("task_status", "failed")
+        mlflow.end_run(status="FAILED")
+        cancel_event.set()
+        raise
     best_trial = get_best_trial(trials)
     best_hparams = get_hparams_from_trial(best_trial, hparam_space)
 
@@ -376,48 +407,71 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
 
 def process_hypertune_part(config: Config, part: str, selected_sample_features_df: Dict[str, pd.DataFrame],
                            sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
-                           sample_val_keys: Dict[str, pd.Index], save_best_hparams_in_mlfow: bool
+                           sample_val_keys: Dict[str, pd.Index], save_best_hparams_in_mlflow: bool,
+                           parent_mlflow_run_id: str = None, cancel_event: Event = None
                            ) -> Tuple[str, Dict[str, Any]]:
-    selected_sample_features_part_df = get_partition(selected_sample_features_df, part)
-    sample_target_part_df = get_partition(sample_target_df, part)
-    sample_train_keys_part = get_partition(sample_train_keys, part)
-    sample_val_keys_part = get_partition(sample_val_keys, part)
-    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
-    logger.info(f"Tuning the hyper parameters of the predictive model on partition '{part}' of the sample dataset...")
-    with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-        trials, best_trial, best_hparams_part = hypertune_part(
-            config, selected_sample_features_part_df, sample_target_part_df,
-            sample_train_keys_part, sample_val_keys_part, part=part,
-            hyperopt_artifact_path=f"{_hypertune_artifact_path}"
-        )
-        msg = create_hyperopt_result_message(trials, best_trial, part=part, is_best=True, max_evals=config.ds.hopt_max_evals)
-        msg += f"\nThe best hyperparameters for partition '{part}':\n"
-        for param, value in best_hparams_part.items():
-            msg += f"    - {param}: {value}\n"
-        logger.info(msg)
+    try:
+        selected_sample_features_part_df = get_partition(selected_sample_features_df, part)
+        sample_target_part_df = get_partition(sample_target_df, part)
+        sample_train_keys_part = get_partition(sample_train_keys, part)
+        sample_val_keys_part = get_partition(sample_val_keys, part)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mlflow_run_id=parent_mlflow_run_id)
+        logger.info(f"Tuning the hyper parameters of the predictive model on partition '{part}' of the sample dataset...")
+        with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
+            trials, best_trial, best_hparams_part = hypertune_part(
+                config, selected_sample_features_part_df, sample_target_part_df,
+                sample_train_keys_part, sample_val_keys_part, part=part,
+                hyperopt_artifact_path=f"{_hypertune_artifact_path}",
+                cancel_event=cancel_event
+            )
+            msg = create_hyperopt_result_message(trials, best_trial, part=part, is_best=True, max_evals=config.ds.hopt_max_evals)
+            msg += f"\nThe best hyperparameters for partition '{part}':\n"
+            for param, value in best_hparams_part.items():
+                msg += f"    - {param}: {value}\n"
+            logger.info(msg)
+    except Exception as e:
+        cancel_event.set()
+        raise
     return part, best_hparams_part, best_trial
 
 
 def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFrame],
               sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
-              sample_val_keys: Dict[str, pd.Index], save_best_hparams_in_mlfow: bool = True
+              sample_val_keys: Dict[str, pd.Index], save_best_hparams_in_mlflow: bool = True
               ) -> Dict[str, Dict[str, Any]]:
     logger.info(f"Tuning the hyper parameters of the predictive model {config.ds.model_class}...")
+    parts_cnt = len(selected_sample_features_df)
     best_hparams = {}
     best_trials = {}
-
-    parts_cnt = len(selected_sample_features_df)
+    manager = Manager()
+    cancel_event = manager.Event()
+    mlflow_run_id = mlflow.active_run().info.run_id
     with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
         futures = {
             executor.submit(process_hypertune_part, config, part, selected_sample_features_df, sample_target_df,
-                            sample_train_keys, sample_val_keys, save_best_hparams_in_mlfow): part
+                            sample_train_keys, sample_val_keys, save_best_hparams_in_mlflow, mlflow_run_id, cancel_event): part
             for part in selected_sample_features_df.keys()
         }
-        for future in as_completed(futures):
-            part, best_hparams_part, best_trial = future.result()
-            best_hparams[part] = best_hparams_part
-            best_trials[part] = best_trial
-    if save_best_hparams_in_mlfow:
+        try:
+            for future in as_completed(futures):
+                try:
+                    part = futures[future]
+                    best_hparams_part, best_trial = future.result()
+                    best_hparams[part] = best_hparams_part
+                    best_trials[part] = best_trial
+                except Exception as e:
+                    for f in futures:
+                        f.cancel()
+                    raise RuntimeError(f"Hypertuning failed on part '{part}'") from e
+        except Exception:
+            logger.error(f"Task hypertune was cancelled due to failure in a subprocess.")
+            mlflow.set_tag("task_status", "failed")
+            mlflow.end_run(status="FAILED")
+            client = MlflowClient()
+            client.set_terminated(mlflow_run_id, status="FAILED")
+            raise
+
+    if save_best_hparams_in_mlflow:
         mlflow.log_dict(best_hparams, f"{_hypertune_artifact_path}/best_trials_hparams.yml")
     log_best_trials_info_to_mlflow(best_trials, best_hparams, artifact_path=_hypertune_artifact_path,
                                    log_folds_metrics=(config.ds.hopt_validation_method != HypertuneValidationEnum.SAMPLE_VAL_SET))

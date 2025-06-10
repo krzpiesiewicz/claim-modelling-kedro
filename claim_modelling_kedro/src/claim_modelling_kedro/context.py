@@ -206,3 +206,5 @@ class ProjectContext(KedroContext):
             csv_path = os.path.join(temp_dir, self.kedro_runs_df_filename)
             kedro_runs_df.to_csv(csv_path, index=False)
             mlflow.log_artifact(csv_path)
+        last_pipeline = kedro_runs_df["pipeline"].iloc[-1]
+        mlflow.set_tag("last_pipeline", last_pipeline)

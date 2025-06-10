@@ -196,7 +196,7 @@ def fit_transform_features(config: Config, features_df: Dict[str, pd.DataFrame],
 def process_transform_partition(config: Config, part: str, features_df: Dict[str, pd.DataFrame],
                                 mlflow_run_id: str) -> Tuple[str, pd.DataFrame]:
     features_part_df = get_partition(features_df, part)
-    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mflow_run_id=mlflow_run_id)
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mlflow_run_id=mlflow_run_id)
     logger.info(f"Transforming features on partition '{part}'...")
     transformed_part_df = transform_features_by_mlflow_model_part(config, features_part_df, mlflow_subrun_id)
     return part, transformed_part_df

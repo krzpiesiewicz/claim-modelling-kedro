@@ -1,11 +1,9 @@
 """Command line tools for manipulating a Kedro project.
 Intended to be invoked via `kedro`."""
 import logging
-from pathlib import Path
 from typing import Dict, Tuple
 
 import click
-from kedro.framework.project import settings
 from kedro.framework.cli.project import (
     ASYNC_ARG_HELP,
     CONFIG_FILE_HELP,
