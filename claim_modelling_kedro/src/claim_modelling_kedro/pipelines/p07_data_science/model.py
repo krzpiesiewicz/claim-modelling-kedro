@@ -19,7 +19,7 @@ from claim_modelling_kedro.pipelines.utils.mlflow_model import MLFlowModelLogger
 from claim_modelling_kedro.pipelines.utils.utils import get_class_from_path
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
 from claim_modelling_kedro.pipelines.utils.dataframes import (
-    assert_pandas_no_lacking_indexes, trunc_target_index, preds_as_dataframe_with_col_name,
+    preds_as_dataframe_with_col_name,
     save_metrics_table_in_mlflow, save_metrics_cv_stats_in_mlflow
 )
 
@@ -59,12 +59,15 @@ class PredictiveModel(ABC):
 
     def fit(self, features_df: Union[pd.DataFrame, np.ndarray],
             target_df: Union[pd.DataFrame, pd.Series, np.ndarray], **kwargs):
-        assert_pandas_no_lacking_indexes(features_df, target_df, "features_df", "target_df")
-        target_df = trunc_target_index(features_df, target_df)
+        index = features_df.index.intersection(target_df.index)
+        target_df = target_df.loc[index]
+        features_df =  features_df.loc[index]
         if not "sample_weight" in kwargs:
             sample_weight = get_sample_weight(self.config, target_df)
             if sample_weight is not None:
                 kwargs["sample_weight"] = sample_weight
+        if "sample_weight" in kwargs:
+            kwargs["sample_weight"] = sample_weight.loc[index]
         self._fit(features_df, target_df, **self._fit_kwargs, **kwargs)
         self._not_fitted = False
 
