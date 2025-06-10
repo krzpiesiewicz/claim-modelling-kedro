@@ -344,7 +344,6 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
                    sample_val_keys: pd.Index, part: str, hyperopt_artifact_path: str,
                    save_best_hparams_in_mlfow: bool = True, cancel_event: Event = None
 ) -> Tuple[Trials, Dict[str, Any], Dict[str, Any]]:
-    assert part != '3', "Dummy error"
     match config.ds.hopt_algo:
         case HyperoptAlgoEnum.TPE:
             hopt_algo = hyperopt.tpe.suggest
