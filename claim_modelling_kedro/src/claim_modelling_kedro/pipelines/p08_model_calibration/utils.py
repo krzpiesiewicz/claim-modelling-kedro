@@ -105,7 +105,7 @@ def handle_outliers(
 def process_calibrate_partition(config: Config, part: str, pure_predictions_df: Dict[str, pd.DataFrame],
                                 mlflow_run_id: str) -> Tuple[str, pd.DataFrame]:
     pure_predictions_part_df = get_partition(pure_predictions_df, part)
-    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mflow_run_id=mlflow_run_id)
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mlflow_run_id=mlflow_run_id)
     logger.info(f"Calibrating the pure predictions on partition '{part}' of the dataset by the MLFlow model...")
     calibrated_part_df = calibrate_predictions_by_mlflow_model_part(config, pure_predictions_part_df, mlflow_subrun_id)
     return part, calibrated_part_df

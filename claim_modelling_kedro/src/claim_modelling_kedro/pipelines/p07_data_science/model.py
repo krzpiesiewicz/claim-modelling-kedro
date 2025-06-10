@@ -241,7 +241,7 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
 def process_predict_partition(config: Config, part: str, selected_features_df: Dict[str, pd.DataFrame],
                               mlflow_run_id: str) -> Tuple[str, pd.DataFrame]:
     selected_features_part_df = get_partition(selected_features_df, part)
-    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mflow_run_id=mlflow_run_id)
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mlflow_run_id=mlflow_run_id)
     logger.info(f"Predicting the target on partition '{part}' of the dataset by the MLFlow model...")
     predictions_part_df = predict_by_mlflow_model_part(config, selected_features_part_df, mlflow_subrun_id)
     return part, predictions_part_df

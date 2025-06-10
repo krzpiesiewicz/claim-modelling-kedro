@@ -69,7 +69,7 @@ def process_select_features_partition(config: Config, part: str, transformed_fea
                                       mlflow_run_id: str) -> Tuple[str, pd.DataFrame]:
     logger.info(f"Selecting features for partition '{part}' by the MLFlow model...")
     features_part_df = get_partition(transformed_features_df, part)
-    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mflow_run_id=mlflow_run_id)
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mlflow_run_id=mlflow_run_id)
     selector = MLFlowModelLoader("features selector model").load_model(path=_selector_artifact_path, run_id=mlflow_subrun_id)
     selected_features_part_df = selector.transform(features_part_df)
     logger.info(f"Selected features for partition '{part}'.")

@@ -54,9 +54,9 @@ def get_partition(df_dct: Dict[str, Any], partition: str) -> Any:
     return part_df
 
 
-def get_mlflow_run_id_for_partition(config: Config, partition: str, parent_mflow_run_id: str = None) -> str:
-    if parent_mflow_run_id is not None:
-        parent_run = mlflow.get_run(parent_mflow_run_id)
+def get_mlflow_run_id_for_partition(config: Config, partition: str, parent_mlflow_run_id: str = None) -> str:
+    if parent_mlflow_run_id is not None:
+        parent_run = mlflow.get_run(parent_mlflow_run_id)
     else:
         parent_run = mlflow.active_run()
     logger.debug(f"parent_run: {parent_run}, run_id: {parent_run.info.run_id}")
