@@ -408,7 +408,7 @@ def process_hypertune_part(config: Config, part: str, selected_sample_features_d
                            sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
                            sample_val_keys: Dict[str, pd.Index], save_best_hparams_in_mlflow: bool,
                            parent_mlflow_run_id: str = None, cancel_event: Event = None
-                           ) -> Tuple[str, Dict[str, Any]]:
+                           ) -> Tuple[str, Dict[str, Any], Dict[str, Any]]:
     try:
         selected_sample_features_part_df = get_partition(selected_sample_features_df, part)
         sample_target_part_df = get_partition(sample_target_df, part)
@@ -454,8 +454,7 @@ def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFram
         try:
             for future in as_completed(futures):
                 try:
-                    part = futures[future]
-                    best_hparams_part, best_trial = future.result()
+                    part, best_hparams_part, best_trial = future.result()
                     best_hparams[part] = best_hparams_part
                     best_trials[part] = best_trial
                 except Exception as e:
