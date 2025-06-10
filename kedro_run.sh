@@ -127,16 +127,56 @@ cat $LOG_DIR/$LOG_NAME.log | tr -cd '\11\12\15\40-\176' | sed 's/]8.*$//' | sed 
 
 LOGFILE_KEDRO_LOG_TO_MLFLOW=$LOG_DIR/$LOG_NAME--kedro-log-to-mlflow
 HTML_LOG_FILE=$FULL_LOG_DIR_PATH/$LOG_NAME.html
-status=&(script --return --flush --quiet --command "kedro run --pipeline dummy --kedro-log-to-mlflow --kedro-run-no $NUMBER --kedro-run-status $status --kedro-elapsed-time $ELAPSED_TIME --kedro-logdir-path $FULL_LOG_DIR_PATH --kedro-log-html-file $HTML_LOG_FILE" > $LOGFILE_KEDRO_LOG_TO_MLFLOW.log)
-status=$?
+status2=&(script --return --flush --quiet --command "kedro run --pipeline dummy --kedro-log-to-mlflow --kedro-run-no $NUMBER --kedro-run-status $status --kedro-elapsed-time $ELAPSED_TIME --kedro-logdir-path $FULL_LOG_DIR_PATH --kedro-log-html-file $HTML_LOG_FILE" > $LOGFILE_KEDRO_LOG_TO_MLFLOW.log)
+status2=$?
 cat $LOGFILE_KEDRO_LOG_TO_MLFLOW.log | tr -cd '\11\12\15\40-\176' | sed 's/]8.*$//' | sed 's/\[[0-9]*m//g' | sed 's/\[[0-9]*;[0-9]*m//g' | sed 's/\[[0-9]*;[0-9]*;[0-9]*m//g' > $LOGFILE_KEDRO_LOG_TO_MLFLOW.clean.log
 
-if [ $status -eq 0 ]; then
+if [ $status2 -eq 0 ]; then
   msg="\nSaved kedro log to mlflow ($(basename $HTML_LOG_FILE))."
 else
   msg="\nFailed to save kedro log to mlflow => See file://$(pwd)/$LOGFILE_KEDRO_LOG_TO_MLFLOW.clean.log for more details."
 fi
 echo -e "$msg"
+
+if [ $status -ne 0 ]; then
+  RUN_ID_FILE="$LOG_DIR/mlflow_run_id.txt"
+  RUN_ID=$(cat "$RUN_ID_FILE")
+  MLFLOW_SERVER_CONFIG_PATH="conf/local/mlflow.yml"
+  python3 - <<EOF
+import yaml
+import sys
+import mlflow
+from mlflow.tracking import MlflowClient
+from pathlib import Path
+
+# Ścieżka do konfiguracji
+config_path = Path("$MLFLOW_SERVER_CONFIG_PATH")
+if not config_path.exists():
+    print(f"Config file not found: {config_path}")
+    sys.exit(1)
+
+# Wczytaj konfigurację YAML
+with open(config_path, "r") as f:
+    config = yaml.safe_load(f)
+
+try:
+    tracking_uri = config["server"]["mlflow_tracking_uri"]
+except KeyError:
+    print("mlflow_tracking_uri not found in config")
+    sys.exit(1)
+
+# Ustaw i oznacz run jako FAILED
+mlflow.set_tracking_uri(tracking_uri)
+client = MlflowClient()
+
+try:
+    client.set_terminated("$RUN_ID", status="FAILED")
+    print(f"Run $RUN_ID has been marked as FAILED on {tracking_uri}")
+except Exception as e:
+    print(f"Failed to set status for run $RUN_ID: {e}")
+    sys.exit(2)
+EOF
+fi
 
 # Notification parameters
 TITLE="Finished"
