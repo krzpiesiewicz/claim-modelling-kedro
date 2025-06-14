@@ -42,7 +42,7 @@ data:
   split_random_seed: 1
   stratify_target_col: # the target column used for stratification;
     # possible values: 'ClaimNb_TRG', 'ClaimFreq_TRG', 'ClaimTotalAmount_TRG', 'ClaimSeverity_TRG', 'ClaimPurePremium_TRG';
-    # if empty, the column coresponding to the model.target is used.
+    # if empty, the column corresponding to the model.target is used.
   calib_size: 0.2 # [0,1) - the part of policies used for model calibration
     # if calib_size is None or zero, then calibration.enabled has to be set to False
   test_size: 0.2 # (0, 1) the part of policies used for test if cross_validation.enabled is False
@@ -64,10 +64,10 @@ data:
 
 
 sampling:
-  use_calib_data: False # whether to use also the calibration data for sampling
+  included_calib_set_in_train_sample: False # whether to use also the calibration data for creating a training sample
   random_seed: 1
   n_obs: # the number of samples which are used to train a model.
-  target_ratio: # the ratio of nonzero samples, if None, the ratio is not controlled
+  target_ratio:     # the ratio of nonzero samples, if None, the ratio is not controlled
                     # if target_ratio is not None and n_obs is None, then get all targets and complete the sample with zeros
                     # If both n_obs and target_ratio are Nones, then all training data is used
   allow_lower_ratio: True # allow the ratio of nonzero samples to be lower than target_ratio
@@ -76,6 +76,14 @@ sampling:
     policy: keep # 'keep', 'drop', 'clip'
     lower_bound:
     upper_bound:
+  validation:
+    val_set: 'calib_set' # 'none', 'calib_set' or 'split_train_val'
+    # if val_set is 'none', then no validation set is used
+    # if val_set is 'calib_set', then the calib set is used for validation (as sample_val set)
+    # if val_set is 'split_train_val', then the sample is split into sample_train and sample_val sets
+    split_train_val: # used only if val_set is 'split_train_val'
+      val_size: 0.3 # the part of the sample used for validation
+      random_seed: 0 # the random seed for splitting the sample into sample_train and sample_val sets
 
 data_engineering:
   mlflow_run_id: # If provided a MLFLow run id, the de models are saved to / downloaded from the MLflow run
@@ -102,22 +110,27 @@ data_engineering:
         single_column: True
         description: "The capped bonus-malus value"
         model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.BonusMalusCreatorModel
+      #      - name: "BonusMalusCat"
+      #        type: "categorical"
+      #        single_column: True
+      #        description: "The capped bonus-malus value"
+      #        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.BonusMalusCatCreatorModel
       - name: "LogDensity"
         type: "numerical"
         single_column: True
         description: "The logged value for density"
         model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.DensityCreatorModel
-      # - name: "LogLinearArea"
-      #   type: "numerical"
-      #   single_column: True
-      #   description: "Log-linear scale of area-density level {A,...,F} -> {1,...,6}"
-      #   model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.LogLinearAreaCreatorModel
+      #      - name: "LogLinearArea"
+      #        type: "numerical"
+      #        single_column: True
+      #        description: "Log-linear scale of area-density level {A,...,F} -> {1,...,6}"
+      #        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.LogLinearAreaCreatorModel
       # Example entry below
-#      - name: str # e.g. "MyCustomFeature"
-#        type: str # "categorical" or "numerical"
-#        single_column: bool # whether the model generates feature as a single column
-#        description: str # e.g. "My custom feature is a combination of two other features"
-#        model_class: str # e.g. "p06_data_engineering.utils.custom_features.MyCustomFeatureCreatorModel"
+      #      - name: str # e.g. "MyCustomFeature"
+      #        type: str # "categorical" or "numerical"
+      #        single_column: bool # whether the model generates feature as a single column
+      #        description: str # e.g. "My custom feature is a combination of two other features"
+      #        model_class: str # e.g. "p06_data_engineering.utils.custom_features.MyCustomFeatureCreatorModel"
   reduce_categories:
     enabled: False # whether to reduce the number of categories in a feature
     max_categories: # the maximum number of categories in a feature
@@ -136,15 +149,6 @@ data_engineering:
     enabled: True # whether to use the imputer
     strategy: constant # 'mean', 'median', 'most_frequent', 'constant'
     fill_value: 0 # the value used to fill missing values
-  ohe:
-    enabled: True # whether to use the OHE
-    drop_reference_cat: True # whether to drop the reference category
-    drop_first: True # whether to drop the first category if drop_reference_cat is False
-                     # or the feature does not have a reference category
-    drop_binary: True # whether to drop one of the two categories if the feature is binary
-                      # and none of the two categories was dropped as a reference category
-    max_categories: # (int) the maximum number of categories in a feature
-    min_frequency: # (int) the minimum frequency of a category in a feature
   scaler:
     enabled: False # whether to use the scaler
     method: # 'StandardScaler', 'MinMaxScaler', 'RobustScaler', 'MaxAbsScaler'
@@ -153,22 +157,25 @@ data_engineering:
         with_mean: False # whether to center the data before scaling
         with_std: True # whether to scale the data to unit variance
       MinMaxScaler:
-        feature_range: [0, 1] # the range of the scaled data
+        feature_range: [ 0, 1 ] # the range of the scaled data
       RobustScaler:
         with_centering: True # whether to center the data before scaling
         with_scaling: True # whether to scale the data to unit variance
         quantile_range: [25.0, 75.0]
+        quantile_range: [ 25.0, 75.0 ]
+  ohe:
 
 
 data_science:
   mlflow_run_id: # If provided a MLFLow run id, the selector and prediction model are saved to /
     # downloaded from the MLflow run
-  split_val_size: 0.3 # the part of data used for validation the final model
-  split_random_seed: 0 # the random seed for splitting the data into train and validation sets
+  target_transformer:
+    enabled: False # whether to use the target transformer
+    model: LogTargetTransformer
   feature_selection:
     enabled: False # whether to use the feature selection
-    max_n_features: # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
-    min_importance: 0.001 # the minimum importance of a feature
+    max_n_features: 40 # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
+    min_importance: 0.00001 # the minimum importance of a feature
     max_iter: 100 # the maximum number of iterations
     method: pyglmnet # 'model', 'pyglmnet', 'lasso', 'rfe'
       # 'model' – uses the model from parameter model.model as a base model, e.g., PoissonGLM
@@ -179,17 +186,19 @@ data_science:
     random_seed: 0
     params:
       model: # applies when method is 'model'. Put parameters for the model.model used for feature selection
-        alpha: 0.001 # the regularization parameter
+        alpha: 0.001
+        random_state: 0 # the random seed for the model
       pyglmnet: # applies when method is 'pyglmnet'
         distr: gamma # gamma, poisson
         alpha: 0.5 # the weighting between L1 penalty and L2 penalty term of the loss function
-        reg_lambda: 0.1 # the regularization parameter
+        reg_lambda: 0.0001 # the regularization parameter
         solver: batch-gradient # optimization method, can be one of the following:
                                  # 'batch-gradient' (vanilla batch gradient descent) 'cdfast' (Newton coordinate gradient descent)
-        learning_rate: 0.01 # the learning rate
+        learning_rate: 0.0001 # the learning rate
         max_iter: 1000 # the maximum number of iterations
-        tol: 0.001 # the tolerance for convergence
+        tol: 0.000001 # the tolerance for convergence
         fit_intercept: True # whether to fit the intercept
+        random_state: 1 # the random seed for the model
       lasso: # applies when method is 'lasso'
         alpha: 0.001 # the regularization parameter
       rfe: # applies when method is 'rfe'
@@ -207,21 +216,45 @@ data_science:
       # 'spearman_correlation', 'exposure_weighted_spearman_correlation', 'claim_nb_weighted_spearman_correlation'
       # tweedie_deviance(p), where p is a float number, e.g., tweedie_deviance(1.5)
       # exposure_weighted_tweedie_deviance(p) or claim_nb_weighted_tweedie_deviance(p), where p is a float number, e.g., weighted_tweedie_deviance(1.5)
-    max_evals: 10 # the maximum number of evaluations
+    overfit_penalty: 0.5 # the penalty for overfitting (>= 0) added to hyperopt loss; penalty = overfit_penalty * max(0, loss_val - loss_train)
+                         # where loss_{set} = -metric_{set} if large is better else metric_{set}
+                         # if overfit_penalty == 0, then no penalty is applied
+    max_evals: 100 # the maximum number of evaluations
+    early_stopping:
+      enabled: True # whether to use early stopping
+      iteration_stop_count: 50 # the number of trials after which the optimization is stopped if no improvement is observed
+      percent_increase: 0.01 # the percent increase in the metric that is required to continue the optimization
     algo: tpe # 'tpe', 'random'
     show_progressbar: True # whether to show the progress bar
     trial_verbose: True # whether to show each trial in the console
     random_seed: 0 # the random seed for the hyperopt fmin function
-    cross_validation:
-      enabled: True # whether to use cross-validation
-      folds: 10 # the number of folds in cross-validation
-      # val_size = 1 / folds
-      # train_size = 1 - val_size
-    split_val_size: 0.3 # the part of data used for validation – used only if cross_validation.enabled is False
-    split_random_seed: 0 # the random seed for splitting the data into train and validation sets
+    validation:
+      method: repeated_split # 'sample_val_set', 'cross_validation', 'repeated_split'
+      # if method is 'sample_val_set', then the sample_val_keys set is used (created in sampling pipeline)
+      # if method is 'cross_validation' or 'repeated_split', the union of sample_train_keys and sample_val_keys
+      # is used for splitting in cross-validation or repeated splitting
+      # if method is 'cross_validation', then the data is split into folds and the model is trained on each fold
+      # if method is 'repeated_split', then the data is split into train and validation sets
+      cross_validation:
+        folds: 10 # the number of folds in cross-validation
+                  # val_size = 1 / folds
+                  # train_size = 1 - val_size
+        random_seed: 0 # the random seed for stratified splitting the data into folds
+      repeated_split:
+        val_size: 0.25 # the part of data used for validation – used only if cross_validation.enabled is False
+        n_repeats: 10 # the number of times the data is split into train and validation sets
+        random_seed: 0 # the random seed for stratified splitting the data into train and validation sets
     excluded_params:
-#      GradientBoostingRegressor:
-#        - n_estimators
+      SklearnPoissonGLM:
+        - solver
+      SklearnGammaGLM:
+        - solver
+      SklearnTweedieGLM:
+        - solver
+      PyGLMNetPoissonGLM:
+        - solver
+      PyGLMNetGammaGLM:
+        - solver
   model:
     model: StatsmodelsGammaGLM # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
     # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM', 'PyGLMNetPoissonGLM', 'PyGLMNetGammaGLM',
@@ -240,22 +273,37 @@ data_science:
         link: inverse # 'log' (all families), 'inverse' (Gamma), 'power' (Tweedie)
         force_min_y_pred: True
         fit_intercept: True
-#      SklearnPoissonGLM:
-#        alpha: 1
-#        fit_intercept: True
-#      GradientBoostingRegressor:
-#        n_estimators: 100
+        intercept_scale: # float or 'mean' - the scale of the intercept (intercept := intercept_scale), default is 1.0,
+                         # 'mean': intercept_scale := mean target value in train set
+        trg_divisor: # float or 'mean' - the divisor of the target value in train set (target := target / trg_divisor), default is 1.0,
+                     # 'mean': trg_divisor := mean target value in train set
+      SklearnGammaGLM:
+        fit_intercept: True
+      SklearnPoissonGLM:
+        fit_intercept: True
+      PyGLMNetPoissonGLM:
+        fit_intercept: True
+      PyGLMNetGammaGLM:
+        fit_intercept: True
+        random_state: 1 # the random seed for the model
 
 
 calibration:
   mlflow_run_id: # If provided a MLFLow run id, the calibration model is saved to / downloaded from the MLflow run
   enabled: False # whether to use the calibration
   method: StatsmodelsGammaGLM # the method of calibrating pure predictions of data science model from the previous stage
+  method: IsotonicRegression # the method of calibrating pure predictions of data science model from the previous stage
     # 'IsotonicRegression', 'CenteredIsotonicRegression', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM'
     # 'LocalStatsmodelsGLM', 'EqualBinsMeans', 'LocalPolynomialRegression'
   const_hparams:
     IsotonicRegression:
-      force_positive: True
+      force_positive: False
+      clip_low_bin:
+      clip_high_bin:
+    CenteredIsotonicRegression:
+      force_positive: False
+      clip_low_bin:
+      clip_high_bin:
     StatsmodelsGammaGLM:
       link: inverse # 'log', 'inverse'
       fit_intercept: True
@@ -289,4 +337,4 @@ test:
 summary:
   lift_chart:
     min_val: 0
-    max_val: 6000
+    max_val:
