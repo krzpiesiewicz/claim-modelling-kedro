@@ -81,11 +81,11 @@ def log_best_trials_info_to_mlflow(
                        enumerate(folds_scores)},
                 }
                 rows.append(row_dct)
-            best_trials_scores_df = pd.DataFrame(rows).sort_index()
+            best_trials_scores_df = pd.DataFrame(rows).set_index("part").sort_index()
             file_name = f"best_trials_{dataset}_scores.csv"
-            save_pd_dataframe_as_csv_in_mlflow(best_trials_scores_df, artifact_path, file_name, index=False)
+            save_pd_dataframe_as_csv_in_mlflow(best_trials_scores_df, artifact_path, file_name, index=True)
             logger.info(f"Best hypertune trials folds {dataset.upper()} scores for each partition:\n" +
-                        tabulate(best_trials_scores_df, headers="keys", tablefmt="psql", stralign="right", showindex=False) + "\n")
+                        tabulate(best_trials_scores_df, headers="keys", tablefmt="psql", stralign="right", showindex=True) + "\n")
 
 
 def log_trials_info_to_mlflow(
@@ -183,9 +183,9 @@ def create_hyperopt_result_message(trials: Trials, current_trial: Dict[str, Any]
     return msg
 
 
-def process_fold(fold: str, train_keys_cv: Dict[str, pd.Index], val_keys_cv: Dict[str, pd.Index],
+def process_fold(config: Config, fold: str, train_keys_cv: Dict[str, pd.Index], val_keys_cv: Dict[str, pd.Index],
                  selected_sample_features_df: pd.DataFrame, sample_target_df: pd.DataFrame,
-                 hparams: Dict[str, Any], model: PredictiveModel, metric: Metric) -> Tuple[float, float]:
+                 hparams: Dict[str, Any], model: PredictiveModel, metric: Metric) -> Tuple[float, float, PredictiveModel]:
     train_keys = train_keys_cv[fold]
     val_keys = val_keys_cv[fold]
     train_features_df = selected_sample_features_df.loc[train_keys]
@@ -193,6 +193,9 @@ def process_fold(fold: str, train_keys_cv: Dict[str, pd.Index], val_keys_cv: Dic
     train_target_df = sample_target_df.loc[train_keys]
     val_target_df = sample_target_df.loc[val_keys]
 
+    model = get_class_from_path(config.ds.model_class)(config=config, target_col=config.mdl_task.target_col,
+                                                       pred_col=config.mdl_task.prediction_col)
+    model.update_hparams(config.ds.model_const_hparams)
     model.update_hparams(hparams)
     model.fit(train_features_df, train_target_df)
 
@@ -202,7 +205,7 @@ def process_fold(fold: str, train_keys_cv: Dict[str, pd.Index], val_keys_cv: Dic
     train_score = metric.eval(train_target_df, train_predictions_df)
     val_score = metric.eval(val_target_df, val_predictions_df)
 
-    return train_score, val_score
+    return train_score, val_score, model
 
 
 class TaskCancelledError(Exception):
@@ -221,8 +224,8 @@ def fit_model(hparams: Dict[str, any],
               metric: Metric,
               selected_sample_features_df: pd.DataFrame,
               sample_target_df: pd.DataFrame,
-              sample_train_keys: pd.Index,
-              sample_val_keys: pd.Index,
+              train_keys_cv: Dict[str, pd.Index],
+              val_keys_cv: Dict[str, pd.Index],
               hyperopt_artifact_path: str,
               part: str,
               cancel_event: Event) -> float:
@@ -237,30 +240,6 @@ def fit_model(hparams: Dict[str, any],
     msg += f"Fitting the predictive model(s) for hyperopt trial {trial_no}..."
     logger.info(msg)
 
-    match config.ds.hopt_validation_method:
-        case HypertuneValidationEnum.SAMPLE_VAL_SET:
-            train_keys_cv = {"0": sample_train_keys}
-            val_keys_cv = {"0": sample_val_keys}
-        case HypertuneValidationEnum.CROSS_VALIDATION:
-            train_keys_cv, val_keys_cv = get_stratified_train_test_cv(sample_target_df,
-                                                                      stratify_target_col=config.mdl_task.target_col,
-                                                                      cv_folds=config.ds.hopt_cv_folds, shuffle=True,
-                                                                      random_seed=config.ds.hopt_cv_random_seed,
-                                                                      verbose=False)
-        case HypertuneValidationEnum.REPEATED_SPLIT:
-            train_keys_cv = {}
-            val_keys_cv = {}
-            for fold in range(config.ds.hopt_repeated_split_n_repeats):
-                train_keys, val_keys = get_stratified_train_test_split_keys(
-                    sample_target_df,
-                    stratify_target_col=config.mdl_task.target_col,
-                    test_size=config.ds.hopt_repeated_split_val_size,
-                    shuffle=True,
-                    random_seed=max(config.ds.hopt_repeated_split_random_seed + 100, 1) * (100 * fold + 1),
-                    verbose=False)
-                train_keys_cv[str(fold)] = train_keys
-                val_keys_cv[str(fold)] = val_keys
-
     log_trials_info_to_mlflow(trials, space, log_folds_metrics=(len(train_keys_cv) > 1),
                               artifact_path=hyperopt_artifact_path)
 
@@ -269,16 +248,17 @@ def fit_model(hparams: Dict[str, any],
     metric_name = metric.get_short_name()
     start_time = time.time()
 
+    fitted_model = None
     try:
         with ProcessPoolExecutor(max_workers=5) as executor:  # Ustaw odpowiednią liczbę procesów
             futures = {
-                executor.submit(process_fold, fold, train_keys_cv, val_keys_cv,
+                executor.submit(process_fold, config, fold, train_keys_cv, val_keys_cv,
                                 selected_sample_features_df, sample_target_df,
                                 hparams, model, metric): fold
                 for fold in train_keys_cv.keys()
             }
             for future in as_completed(futures):
-                train_score, val_score = future.result()
+                train_score, val_score, fitted_model = future.result()
                 train_scores.append(train_score)
                 val_scores.append(val_score)
                 logger.debug(
@@ -319,6 +299,7 @@ def fit_model(hparams: Dict[str, any],
         "metrics": metrics_results,
         "train_scores": train_scores,
         "valid_scores": val_scores,
+        "model": fitted_model
     }
     trial_result = {
         "trial_no": trial_no,
@@ -363,11 +344,39 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
     if hparam_space is None or len(hparam_space) == 0:
         raise Exception(f"No hyperparameter space defined for {config.ds.hopt_algo}.")
 
+    # Set up the hyperopt validation method - using the sample train and validation keys
+    # sample_val_set - use a sample validation set already defined in the sampling process
+    # cross_validation - use cross-validation with the sample train and validation keys
+    # repeated_split - use repeated stratified split with the sample train and validation keys
+    match config.ds.hopt_validation_method:
+        case HypertuneValidationEnum.SAMPLE_VAL_SET:
+            train_keys_cv = {"0": sample_train_keys}
+            val_keys_cv = {"0": sample_val_keys}
+        case HypertuneValidationEnum.CROSS_VALIDATION:
+            train_keys_cv, val_keys_cv = get_stratified_train_test_cv(sample_target_df,
+                                                                      stratify_target_col=config.mdl_task.target_col,
+                                                                      cv_folds=config.ds.hopt_cv_folds, shuffle=True,
+                                                                      random_seed=config.ds.hopt_cv_random_seed,
+                                                                      verbose=False)
+        case HypertuneValidationEnum.REPEATED_SPLIT:
+            train_keys_cv = {}
+            val_keys_cv = {}
+            for fold in range(config.ds.hopt_repeated_split_n_repeats):
+                train_keys, val_keys = get_stratified_train_test_split_keys(
+                    sample_target_df,
+                    stratify_target_col=config.mdl_task.target_col,
+                    test_size=config.ds.hopt_repeated_split_val_size,
+                    shuffle=True,
+                    random_seed=max(config.ds.hopt_repeated_split_random_seed + 100, 1) * (100 * fold + 1),
+                    verbose=False)
+                train_keys_cv[str(fold)] = train_keys
+                val_keys_cv[str(fold)] = val_keys
+
     trials = Trials()
     objective = partial(fit_model, config=config, model=model, trials=trials, space=hparam_space, metric=metric,
                         selected_sample_features_df=selected_sample_features_df,
-                        sample_target_df=sample_target_df, sample_train_keys=sample_train_keys,
-                        sample_val_keys=sample_val_keys, part=part, hyperopt_artifact_path=hyperopt_artifact_path,
+                        sample_target_df=sample_target_df, train_keys_cv=train_keys_cv,
+                        val_keys_cv=val_keys_cv, part=part, hyperopt_artifact_path=hyperopt_artifact_path,
                         cancel_event=cancel_event)
     if config.ds.hopt_early_stop_enabled:
         hp_early_stop = no_progress_loss(iteration_stop_count=config.ds.hopt_early_iteration_stop_count,
@@ -398,6 +407,7 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
         raise
     best_trial = get_best_trial(trials)
     best_hparams = get_hparams_from_trial(best_trial, hparam_space)
+    logger.info(f"Best hyperparameters for partition '{part}':\n{best_hparams=}")
 
     if save_best_hparams_in_mlfow:
         mlflow.log_dict(best_hparams, f"{_hypertune_artifact_path}/best_hparams.yml")
@@ -437,11 +447,12 @@ def process_hypertune_part(config: Config, part: str, selected_sample_features_d
 def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFrame],
               sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
               sample_val_keys: Dict[str, pd.Index], save_best_hparams_in_mlflow: bool = True
-              ) -> Dict[str, Dict[str, Any]]:
+              ) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, PredictiveModel]]:
     logger.info(f"Tuning the hyper parameters of the predictive model {config.ds.model_class}...")
     parts_cnt = len(selected_sample_features_df)
     best_hparams = {}
     best_trials = {}
+    best_models = {}
     manager = Manager()
     cancel_event = manager.Event()
     mlflow_run_id = mlflow.active_run().info.run_id
@@ -453,10 +464,17 @@ def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFram
         }
         try:
             for future in as_completed(futures):
+                part = futures[future]
                 try:
-                    part, best_hparams_part, best_trial = future.result()
+                    part1, best_hparams_part, best_trial = future.result()
+                    assert part1 == part, "The part returned from the future does not match the key."
                     best_hparams[part] = best_hparams_part
                     best_trials[part] = best_trial
+                    fitted_model = best_trial.get("attachments", {}).get("model")
+                    best_models[part] = fitted_model
+                    model_hparams = fitted_model.get_hparams() or {}
+                    logger.info(f"The best hyperparameters for partition '{part}' of the sample dataset:\n"
+                                f"{model_hparams=}\n{best_hparams_part=}")
                 except Exception as e:
                     for f in futures:
                         f.cancel()
@@ -470,4 +488,4 @@ def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFram
         mlflow.log_dict(best_hparams, f"{_hypertune_artifact_path}/best_trials_hparams.yml")
     log_best_trials_info_to_mlflow(best_trials, best_hparams, artifact_path=_hypertune_artifact_path,
                                    log_folds_metrics=(config.ds.hopt_validation_method != HypertuneValidationEnum.SAMPLE_VAL_SET))
-    return best_hparams
+    return best_hparams, best_models
