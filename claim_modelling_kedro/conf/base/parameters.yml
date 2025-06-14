@@ -124,7 +124,7 @@ data_engineering:
     max_categories: # the maximum number of categories in a feature
     join_exceeding_max_categories: "other" # (str) if nonempty, join categories exceeding max_categories
     # into one category with the name given in this parameter
-    min_frequency: 20 # the minimum frequency of a category in a feature
+    min_frequency: 30 # the minimum frequency of a category in a feature
     join_infrequent: "other" # (str) if nonempty, join categories with frequency lower than min_frequency
       # into one category with the name given in this parameter
       # ATTENTION: if both join_exceeding_max_categories and join_infrequent are provided,
@@ -178,7 +178,7 @@ data_science:
     model: LogTargetTransformer
   feature_selection:
     enabled: True # whether to use the feature selection
-    max_n_features: 40 # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
+    max_n_features: 100 # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
     min_importance: 0.00001 # the minimum importance of a feature
     max_iter: 100 # the maximum number of iterations
     method: pyglmnet # 'model', 'pyglmnet', 'lasso', 'rfe'
@@ -187,7 +187,6 @@ data_science:
       #           e.g., PoissonGLM.
       # 'pyglmnet' - PyGLMNet GLM is used with the distribution that corresponds to the model from parameter model.model, e.g., PoissonGLM, GammaGLM.
       # 'lasso' - Lasso uses the model from parameter model.model as a base model, e.g., PoissonGLM.
-    random_seed: 0
     params:
       model: # applies when method is 'model'. Put parameters for the model.model used for feature selection
         alpha: 0.001
@@ -195,12 +194,12 @@ data_science:
       pyglmnet: # applies when method is 'pyglmnet'
         distr: gamma # gamma, poisson
         alpha: 0.5 # the weighting between L1 penalty and L2 penalty term of the loss function
-        reg_lambda: 0.0 # the regularization parameter
+        reg_lambda: 0.0001 # the regularization parameter
         solver: batch-gradient # optimization method, can be one of the following:
                                  # 'batch-gradient' (vanilla batch gradient descent) 'cdfast' (Newton coordinate gradient descent)
-        learning_rate: 0.01 # the learning rate
+        learning_rate: 0.0001 # the learning rate
         max_iter: 1000 # the maximum number of iterations
-        tol: 0.0001 # the tolerance for convergence
+        tol: 0.000001 # the tolerance for convergence
         fit_intercept: True # whether to fit the intercept
         random_state: 1 # the random seed for the model
       lasso: # applies when method is 'lasso'
@@ -265,7 +264,6 @@ data_science:
     model_class: # model_class: str, e.g.,
                  # model_class: claim_modelling_kedro.pipelines.p07_data_science.models.SklearnPoissonGLM
                  # if empty, the model class is inferred from the parameter model.model
-    random_seed: 0 # the random seed for the model
     const_hparams:
       StatsmodelsTweedieGLM:
         link: log # 'log' (all families), 'inverse' (Gamma), 'power' (Tweedie)
@@ -283,10 +281,8 @@ data_science:
                      # 'mean': trg_divisor := mean target value in train set
       SklearnGammaGLM:
         fit_intercept: True
-        alpha: 0
       SklearnPoissonGLM:
         fit_intercept: True
-        alpha: 1
       PyGLMNetPoissonGLM:
         fit_intercept: True
       PyGLMNetGammaGLM:
