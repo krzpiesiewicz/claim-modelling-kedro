@@ -1,8 +1,0 @@
-# Features to be excluded from the dataset
-Density # Density is replaced by LogDensity
-Area_A
-Area_B
-Area_C
-Area_D
-Area_E
-Area_F

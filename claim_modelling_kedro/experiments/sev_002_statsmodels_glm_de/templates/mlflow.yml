@@ -34,7 +34,7 @@ tracking:
     pipelines: []
 
   experiment:
-    name: sev_002_statsmodels_glm_de
+    name: <MLFLOW_EXPERIMENT_NAME>
     restore_if_deleted: True  # if the experiment`name` was previously deleted experiment, should we restore it?
 
   run:
