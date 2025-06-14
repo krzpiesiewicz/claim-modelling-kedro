@@ -349,7 +349,8 @@ class SklearnPoissonGLM(SklearnGLM):
             "max_iter",
             "tol",
             "warm_start",
-            "verbose"
+            "verbose",
+            "random_state",
         ]
 
     @classmethod
@@ -371,7 +372,8 @@ class SklearnPoissonGLM(SklearnGLM):
             "max_iter": 1000,
             "tol": 0.0001,
             "warm_start": False,
-            "verbose": 0
+            "verbose": 0,
+            "random_state": 0,
         }
 
 
@@ -396,7 +398,8 @@ class SklearnGammaGLM(SklearnGLM):
             "max_iter",
             "tol",
             "warm_start",
-            "verbose"
+            "verbose",
+            "random_state",
         ]
 
     @classmethod
@@ -418,7 +421,8 @@ class SklearnGammaGLM(SklearnGLM):
             "max_iter": 1000,
             "tol": 0.0001,
             "warm_start": False,
-            "verbose": 0
+            "verbose": 0,
+            "random_state": 0,
         }
 
 
@@ -446,7 +450,8 @@ class SklearnTweedieGLM(SklearnGLM):
             "max_iter",
             "tol",
             "warm_start",
-            "verbose"
+            "verbose",
+            "random_state",
         ]
 
     @classmethod
@@ -471,7 +476,8 @@ class SklearnTweedieGLM(SklearnGLM):
             "max_iter": 1000,
             "tol": 0.0001,
             "warm_start": False,
-            "verbose": 0
+            "verbose": 0,
+            "random_state": 1,
         }
 
 
@@ -503,7 +509,10 @@ class PyGLMNetGLM(PredictiveModel):
         self._fit_intercept = self._hparams.get("fit_intercept")
         self._max_iter = int(self._hparams.get("max_iter"))
         self._tol = self._hparams.get("tol")
+        self._learning_rate = self._hparams.get("learning_rate")
+        self._solver = self._hparams.get("solver")
         self._distr = self._hparams.get("distr")
+        self._random_state = self._hparams.get("random_state")
         if self._distr is None:
             match self._get_model_enum():
                 case ModelEnum.PYGLMNET_POISSON_GLM:
@@ -549,7 +558,10 @@ class PyGLMNetGLM(PredictiveModel):
             reg_lambda=self._reg_lambda,
             fit_intercept=self._fit_intercept,
             max_iter=self._max_iter,
-            tol=self._tol
+            tol=self._tol,
+            learning_rate=self._learning_rate,
+            solver=self._solver,
+            random_state=self._random_state,
         )
         self.model.fit(x, y)
         logger.debug(f"Model fitted - {self.summary()}")
@@ -577,6 +589,7 @@ class PyGLMNetGLM(PredictiveModel):
         return {
             "alpha": hp.uniform("alpha", 0.0, 1.0),
             "reg_lambda": hp.loguniform("reg_lambda", np.log(1e-6), np.log(1)),
+            "eta": hp.loguniform("eta", np.log(1e-5), np.log(2)),
             "max_iter": hp.quniform("max_iter", 50, 500, 10),
             "tol": hp.loguniform("tol", np.log(1e-5), np.log(1e-2)),
             "fit_intercept": hp.choice("fit_intercept", [True, False]),
@@ -589,12 +602,14 @@ class PyGLMNetGLM(PredictiveModel):
         return {
             "alpha": 0.5,
             "reg_lambda": 0.1,
+            "eta": 2.0,
             "fit_intercept": True,
             "force_min_y_pred": False,
             "max_iter": 1000,
             "tol": 1e-6,
-            "learing_rate": 0.01,
+            "learning_rate": 0.01,
             "solver": "batch-gradient",
+            "random_state": 0,
         }
 
     def get_params(self, deep: bool = True) -> Dict[str, Any]:

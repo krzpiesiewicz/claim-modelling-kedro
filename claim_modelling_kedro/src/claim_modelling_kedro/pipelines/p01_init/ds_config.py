@@ -45,7 +45,6 @@ class DataScienceConfig:
     mlflow_run_id: str
     model: ModelEnum
     model_class: str
-    model_random_seed: int
     model_const_hparams: Dict[str, Any]
     target_transformer_enabled: bool
     target_transformer_class: str
@@ -55,7 +54,6 @@ class DataScienceConfig:
     fs_max_n_features: int
     fs_min_importance: float
     fs_max_iter: int
-    fs_random_seed: int
     fs_params: Dict[str, Any]
     hopt_enabled: bool
     hopt_metric: MetricEnum
@@ -109,7 +107,6 @@ class DataScienceConfig:
                 case _:
                     raise ValueError(f"Model {self.model} not supported.")
             self.model_class = f"claim_modelling_kedro.pipelines.p07_data_science.models.{model_class_name}"
-        self.model_random_seed = model_params["random_seed"]
         logger.debug(f'model_params["const_hparams"]: {model_params["const_hparams"]}')
         logger.debug(f'mdl_info.model.value: {self.model.value}')
         if self.model.value in model_params["const_hparams"]:
@@ -140,7 +137,6 @@ class DataScienceConfig:
         self.fs_max_n_features = fs_params["max_n_features"]
         self.fs_min_importance = fs_params["min_importance"]
         self.fs_max_iter = fs_params["max_iter"]
-        self.fs_random_seed = fs_params["random_seed"]
         if (fs_params["params"] is not None
                 and fs_params["method"] in fs_params["params"]
                 and fs_params["params"][fs_params["method"]] is not None):
