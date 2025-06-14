@@ -14,7 +14,8 @@ class LogTargetTransformer(TargetTransformer):
         pass
 
     def _transform(self, y_true: pd.Series) -> pd.Series:
-        return y_true.apply(lambda x: np.log(x))
+        log_y = y_true.apply(lambda y: np.log(1 + y))
+        return log_y
 
     def _inverse_transform(self, y_pred: pd.Series) -> pd.Series:
-        return y_pred.apply(lambda x: np.exp(x))
+        return y_pred.apply(lambda x: np.exp(x) - 1)
