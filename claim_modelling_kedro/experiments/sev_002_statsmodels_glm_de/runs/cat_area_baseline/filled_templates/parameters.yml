@@ -161,9 +161,25 @@ data_engineering:
       RobustScaler:
         with_centering: True # whether to center the data before scaling
         with_scaling: True # whether to scale the data to unit variance
-        quantile_range: [25.0, 75.0]
         quantile_range: [ 25.0, 75.0 ]
   ohe:
+    enabled: True # whether to use the OHE
+    drop_reference_cat: True # whether to drop the reference category
+    drop_first: True # whether to drop the first category if drop_reference_cat is False
+    # or the feature does not have a reference category
+    drop_binary: False # whether to drop one of the two categories if the feature is binary
+    # and none of the two categories was dropped as a reference category
+    max_categories: # (int) the maximum number of categories in a feature
+    min_frequency: # (int) the minimum frequency of a category in a feature
+  polynomial_features:
+    enabled: False # whether to use the polynomial features
+    degree: 2 # (int) the degree of the polynomial features
+    interaction_only: False # (bool) whether to include only interaction features
+    include_bias: False # (bool) whether to include a bias term
+  pca:
+    enabled: False
+    n_components: 0.95 # (int or float) the number of components to keep or the explained variance ratio to keep
+    random_state: 0
 
 
 data_science:
@@ -206,8 +222,8 @@ data_science:
           max_iter: 100
           alpha: 0.01 # the regularization parameter
   hyperopt:
-    enabled: False # whether to use the hyperopt
-    metric: cc_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
+    enabled: True # whether to use the hyperopt
+    metric: claim_nb_weighted_normalized_cc_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
       # 'gamma_deviance', 'exposure_weighted_gamma_deviance', 'claim_nb_weighted_gamma_deviance',
       # 'rmse', 'exposure_weighted_rmse', 'claim_nb_weighted_rmse', 'r2', 'exposure_weighted_r2', 'claim_nb_weighted_r2',
       # 'lc_gini', 'exposure_weighted_lc_gini', 'claim_nb_weighted_lc_gini',
@@ -290,8 +306,7 @@ data_science:
 
 calibration:
   mlflow_run_id: # If provided a MLFLow run id, the calibration model is saved to / downloaded from the MLflow run
-  enabled: False # whether to use the calibration
-  method: StatsmodelsGammaGLM # the method of calibrating pure predictions of data science model from the previous stage
+  enabled: True # whether to use the calibration
   method: IsotonicRegression # the method of calibrating pure predictions of data science model from the previous stage
     # 'IsotonicRegression', 'CenteredIsotonicRegression', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM'
     # 'LocalStatsmodelsGLM', 'EqualBinsMeans', 'LocalPolynomialRegression'
