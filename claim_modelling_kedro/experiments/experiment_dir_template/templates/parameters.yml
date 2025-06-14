@@ -124,11 +124,11 @@ data_engineering:
     max_categories: # the maximum number of categories in a feature
     join_exceeding_max_categories: "other" # (str) if nonempty, join categories exceeding max_categories
     # into one category with the name given in this parameter
-    min_frequency: 20 # the minimum frequency of a category in a feature
+    min_frequency: 30 # the minimum frequency of a category in a feature
     join_infrequent: "other" # (str) if nonempty, join categories with frequency lower than min_frequency
       # into one category with the name given in this parameter
-    # ATTENTION: if both join_exceeding_max_categories and join_infrequent are provided,
-    # the join_exceeding_max_categories is used instead of join_infrequent.
+      # ATTENTION: if both join_exceeding_max_categories and join_infrequent are provided,
+      # the join_exceeding_max_categories is used instead of join_infrequent.
   cat_ftrs_imputer:
     enabled: True # whether to use the imputer
     strategy: constant # 'most_frequent', 'constant'
@@ -190,17 +190,19 @@ data_science:
     random_seed: 0
     params:
       model: # applies when method is 'model'. Put parameters for the model.model used for feature selection
-        alpha: 0.001 # the regularization parameter
+        alpha: 0.001
+        random_state: 0 # the random seed for the model
       pyglmnet: # applies when method is 'pyglmnet'
         distr: gamma # gamma, poisson
         alpha: 0.5 # the weighting between L1 penalty and L2 penalty term of the loss function
-        reg_lambda: 0.0 # the regularization parameter
+        reg_lambda: 0.0001 # the regularization parameter
         solver: batch-gradient # optimization method, can be one of the following:
                                  # 'batch-gradient' (vanilla batch gradient descent) 'cdfast' (Newton coordinate gradient descent)
-        learning_rate: 0.01 # the learning rate
+        learning_rate: 0.0001 # the learning rate
         max_iter: 1000 # the maximum number of iterations
-        tol: 0.0001 # the tolerance for convergence
+        tol: 0.000001 # the tolerance for convergence
         fit_intercept: True # whether to fit the intercept
+        random_state: 1 # the random seed for the model
       lasso: # applies when method is 'lasso'
         alpha: 0.001 # the regularization parameter
       rfe: # applies when method is 'rfe'
@@ -263,7 +265,6 @@ data_science:
     model_class: # model_class: str, e.g.,
                  # model_class: claim_modelling_kedro.pipelines.p07_data_science.models.SklearnPoissonGLM
                  # if empty, the model class is inferred from the parameter model.model
-    random_seed: 0 # the random seed for the model
     const_hparams:
       StatsmodelsTweedieGLM:
         link: log # 'log' (all families), 'inverse' (Gamma), 'power' (Tweedie)
@@ -287,6 +288,7 @@ data_science:
         fit_intercept: True
       PyGLMNetGammaGLM:
         fit_intercept: True
+        random_state: 1 # the random seed for the model
 
 
 calibration:
@@ -297,7 +299,13 @@ calibration:
     # 'LocalStatsmodelsGLM', 'EqualBinsMeans', 'LocalPolynomialRegression'
   const_hparams:
     IsotonicRegression:
-      force_positive: True
+      force_positive: False
+      clip_low_bin:
+      clip_high_bin:
+    CenteredIsotonicRegression:
+      force_positive: False
+      clip_low_bin:
+      clip_high_bin:
     StatsmodelsGammaGLM:
       link: inverse # 'log', 'inverse'
       fit_intercept: True
