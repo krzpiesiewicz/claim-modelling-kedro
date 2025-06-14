@@ -174,7 +174,7 @@ def fit_transform_predictive_model_part(config: Config, selected_sample_features
                                         sample_target_df: pd.DataFrame, sample_train_keys: pd.Index,
                                         sample_val_keys: pd.Index, best_hparams: Dict[str, Any],
                                         best_model: Optional[PredictiveModel], part: str) -> pd.DataFrame:
-    if config.ds.hopt_validation_method == HypertuneValidationEnum.SAMPLE_VAL_SET:
+    if config.ds.hopt_enabled and config.ds.hopt_validation_method == HypertuneValidationEnum.SAMPLE_VAL_SET:
         # use the best model from the hypertuning
         assert best_model is not None, "best_model should be provided when using hypertuning validation method SAMPLE_VAL_SET"
         logger.info(f"Using the best model from hypertuning for partition '{part}'.")
@@ -289,7 +289,7 @@ def process_part(config: Config, part: str, selected_sample_features_df: Dict[st
     sample_train_keys_part = get_partition(sample_train_keys, part)
     sample_val_keys_part = get_partition(sample_val_keys, part)
     best_hparams_part = best_hparams[part] if best_hparams is not None else None
-    best_model = best_models[part] if best_models is not None else None
+    best_model = best_models[part] if config.ds.hopt_enabled and len(best_models) > 0 else None
     mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
     logger.info(f"Fitting and transforming the predictive model on partition '{part}' of the sample dataset...")
     with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
@@ -300,7 +300,8 @@ def process_part(config: Config, part: str, selected_sample_features_df: Dict[st
 def fit_transform_predictive_model(config: Config, selected_sample_features_df: Dict[str, pd.DataFrame],
                                    sample_target_df: Dict[str, pd.DataFrame],
                                    sample_train_keys: Dict[str, pd.Index], sample_val_keys: Dict[str, pd.Index],
-                                   best_hparams: Dict[str, Dict[str, Any]], best_models: Dict[str, PredictiveModel]) -> Dict[str, pd.DataFrame]:
+                                   best_hparams: Dict[str, Dict[str, Any]],
+                                   best_models: Dict[str, PredictiveModel]) -> Dict[str, pd.DataFrame]:
     predictions_df = {}
     logger.info("Fitting and transforming the predictive model...")
 

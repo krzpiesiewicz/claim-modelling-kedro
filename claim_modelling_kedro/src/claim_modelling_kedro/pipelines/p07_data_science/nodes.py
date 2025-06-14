@@ -31,7 +31,7 @@ def tune_hyper_parameters(config: Config, selected_sample_features_df: Dict[str,
                           sample_val_keys: Dict[str, pd.Index]) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, PredictiveModel]]:
     if config.ds.hopt_enabled:
         return hypertune(config, selected_sample_features_df, transformed_sample_target_df, sample_train_keys, sample_val_keys)
-    return {part: config.ds.model_const_hparams for part in selected_sample_features_df.keys()}
+    return {part: config.ds.model_const_hparams for part in selected_sample_features_df.keys()}, {}
 
 
 def fit_predictive_model(config: Config, selected_sample_features_df: Dict[str, pd.DataFrame],
