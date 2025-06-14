@@ -149,15 +149,6 @@ data_engineering:
     enabled: True # whether to use the imputer
     strategy: constant # 'mean', 'median', 'most_frequent', 'constant'
     fill_value: 0 # the value used to fill missing values
-  ohe:
-    enabled: True # whether to use the OHE
-    drop_reference_cat: True # whether to drop the reference category
-    drop_first: True # whether to drop the first category if drop_reference_cat is False
-                     # or the feature does not have a reference category
-    drop_binary: True # whether to drop one of the two categories if the feature is binary
-                      # and none of the two categories was dropped as a reference category
-    max_categories: # (int) the maximum number of categories in a feature
-    min_frequency: # (int) the minimum frequency of a category in a feature
   scaler:
     enabled: False # whether to use the scaler
     method: # 'StandardScaler', 'MinMaxScaler', 'RobustScaler', 'MaxAbsScaler'
