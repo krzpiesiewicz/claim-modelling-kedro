@@ -19,12 +19,8 @@ class IsotonicLikeCalibrationModel(CalibrationModel, ABC):
     def __init__(self, config: Config, **kwargs):
         logger.debug("IsotonicLikeCalibrationModel.__init__")
         CalibrationModel.__init__(self, config, **kwargs)
-        self._y_min = None
-        self._y_max = None
-        self._clip_low_bin = 0.0
-        self._clip_high_bin = 0.0
 
-    def _set_y_min(self, pure_predictions_df: pd.DataFrame, target_df: pd.DataFrame) -> pd.DataFrame:
+    def _clip_lowest_and_highest_bins(self, pure_predictions_df: pd.DataFrame, target_df: pd.DataFrame) -> pd.DataFrame:
         combined_df = pd.concat(
             [pure_predictions_df[[self.pure_pred_col]], target_df[[self.target_col]]], axis=1
         )
@@ -83,7 +79,7 @@ class SklearnLikeIsotonicRegression(IsotonicLikeCalibrationModel, SklearnModel):
     def _fit(self, pure_predictions_df: pd.DataFrame, target_df: pd.DataFrame, **kwargs):
         logger.debug("SklearnLikeIsotonicRegression._fit called")
         if self._force_positive:
-            target_df = self._set_y_min(pure_predictions_df, target_df)
+            target_df = self._clip_lowest_and_highest_bins(pure_predictions_df, target_df)
         pure_predictions_df = pure_predictions_df[self.pure_pred_col]
         SklearnModel._fit(self, pure_predictions_df, target_df, **kwargs)
 
