@@ -317,6 +317,7 @@ class SklearnGLM(SklearnModel, ABC):
         SklearnModel.__init__(self, config=config, model_class=model_class, **kwargs)
 
     def _fit(self, features_df: Union[pd.DataFrame, np.ndarray], target_df: Union[pd.DataFrame, np.ndarray], **kwargs):
+        np.random.seed(self._random_state)
         super()._fit(features_df, target_df, **kwargs)
         features_importance = pd.Series(np.abs(self.model.coef_))
         if hasattr(self.model, "feature_names_in_"):
@@ -326,6 +327,7 @@ class SklearnGLM(SklearnModel, ABC):
     def _updated_hparams(self):
         if "max_iter" in self._hparams and self._hparams["max_iter"] is not None and not np.isnan(self._hparams["max_iter"]):
             self._hparams["max_iter"] = int(self._hparams["max_iter"])
+        self._random_state = self._hparams.get("random_state", 0)
         SklearnModel._updated_hparams(self)
 
 
@@ -350,7 +352,6 @@ class SklearnPoissonGLM(SklearnGLM):
             "tol",
             "warm_start",
             "verbose",
-            "random_state",
         ]
 
     @classmethod
@@ -399,7 +400,6 @@ class SklearnGammaGLM(SklearnGLM):
             "tol",
             "warm_start",
             "verbose",
-            "random_state",
         ]
 
     @classmethod
@@ -451,7 +451,6 @@ class SklearnTweedieGLM(SklearnGLM):
             "tol",
             "warm_start",
             "verbose",
-            "random_state",
         ]
 
     @classmethod
@@ -477,7 +476,7 @@ class SklearnTweedieGLM(SklearnGLM):
             "tol": 0.0001,
             "warm_start": False,
             "verbose": 0,
-            "random_state": 1,
+            "random_state": 0,
         }
 
 

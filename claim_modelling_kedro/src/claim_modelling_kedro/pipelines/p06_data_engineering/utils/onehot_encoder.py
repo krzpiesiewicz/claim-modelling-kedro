@@ -84,7 +84,7 @@ def fit_transform_one_hot_encoder(config: Config, features_df: pd.DataFrame, ref
     assert config.de.is_ohe_enabled, "One-hot encoder is not enabled"
     assert_categorical_features(features_df)
     logger.info("Fitting a one hot encoder model...")
-    ohe = OneHotEncoder(handle_unknown='ignore', drop=None, min_frequency=config.de.ohe_min_frequency,
+    ohe = OneHotEncoder(handle_unknown='ignore', drop=None, sparse_output=True, min_frequency=config.de.ohe_min_frequency,
                         max_categories=config.de.ohe_max_categories)
     ohe_features = ohe.fit_transform(features_df)
     logger.info("One hot encoded the features.")

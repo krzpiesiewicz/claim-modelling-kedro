@@ -63,9 +63,9 @@ def _create_custom_features(features_df: pd.DataFrame, creator) -> pd.DataFrame:
 
 def create_custom_features_by_mlflow_model(config: Config, features_df: pd.DataFrame,
                                            mlflow_run_id: str = None) -> pd.DataFrame:
-    logger.info("Creating custom features by the MLFlow scaler model...")
-    # Load the scaler model from the MLflow model registry
-    creator = MLFlowModelLoader("custom features creator").load_model(path=_custom_features_creator_artifact_path,
+    logger.info(f"Creating custom features by the MLFlow custom feature creator model...")
+    # Load the custom feature creator model from the MLflow model registry
+    creator = MLFlowModelLoader("custom feature creator").load_model(path=_custom_features_creator_artifact_path,
                                                                       run_id=mlflow_run_id)
     return _create_custom_features(features_df, creator=creator)
 
@@ -75,7 +75,7 @@ def fit_transform_custom_features_creator(config: Config, features_df: pd.DataFr
     creator = AllCustomFeaturesCreatorModel(config)
     creator.fit(features_df)
     logger.info("Fitted the creator.")
-    # Save the scaler model to MLFlow registry
+    # Save the custom feature creator model to MLFlow registry
     MLFlowModelLogger(creator, "custom features creator").log_model(_custom_features_creator_artifact_path)
     return _create_custom_features(features_df, creator=creator)
 
