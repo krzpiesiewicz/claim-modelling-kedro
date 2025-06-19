@@ -18,6 +18,16 @@ This script creates a Python virtual environment and installs the required depen
 ./create_venv.sh
 ```
 
+### setup_postgres.sh
+
+This script sets up a PostgreSQL database for a mlflow server. It creates a database named `mlflow_db` and a user named `mlflow_user` with the specified password. The script also grants all privileges on the database to the user.
+
+**Usage:**
+```sh
+./setup_postgres.sh
+```
+The script will prompt you for the PostgreSQL password for mlflow user.
+
 ### run_mlflow.sh
 
 This script starts the MLflow server for tracking experiments.
