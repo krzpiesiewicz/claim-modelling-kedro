@@ -173,7 +173,7 @@ def run_kedro_pipeline(experiment_name: str, run_name: str, pipeline: str) -> in
         int: The exit code of the Kedro run command.
     """
     run_dir = f"experiments/{experiment_name}/runs/{run_name}"
-    command = f"cd .. && ./kedro_run.sh --pipeline {pipeline} --experiment-and-run-names {experiment_name} {run_name}"
+    command = f"cd .. && ./kedro_run.sh --no-notify --pipeline {pipeline} --experiment-and-run-names {experiment_name} {run_name}"
     exit_code = os.WEXITSTATUS(os.system(command))
     logger.info(f"Ran Kedro pipeline: {command}."
                 f"Kedro pipeline exit code: {exit_code}.")
