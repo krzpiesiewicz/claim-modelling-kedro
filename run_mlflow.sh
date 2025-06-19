@@ -11,6 +11,7 @@ PASS_FILE=".mlflow_password"
 VENV_PATH="venv"
 MLFLOW_PORT="5000"
 MLFLOW_HOST="127.0.0.1"
+FILE_LIMIT=8192
 
 # === CHECKS ===
 if [[ ! -f "$PASS_FILE" ]]; then
@@ -28,6 +29,10 @@ MLFLOW_PASS=$(<"$PASS_FILE")
 
 # === Construct DATABASE URI ===
 export MLFLOW_TRACKING_URI="postgresql://${DB_USER}:${MLFLOW_PASS}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+
+# === Raise file descriptor limit ===
+echo "🔧 Setting file descriptor limit to ${FILE_LIMIT}"
+ulimit -n "${FILE_LIMIT}"
 
 # === Activate environment and launch MLflow ===
 source "${VENV_PATH}/bin/activate"
