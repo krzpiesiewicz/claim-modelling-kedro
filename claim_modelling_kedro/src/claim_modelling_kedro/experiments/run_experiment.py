@@ -118,12 +118,19 @@ def main():
             )
             break  # Stop the whole script immediately
 
+        run_times.append(dur)
+
+        mean_time = sum(run_times) / len(run_times) if run_times else 0.0
+        remaining = total - idx
+        eta = mean_time * remaining
+        elapsed = time.time() - t_global0
+
         status = "✅ success" if exit_code == 0 else f"❌ failed (exit code {exit_code})"
         logger.info(
-            f"✔️  Run {idx}/{total}: {run_name} completed with status: {status} "
-            f"• mean={fmt_duration(sum(run_times) / len(run_times))} "
-            f"• ETA={fmt_duration((total - idx) * (sum(run_times) / len(run_times)))} "
-            f"• elapsed={fmt_duration(time.time() - t_global0)}"
+            f"✔ Run {idx}/{total}: {run_name} completed with status: {status} "
+            f"• mean={fmt_duration(mean_time)} "
+            f"• ETA={fmt_duration(eta)} "
+            f"• elapsed={fmt_duration(elapsed)}"
         )
 
         subprocess.run(
@@ -142,8 +149,6 @@ def main():
             ],
             check=False,
         )
-
-        run_times.append(dur)
 
     # -------- summary notification -------- #
     summary_elapsed = fmt_duration(time.time() - t_global0)
