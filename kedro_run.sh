@@ -85,13 +85,33 @@ alias decolor='decolor.styles | decolor.reset'
 
 STATUS_FILE=$LOG_DIR/status.txt
 START_TIME=$(date +%s)
-#script --flush --quiet --command "kedro run $KEDRO_ARGS --kedro-run-no $NUMBER --kedro-runtime '$DATETIME' --kedro-logdir-path $FULL_LOG_DIR_PATH --kedro-log-html-file $FULL_LOG_DIR_PATH/$LOG_NAME.html --kedro-logs-index-file $INDEX_FILE" | tee /dev/tty $LOG_DIR/$LOG_NAME.log | aha > $LOG_DIR/$LOG_NAME.html
-script --return --flush --quiet --command "kedro run $KEDRO_ARGS --kedro-run-no $NUMBER --kedro-runtime '$DATETIME' --kedro-logdir-path $FULL_LOG_DIR_PATH --kedro-log-html-file $FULL_LOG_DIR_PATH/$LOG_NAME.html --kedro-logs-index-file $INDEX_FILE && (echo \"succeeded\" > $STATUS_FILE) || (echo \"failed\" > $STATUS_FILE)" | tee /dev/tty > $LOG_DIR/$LOG_NAME.log
-if [ -f $STATUS_FILE ] && grep -Fxq "succeeded" $STATUS_FILE; then
-    status=0
+script --return --flush --quiet --command '
+  # --- trap Ctrl+C inside the “script” session ---
+  trap "echo 130 > "'"$STATUS_FILE"'" ; exit 130" INT
+
+  # --- run Kedro ---
+  kedro run \
+    '"$KEDRO_ARGS"' \
+    --kedro-run-no '"$NUMBER"' \
+    --kedro-runtime "'"$DATETIME"'" \
+    --kedro-logdir-path "'"$FULL_LOG_DIR_PATH"'" \
+    --kedro-log-html-file "'"$FULL_LOG_DIR_PATH/$LOG_NAME.html"'" \
+    --kedro-logs-index-file "'"$INDEX_FILE"'"
+
+  # --- capture normal exit code ---
+  code=$?
+  echo $code > "'"$STATUS_FILE"'"
+  exit $code
+' | tee /dev/tty > "$LOG_DIR/$LOG_NAME.log"
+
+if [[ -f "$STATUS_FILE" ]]; then
+  status=$(cat "$STATUS_FILE")
+  echo -e "Kedro run $NUMBER completed with status: $status."
 else
-    status=1
+  echo -e "❌ Status file '$STATUS_FILE' not found."
+  echo -e "Kedro run $NUMBER completed but status could not be determined."
 fi
+
 END_TIME=$(date +%s)
 ELAPSED_TIME=$(($END_TIME-$START_TIME))
 ELAPSED_HOURS=$(($ELAPSED_TIME/3600))
@@ -110,6 +130,8 @@ if [ $ELAPSED_SECONDS -gt 0 ] || [ $ELAPSED_MINUTES -gt 0 ] || [ $ELAPSED_HOURS 
   [ -n "$ELAPSED_TIME_STR" ] && ELAPSED_TIME_STR="$ELAPSED_TIME_STR, "
   ELAPSED_TIME_STR="${ELAPSED_TIME_STR}$ELAPSED_SECONDS seconds"
 fi
+
+
 
 if [ $status -eq 0 ]; then
   echo -e "\nKedro run $NUMBER completed successfully."
@@ -193,3 +215,5 @@ if [[ -f "$SOUND_FILE" ]]; then
 else
     echo "⚠️ Sound file not found: $SOUND_FILE" >&2
 fi
+
+exit "$status"
