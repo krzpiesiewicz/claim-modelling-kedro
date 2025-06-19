@@ -47,7 +47,7 @@ TODO – framework:
 ___________________________________________________________________________________
 
 
-
+./run_experiment.sh sev_002_statsmodels_glm_inverse_features_engineering all_to_test --other-pipeline de_to_test
 
 
 X.    BACKLOG Dodać hyperopta dla modeli kalibracji
