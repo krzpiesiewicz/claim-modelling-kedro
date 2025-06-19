@@ -150,3 +150,51 @@ This script restores the default configuration files for the project from `claim
 ./restore_default_config.sh
 ```
 
+---
+
+## Scripts for Managing MLflow Experiments
+
+### manage_mlflow_experiment.sh
+
+This script allows you to delete, restore, or permanently delete (purge) an MLflow experiment.  
+It reads the tracking URI from: `claim_modelling_kedro/conf/local/mlflow.yml`.
+
+Supported actions:
+- delete  – soft-deletes the experiment (marks it as *deleted*)
+- restore – restores a soft-deleted experiment
+- purge   – permanently deletes the experiment  
+  ⚠️ Requires MLflow ≥ 2.7 and SQL backend.
+
+**Usage:**
+```sh
+./manage_mlflow_experiment.sh <delete|restore|purge> (--name <experiment_name> | --id <experiment_id>)
+```
+
+**Examples:**
+- Soft-delete by name
+    ```sh
+    ./manage_mlflow_experiment.sh delete --name sev_001_dummy_mean_regressor
+    ```
+- Restore by ID
+    ```sh
+    ./manage_mlflow_experiment.sh restore --id 12
+    ```
+- Permanently delete by name
+    ```sh
+    ./manage_mlflow_experiment.sh purge --name sev_001_dummy_mean_regressor
+    ```
+
+### list_mlflow_experiments.sh
+
+This script lists all MLflow experiments along with their name, ID, and lifecycle stage.  
+It uses the tracking URI configured in `claim_modelling_kedro/conf/local/mlflow.yml`.
+
+**Usage:**
+```sh
+./list_mlflow_experiments.sh
+```
+
+Output includes:
+- experiment name
+- experiment ID
+- status (active or deleted)
