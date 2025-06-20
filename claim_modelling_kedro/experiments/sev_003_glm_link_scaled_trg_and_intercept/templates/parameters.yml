@@ -1,0 +1,343 @@
+experiment:
+  name: <MLFLOW_EXPERIMENT_NAME>
+  author: Krzysztof Piesiewicz
+  description: <DESCRIPTION>
+  target: avg_claim_amount # 'claim_number' – the number of claims,
+                           # 'total_claims_amount' – the total amount of claims (including zeros),
+                           # 'frequency' – the number of claims (including zeros) per unit of exposure (claim_number / exposure),
+                           # 'avg_claim_amount' – the average amount of claims (total_claims_amount / claim_number) without zeros,
+                           # 'pure_premium' – the total amount of claims (including zeros) per unit of exposure (total_claims_amount / exposure)
+
+
+data:
+  raw_files:
+    policy_id_col: IDpol
+    claims_number_col: ClaimNb
+    claims_amount_col: ClaimAmount
+    exposure_col: Exposure
+  claims_number_target_col: ClaimNb_TRG
+  claims_freq_target_col: ClaimFreq_TRG
+  claims_total_amount_target_col: ClaimTotalAmount_TRG
+  claims_avg_amount_target_col: ClaimSeverity_TRG
+  claims_pure_premium_target_col: ClaimPurePremium_TRG
+  claims_number_pred_col: ClaimNb_PRED
+  claims_freq_pred_col: ClaimFreq_PRED
+  claims_total_amount_pred_col: ClaimTotalAmount_PRED
+  claims_avg_amount_pred_col: ClaimSeverity_PRED
+  claims_pure_premium_pred_col: ClaimPurePremium_PRED
+  policy_exposure_col: ClaimNb
+  policy_id_col: IDpol
+  split_random_seed: 1
+  stratify_target_col: # the target column used for stratification;
+    # possible values: 'ClaimNb_TRG', 'ClaimFreq_TRG', 'ClaimTotalAmount_TRG', 'ClaimSeverity_TRG', 'ClaimPurePremium_TRG';
+    # if empty, the column corresponding to the model.target is used.
+  calib_size: 0.2 # [0,1) - the part of policies used for model calibration
+    # if calib_size is None or zero, then calibration.enabled has to be set to False
+  test_size: 0.2 # (0, 1) the part of policies used for test if cross_validation.enabled is False
+    # if cross_validation.enabled is True, then test_size param is ignored (test_size = data_size / folds).
+    # test_size has to be greater than 0.
+    # => train_size = 1 - calib_data_size - calib_data_size (train_size has to be greater than 0)
+  cross_validation:
+    enabled: True # whether to use cross-validation
+    folds: 5 # the number of folds in cross-validation (repetitions of data splitting)
+    # minimum number of folds is 3
+    # test_size = 1 / folds
+    # calib_size = 1 / folds
+    # train_size = 1 - calib_size - test_size
+  outliers:
+    policy: clip # 'keep', 'drop', 'clip'
+    lower_bound:
+    upper_bound: 300000
+
+
+
+sampling:
+  included_calib_set_in_train_sample: False # whether to use also the calibration data for creating a training sample
+  random_seed: 1
+  n_obs: # the number of samples which are used to train a model.
+  target_ratio: 0.5 # the ratio of nonzero samples, if None, the ratio is not controlled
+                    # if target_ratio is not None and n_obs is None, then get all targets and complete the sample with zeros
+                    # If both n_obs and target_ratio are Nones, then all training data is used
+  allow_lower_ratio: True # allow the ratio of nonzero samples to be lower than target_ratio
+  include_zeros: True # include zero values of target in a sample
+  outliers:
+    policy: <OUTLIERS_POLICY> # 'keep', 'drop', 'clip'
+    lower_bound:
+    upper_bound: <OUTLIERS_UPPER_BOUND>
+  validation:
+    val_set: 'calib_set' # 'none', 'calib_set' or 'split_train_val'
+    # if val_set is 'none', then no validation set is used
+    # if val_set is 'calib_set', then the calib set is used for validation (as sample_val set)
+    # if val_set is 'split_train_val', then the sample is split into sample_train and sample_val sets
+    split_train_val: # used only if val_set is 'split_train_val'
+      val_size: 0.3 # the part of the sample used for validation
+      random_seed: 0 # the random seed for splitting the sample into sample_train and sample_val sets
+
+data_engineering:
+  mlflow_run_id: # If provided a MLFLow run id, the de models are saved to / downloaded from the MLflow run
+  custom_features:
+    enabled: True # whether to use custom features
+    features: # the list of custom features
+      - name: "DrivAge"
+        type: "categorical"
+        single_column: True
+        description: "The category of driver's age"
+        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.DrivAgeCreatorModel
+      - name: "VehAge"
+        type: "categorical"
+        single_column: True
+        description: "The category of vehicle's age"
+        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.VehAgeCreatorModel
+      - name: "VehPower"
+        type: "categorical"
+        single_column: True
+        description: "The category of vehicle's power"
+        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.VehPowerCreatorModel
+      - name: "BonusMalus"
+        type: "numerical"
+        single_column: True
+        description: "The capped bonus-malus value"
+        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.BonusMalusCreatorModel
+      #      - name: "BonusMalusCat"
+      #        type: "categorical"
+      #        single_column: True
+      #        description: "The capped bonus-malus value"
+      #        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.BonusMalusCatCreatorModel
+      - name: "LogDensity"
+        type: "numerical"
+        single_column: True
+        description: "The logged value for density"
+        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.DensityCreatorModel
+      #      - name: "LogLinearArea"
+      #        type: "numerical"
+      #        single_column: True
+      #        description: "Log-linear scale of area-density level {A,...,F} -> {1,...,6}"
+      #        model_class: claim_modelling_kedro.pipelines.p06_data_engineering.utils.custom_features.LogLinearAreaCreatorModel
+      # Example entry below
+      #      - name: str # e.g. "MyCustomFeature"
+      #        type: str # "categorical" or "numerical"
+      #        single_column: bool # whether the model generates feature as a single column
+      #        description: str # e.g. "My custom feature is a combination of two other features"
+      #        model_class: str # e.g. "p06_data_engineering.utils.custom_features.MyCustomFeatureCreatorModel"
+  reduce_categories:
+    enabled: True # whether to reduce the number of categories in a feature
+    max_categories: # the maximum number of categories in a feature
+    join_exceeding_max_categories: "other" # (str) if nonempty, join categories exceeding max_categories
+    # into one category with the name given in this parameter
+    min_frequency: 30 # the minimum frequency of a category in a feature
+    join_infrequent: "other" # (str) if nonempty, join categories with frequency lower than min_frequency
+      # into one category with the name given in this parameter
+      # ATTENTION: if both join_exceeding_max_categories and join_infrequent are provided,
+      # the join_exceeding_max_categories is used instead of join_infrequent.
+  cat_ftrs_imputer:
+    enabled: True # whether to use the imputer
+    strategy: constant # 'most_frequent', 'constant'
+    fill_value: unknown # the value used to fill missing values
+  num_ftrs_imputer:
+    enabled: True # whether to use the imputer
+    strategy: constant # 'mean', 'median', 'most_frequent', 'constant'
+    fill_value: 0 # the value used to fill missing values
+  scaler:
+    enabled: <SCALER_ENABLED> # whether to use the scaler
+    method: <SCALER_METHOD> # 'StandardScaler', 'MinMaxScaler', 'RobustScaler', 'MaxAbsScaler'
+    params:
+      StandardScaler:
+        with_mean: <SCALER_MEAN> # whether to center the data before scaling
+        with_std: <SCALER_STD> # whether to scale the data to unit variance
+      MinMaxScaler:
+        feature_range: <SCALER_RANGE> # the range of the scaled data
+      RobustScaler:
+        with_centering: True # whether to center the data before scaling
+        with_scaling: True # whether to scale the data to unit variance
+        quantile_range: [ 25.0, 75.0 ]
+  ohe:
+    enabled: True # whether to use the OHE
+    drop_reference_cat: True # whether to drop the reference category
+    drop_first: True # whether to drop the first category if drop_reference_cat is False
+    # or the feature does not have a reference category
+    drop_binary: False # whether to drop one of the two categories if the feature is binary
+    # and none of the two categories was dropped as a reference category
+    max_categories: # (int) the maximum number of categories in a feature
+    min_frequency: # (int) the minimum frequency of a category in a feature
+  polynomial_features:
+    enabled: <POLY_FTRS_ENABLED> # whether to use the polynomial features
+    degree: <POLY_FTRS_DEGREE> # (int) the degree of the polynomial features
+    interaction_only: <POLY_FTRS_INTERACTION_ONLY> # (bool) whether to include only interaction features
+    include_bias: False # (bool) whether to include a bias term
+  pca:
+    enabled: <PCA_ENABLED>
+    n_components: <PCA_N_COMPONENTS> # (int or float) the number of components to keep or the explained variance ratio to keep
+    random_state: 0
+
+
+data_science:
+  mlflow_run_id: # If provided a MLFLow run id, the selector and prediction model are saved to /
+    # downloaded from the MLflow run
+  target_transformer:
+    enabled: <LOG_TARGET_ENABLED> # whether to use the target transformer
+    model: LogTargetTransformer
+  feature_selection:
+    enabled: <FS_ENABLED> # whether to use the feature selection
+    max_n_features: <FS_MAX_N_FTRS> # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
+    min_importance: <FS_MIN_IMP> # the minimum importance of a feature
+    max_iter: 100 # the maximum number of iterations
+    method: pyglmnet # 'model', 'pyglmnet', 'lasso', 'rfe'
+      # 'model' – uses the model from parameter model.model as a base model, e.g., PoissonGLM
+      # 'rfe'   - Recursive Feature Elimination (rfe) uses the model from parameter model.model as a base model,
+      #           e.g., PoissonGLM.
+      # 'pyglmnet' - PyGLMNet GLM is used with the distribution that corresponds to the model from parameter model.model, e.g., PoissonGLM, GammaGLM.
+      # 'lasso' - Lasso uses the model from parameter model.model as a base model, e.g., PoissonGLM.
+    random_seed: 0
+    params:
+      model: # applies when method is 'model'. Put parameters for the model.model used for feature selection
+        alpha: 0.001
+        random_state: 0 # the random seed for the model
+      pyglmnet: # applies when method is 'pyglmnet'
+        distr: gamma # gamma, poisson
+        alpha: 0.5 # the weighting between L1 penalty and L2 penalty term of the loss function
+        reg_lambda: 0.0001 # the regularization parameter
+        solver: batch-gradient # optimization method, can be one of the following:
+                                 # 'batch-gradient' (vanilla batch gradient descent) 'cdfast' (Newton coordinate gradient descent)
+        learning_rate: 0.0001 # the learning rate
+        max_iter: 1000 # the maximum number of iterations
+        tol: 0.000001 # the tolerance for convergence
+        fit_intercept: True # whether to fit the intercept
+        random_state: 1 # the random seed for the model
+      lasso: # applies when method is 'lasso'
+        alpha: 0.001 # the regularization parameter
+      rfe: # applies when method is 'rfe'
+        estimator_kwargs: # the dictionary of parameters for the estimator
+          max_iter: 100
+          alpha: 0.01 # the regularization parameter
+  hyperopt:
+    enabled: False # whether to use the hyperopt
+    metric: claim_nb_weighted_normalized_cc_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
+      # 'gamma_deviance', 'exposure_weighted_gamma_deviance', 'claim_nb_weighted_gamma_deviance',
+      # 'rmse', 'exposure_weighted_rmse', 'claim_nb_weighted_rmse', 'r2', 'exposure_weighted_r2', 'claim_nb_weighted_r2',
+      # 'lc_gini', 'exposure_weighted_lc_gini', 'claim_nb_weighted_lc_gini',
+      # 'cc_gini', 'exposure_weighted_cc_gini', 'claim_nb_weighted_cc_gini',
+      # 'normalized_cc_gini', 'exposure_weighted_normalized_cc_gini', 'claim_nb_weighted_normalized_cc_gini',
+      # 'spearman_correlation', 'exposure_weighted_spearman_correlation', 'claim_nb_weighted_spearman_correlation'
+      # tweedie_deviance(p), where p is a float number, e.g., tweedie_deviance(1.5)
+      # exposure_weighted_tweedie_deviance(p) or claim_nb_weighted_tweedie_deviance(p), where p is a float number, e.g., weighted_tweedie_deviance(1.5)
+    overfit_penalty: 0.5 # the penalty for overfitting (>= 0) added to hyperopt loss; penalty = overfit_penalty * max(0, loss_val - loss_train)
+                         # where loss_{set} = -metric_{set} if large is better else metric_{set}
+                         # if overfit_penalty == 0, then no penalty is applied
+    max_evals: 100 # the maximum number of evaluations
+    early_stopping:
+      enabled: True # whether to use early stopping
+      iteration_stop_count: 50 # the number of trials after which the optimization is stopped if no improvement is observed
+      percent_increase: 0.01 # the percent increase in the metric that is required to continue the optimization
+    algo: tpe # 'tpe', 'random'
+    show_progressbar: True # whether to show the progress bar
+    trial_verbose: True # whether to show each trial in the console
+    random_seed: 0 # the random seed for the hyperopt fmin function
+    validation:
+      method: sample_val_set # 'sample_val_set', 'cross_validation', 'repeated_split'
+      # if method is 'sample_val_set', then the sample_val_keys set is used (created in sampling pipeline)
+      # if method is 'cross_validation' or 'repeated_split', the union of sample_train_keys and sample_val_keys
+      # is used for splitting in cross-validation or repeated splitting
+      # if method is 'cross_validation', then the data is split into folds and the model is trained on each fold
+      # if method is 'repeated_split', then the data is split into train and validation sets
+      cross_validation:
+        folds: 10 # the number of folds in cross-validation
+                  # val_size = 1 / folds
+                  # train_size = 1 - val_size
+        random_seed: 0 # the random seed for stratified splitting the data into folds
+      repeated_split:
+        val_size: 0.25 # the part of data used for validation – used only if cross_validation.enabled is False
+        n_repeats: 10 # the number of times the data is split into train and validation sets
+        random_seed: 0 # the random seed for stratified splitting the data into train and validation sets
+    excluded_params:
+      SklearnPoissonGLM:
+        - solver
+      SklearnGammaGLM:
+        - solver
+      SklearnTweedieGLM:
+        - solver
+      PyGLMNetPoissonGLM:
+        - solver
+      PyGLMNetGammaGLM:
+        - solver
+  model:
+    model: <MODEL> # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
+    # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM', 'PyGLMNetPoissonGLM', 'PyGLMNetGammaGLM',
+    model_class: # model_class: str, e.g.,
+                 # model_class: claim_modelling_kedro.pipelines.p07_data_science.models.SklearnPoissonGLM
+                 # if empty, the model class is inferred from the parameter model.model
+    const_hparams:
+      StatsmodelsTweedieGLM:
+        link: log # 'log' (all families), 'inverse' (Gamma), 'power' (Tweedie)
+        power: 1.2
+#        variance: mu_squared # 'mu', 'mu_squared', 'power(p)', where p is a float number, e.g., 'power(1.5)'
+        force_min_y_pred: False
+        fit_intercept: True
+      StatsmodelsGammaGLM:
+        link: <STATSMODELS_LINK> # 'log' (all families), 'inverse' (Gamma), 'power' (Tweedie)
+        force_min_y_pred: True
+        fit_intercept: True
+        intercept_scale: <INTERCEPT_SCALE> # float or 'mean' - the scale of the intercept (intercept := intercept_scale), default is 1.0,
+                         # 'mean': intercept_scale := mean target value in train set
+        trg_divisor: <TRG_DIVISOR> # float or 'mean' - the divisor of the target value in train set (target := target / trg_divisor), default is 1.0,
+                     # 'mean': trg_divisor := mean target value in train set
+      SklearnGammaGLM:
+        fit_intercept: True
+      SklearnPoissonGLM:
+        fit_intercept: True
+      PyGLMNetPoissonGLM:
+        fit_intercept: True
+      PyGLMNetGammaGLM:
+        fit_intercept: True
+        random_state: 1 # the random seed for the model
+
+
+calibration:
+  mlflow_run_id: # If provided a MLFLow run id, the calibration model is saved to / downloaded from the MLflow run
+  enabled: False # whether to use the calibration
+  method: IsotonicRegression # the method of calibrating pure predictions of data science model from the previous stage
+    # 'IsotonicRegression', 'CenteredIsotonicRegression', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM'
+    # 'LocalStatsmodelsGLM', 'EqualBinsMeans', 'LocalPolynomialRegression'
+  const_hparams:
+    IsotonicRegression:
+      force_positive: False
+      clip_low_bin:
+      clip_high_bin:
+    CenteredIsotonicRegression:
+      force_positive: False
+      clip_low_bin:
+      clip_high_bin:
+    StatsmodelsGammaGLM:
+      link: inverse # 'log', 'inverse'
+      fit_intercept: True
+      force_min_y_pred: True
+    StatsmodelsTweedieGLM:
+      link: power # 'log', 'inverse', 'power'
+      power: 1.2
+      force_min_y_pred: False
+    SklearnGammaGLM:
+      fit_intercept: True
+      alpha: 0
+    EqualBinsMeans:
+      n_bins: 10
+    LocalStatsmodelsGLM:
+      model: StatsmodelsGammaGLM # 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM'
+      link: inverse # 'log', 'inverse'
+      kernel: gaussian # 'gaussian', 'rectangular', 'triangular'
+      frac: # (float) the fraction of the data used for the local polynomial regression
+  outliers:
+    policy: keep # 'keep', 'drop', 'clip'
+    lower_bound:
+    upper_bound:
+
+
+test:
+  outliers:
+    policy: keep # 'keep', 'drop', 'clip'
+    lower_bound:
+    upper_bound:
+
+
+summary:
+  lift_chart:
+    min_val: 0
+    max_val:
