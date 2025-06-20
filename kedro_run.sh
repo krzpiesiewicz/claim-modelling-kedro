@@ -1,7 +1,52 @@
 #!/bin/bash
 KEDRO_DIR="claim_modelling_kedro"
-
 LOGS_DIR="logs/kedro"
+
+# === Show help if no arguments or --help ===
+if [[ $# -eq 0 || "$1" == "--help" || "$1" == "-h" ]]; then
+  cat <<EOF
+Usage: ./kedro_run.sh [KEDRO_ARGS...] [--no-notify]
+
+Runs a Kedro pipeline and logs output to a timestamped log directory.
+
+Arguments:
+  [KEDRO_ARGS...]       Arguments passed directly to 'kedro run'
+                        (e.g. --pipeline ds --mlflow-run-id 42424242424242424)
+
+Options:
+  --no-notify           Suppress desktop notifications and sound at the end.
+                        This flag can appear anywhere and is not passed to Kedro.
+
+Examples:
+  ./kedro_run.sh --pipeline all_to_test
+  ./kedro_run.sh --pipeline all_to_test --no-notify
+  ./kedro_run.sh --no-notify --pipeline all_to_test
+
+------------------------------------------------------------
+Kedro CLI help (from \`kedro run --help\`):
+------------------------------------------------------------
+EOF
+
+  source venv/bin/activate
+  export PYTHONPATH="${PYTHONPATH}:$(pwd)/claim_modelling_kedro/src"
+  cd claim_modelling_kedro || exit 1
+  kedro run --help || echo "⚠️ Could not display Kedro help. Is your project configured correctly?"
+  exit 0
+fi
+
+# === PARSE ARGS ===
+NO_NOTIFY=false
+KEDRO_ARGS=""
+
+for arg in "$@"; do
+  if [[ "$arg" == "--no-notify" ]]; then
+    NO_NOTIFY=true
+  else
+    # Escape and append argument
+    KEDRO_ARGS="$KEDRO_ARGS $(printf "%q" "$arg")"
+  fi
+done
+
 #echo -e "> source venv/bin/activate"
 source venv/bin/activate
 #echo  -e "> cd $KEDRO_DIR"
@@ -55,8 +100,6 @@ LOG_NAME="log_${ESC_DATETIME}_run_$NUMBER"
 LOG_DIR="$LOGS_DIR/$LOG_NAME"
 FULL_LOG_DIR_PATH=$(pwd)"/$LOG_DIR"
 
-KEDRO_ARGS="$@"
-
 #if ! [ -z $1 ]; then
 #  PIPELINE=$1
 #  PIPELINE_OPT="--pipeline $PIPELINE"
@@ -85,13 +128,33 @@ alias decolor='decolor.styles | decolor.reset'
 
 STATUS_FILE=$LOG_DIR/status.txt
 START_TIME=$(date +%s)
-#script --flush --quiet --command "kedro run $KEDRO_ARGS --kedro-run-no $NUMBER --kedro-runtime '$DATETIME' --kedro-logdir-path $FULL_LOG_DIR_PATH --kedro-log-html-file $FULL_LOG_DIR_PATH/$LOG_NAME.html --kedro-logs-index-file $INDEX_FILE" | tee /dev/tty $LOG_DIR/$LOG_NAME.log | aha > $LOG_DIR/$LOG_NAME.html
-script --return --flush --quiet --command "kedro run $KEDRO_ARGS --kedro-run-no $NUMBER --kedro-runtime '$DATETIME' --kedro-logdir-path $FULL_LOG_DIR_PATH --kedro-log-html-file $FULL_LOG_DIR_PATH/$LOG_NAME.html --kedro-logs-index-file $INDEX_FILE && (echo \"succeeded\" > $STATUS_FILE) || (echo \"failed\" > $STATUS_FILE)" | tee /dev/tty > $LOG_DIR/$LOG_NAME.log
-if [ -f $STATUS_FILE ] && grep -Fxq "succeeded" $STATUS_FILE; then
-    status=0
+script --return --flush --quiet --command '
+  # --- trap Ctrl+C inside the “script” session ---
+  trap "echo 130 > "'"$STATUS_FILE"'" ; exit 130" INT
+
+  # --- run Kedro ---
+  kedro run \
+    '"$KEDRO_ARGS"' \
+    --kedro-run-no '"$NUMBER"' \
+    --kedro-runtime "'"$DATETIME"'" \
+    --kedro-logdir-path "'"$FULL_LOG_DIR_PATH"'" \
+    --kedro-log-html-file "'"$FULL_LOG_DIR_PATH/$LOG_NAME.html"'" \
+    --kedro-logs-index-file "'"$INDEX_FILE"'"
+
+  # --- capture normal exit code ---
+  code=$?
+  echo $code > "'"$STATUS_FILE"'"
+  exit $code
+' | tee /dev/tty > "$LOG_DIR/$LOG_NAME.log"
+
+if [[ -f "$STATUS_FILE" ]]; then
+  status=$(cat "$STATUS_FILE")
+  echo -e "Kedro run $NUMBER completed with status: $status."
 else
-    status=1
+  echo -e "❌ Status file '$STATUS_FILE' not found."
+  echo -e "Kedro run $NUMBER completed but status could not be determined."
 fi
+
 END_TIME=$(date +%s)
 ELAPSED_TIME=$(($END_TIME-$START_TIME))
 ELAPSED_HOURS=$(($ELAPSED_TIME/3600))
@@ -110,6 +173,8 @@ if [ $ELAPSED_SECONDS -gt 0 ] || [ $ELAPSED_MINUTES -gt 0 ] || [ $ELAPSED_HOURS 
   [ -n "$ELAPSED_TIME_STR" ] && ELAPSED_TIME_STR="$ELAPSED_TIME_STR, "
   ELAPSED_TIME_STR="${ELAPSED_TIME_STR}$ELAPSED_SECONDS seconds"
 fi
+
+
 
 if [ $status -eq 0 ]; then
   echo -e "\nKedro run $NUMBER completed successfully."
@@ -178,18 +243,22 @@ except Exception as e:
 EOF
 fi
 
-# Notification parameters
-TITLE="Finished"
-MESSAGE="Kedro run completed with status: $status.\n$msg"
-APP_NAME="Claim Modelling Kedro"
-SOUND_FILE="/usr/share/sounds/freedesktop/stereo/complete.oga"
+if ! $NO_NOTIFY; then
+  # Notification parameters
+  TITLE="Finished"
+  MESSAGE="Kedro run completed with status: $status.\n$msg"
+  APP_NAME="Claim Modelling Kedro"
+  SOUND_FILE="/usr/share/sounds/freedesktop/stereo/complete.oga"
 
-# Send notification
-notify-send -a "$APP_NAME" -u normal -t 0 "$TITLE" "$MESSAGE"
+  # Send notification
+  notify-send -a "$APP_NAME" -u normal -t 0 "$TITLE" "$MESSAGE"
 
-# Play sound with fallback if the file doesn't exist
-if [[ -f "$SOUND_FILE" ]]; then
-    paplay "$SOUND_FILE"
-else
-    echo "⚠️ Sound file not found: $SOUND_FILE" >&2
+  # Play sound with fallback if the file doesn't exist
+  if [[ -f "$SOUND_FILE" ]]; then
+      paplay "$SOUND_FILE"
+  else
+      echo "⚠️ Sound file not found: $SOUND_FILE" >&2
+  fi
 fi
+
+exit "$status"

@@ -160,15 +160,24 @@ def restore_default_config_files(base_dir: str) -> None:
         logger.info(f"Restored default config files: '{source_file_path}' to '{target_file_path}'.")
 
 
-def run_kedro_pipeline(experiment_name: str, run_name: str, pipeline: str) -> None:
+def run_kedro_pipeline(experiment_name: str, run_name: str, pipeline: str) -> int:
     """
     Runs the Kedro pipeline for the run in command line.
     `./kedro_run.sh --pipeline {pipeline} --experiment_name {experiment_name} --experiment_run_name {run_name}`
+
+    Args:
+        experiment_name (str): The name of the experiment.
+        run_name (str): The name of the run.
+        pipeline (str): The name of the pipeline to run.
+    Returns:
+        int: The exit code of the Kedro run command.
     """
     run_dir = f"experiments/{experiment_name}/runs/{run_name}"
-    command = f"cd .. && ./kedro_run.sh --pipeline {pipeline} --experiment-and-run-names {experiment_name} {run_name}"
-    os.system(command)
-    logger.info(f"Ran Kedro pipeline: {command}.")
+    command = f"cd .. && ./kedro_run.sh --no-notify --pipeline {pipeline} --experiment-and-run-names {experiment_name} {run_name}"
+    exit_code = os.WEXITSTATUS(os.system(command))
+    logger.info(f"Ran Kedro pipeline: {command}."
+                f"Kedro pipeline exit code: {exit_code}.")
+    return exit_code
 
 
 def get_run_mlflow_id(experiment_name: str, run_name: str, base_dir: str = None) -> str:
