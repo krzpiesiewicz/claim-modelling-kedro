@@ -142,7 +142,7 @@ def main():
                 f"Completed run {idx}/{total} – {experiment_name}",
                 f"Run: {run_name}\n"
                 f"Status: {status}\n"
-                f"Progress: {idx}/{total} ({(idx / total):.0%})\n"
+                f"Progress: {idx}/{total} ({(idx / total):.2%})\n"
                 f"Mean: {fmt_duration(sum(run_times) / len(run_times))} | "
                 f"ETA: {fmt_duration((total - idx) * (sum(run_times) / len(run_times)))} | "
                 f"Elapsed: {fmt_duration(time.time() - t_global0)}",
