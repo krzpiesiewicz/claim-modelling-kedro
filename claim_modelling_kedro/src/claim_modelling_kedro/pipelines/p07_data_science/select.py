@@ -51,7 +51,7 @@ class SelectorModel(ABC):
         if self.min_importance is not None:
             importance = self._features_importance[self._features_importance > self.min_importance]
         else:
-            importance = self._features_importance.index
+            importance = self._features_importance
         if self.max_n_features is not None:
             importance = importance.sort_values(ascending=False).head(self.max_n_features)
         self._set_selected_features(importance.index)
