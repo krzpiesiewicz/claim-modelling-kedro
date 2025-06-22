@@ -37,7 +37,7 @@ def process_parameters(parameters: Dict) -> Config:
         "target": config.exprmnt.target.value,
         "model": config.ds.model.value,
         "fs": config.ds.fs_method.value,
-        "clb": config.clb.method.value,
+        "clb": config.clb.method.value if config.clb.enabled else "-",
     }
     for key, val in tags.items():
         mlflow.set_tag(key, val)

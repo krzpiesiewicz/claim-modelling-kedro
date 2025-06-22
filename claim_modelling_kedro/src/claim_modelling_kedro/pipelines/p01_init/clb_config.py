@@ -35,39 +35,47 @@ class CalibrationConfig:
         params = parameters["calibration"]
         self.mlflow_run_id = params["mlflow_run_id"]
         self.enabled = params["enabled"]
-        self.method = CalibrationMethod(params["method"])
-        self.pure_prediction_col = "pure_" + mdl_task.prediction_col
-        self.calibrated_prediction_col = "calibrated_" + mdl_task.prediction_col
-        match self.method:
-            case CalibrationMethod.ISOTONIC_REGRESSION:
-                self.model_class = "SklearnIsotonicRegression"
-            case CalibrationMethod.CENTERED_ISOTONIC_REGRESSION:
-                self.model_class = "CIRModelCenteredIsotonicRegression"
-            case CalibrationMethod.STATS_MODELS_POISSON_GLM:
-                self.model_class = "StatsmodelsGLMCalibration"
-            case CalibrationMethod.STATS_MODELS_GAMMA_GLM:
-                self.model_class = "StatsmodelsGammaGLMCalibration"
-            case CalibrationMethod.SKLEARN_POISSON_GLM:
-                self.model_class = "SklearnPoissonGLMCalibration"
-            case CalibrationMethod.SKLEARN_GAMMA_GLM:
-                self.model_class = "SklearnGammaGLMCalibration"
-            case CalibrationMethod.STATS_MODELS_TWEEDIE_GLM:
-                self.model_class = "StatsmodelsGLMCalibration"
-            case CalibrationMethod.SKLEARN_TWEEDIE_GLM:
-                self.model_class = "SklearnTweedieGLMCalibration"
-            case CalibrationMethod.EQUAL_BINS_MEANS:
-                self.model_class = "EqualBinsMeansCalibration"
-            case CalibrationMethod.LOCAL_POLYNOMIAL_REGRESSION:
-                self.model_class = "LocalPolynomialRegressionCalibration"
-            case CalibrationMethod.LOCAL_STATS_MODELS_GLM:
-                self.model_class = "LocalStatsmodelsGLMCalibration"
-            case _:
-                raise ValueError(f"Calibration method \"{self.method}\" not supported.")
-        self.model_class = f"claim_modelling_kedro.pipelines.p08_model_calibration.calibration_models.{self.model_class}"
-        if (params["const_hparams"] is not None
-                and self.method.value in params["const_hparams"]
-                and params["const_hparams"][self.method.value] is not None):
-            self.model_const_hparams = {k: v for k, v in params["const_hparams"][self.method.value].items() if v is not None}
+        if self.enabled:
+            self.method = CalibrationMethod(params["method"])
+            self.pure_prediction_col = "pure_" + mdl_task.prediction_col
+            self.calibrated_prediction_col = "calibrated_" + mdl_task.prediction_col
+            match self.method:
+                case CalibrationMethod.ISOTONIC_REGRESSION:
+                    self.model_class = "SklearnIsotonicRegression"
+                case CalibrationMethod.CENTERED_ISOTONIC_REGRESSION:
+                    self.model_class = "CIRModelCenteredIsotonicRegression"
+                case CalibrationMethod.STATS_MODELS_POISSON_GLM:
+                    self.model_class = "StatsmodelsGLMCalibration"
+                case CalibrationMethod.STATS_MODELS_GAMMA_GLM:
+                    self.model_class = "StatsmodelsGammaGLMCalibration"
+                case CalibrationMethod.SKLEARN_POISSON_GLM:
+                    self.model_class = "SklearnPoissonGLMCalibration"
+                case CalibrationMethod.SKLEARN_GAMMA_GLM:
+                    self.model_class = "SklearnGammaGLMCalibration"
+                case CalibrationMethod.STATS_MODELS_TWEEDIE_GLM:
+                    self.model_class = "StatsmodelsGLMCalibration"
+                case CalibrationMethod.SKLEARN_TWEEDIE_GLM:
+                    self.model_class = "SklearnTweedieGLMCalibration"
+                case CalibrationMethod.EQUAL_BINS_MEANS:
+                    self.model_class = "EqualBinsMeansCalibration"
+                case CalibrationMethod.LOCAL_POLYNOMIAL_REGRESSION:
+                    self.model_class = "LocalPolynomialRegressionCalibration"
+                case CalibrationMethod.LOCAL_STATS_MODELS_GLM:
+                    self.model_class = "LocalStatsmodelsGLMCalibration"
+                case _:
+                    raise ValueError(f"Calibration method \"{self.method}\" not supported.")
+            self.model_class = f"claim_modelling_kedro.pipelines.p08_model_calibration.calibration_models.{self.model_class}"
+            if (params["const_hparams"] is not None
+                    and self.method.value in params["const_hparams"]
+                    and params["const_hparams"][self.method.value] is not None):
+                self.model_const_hparams = {k: v for k, v in params["const_hparams"][self.method.value].items() if v is not None}
+            else:
+                self.model_const_hparams = {}
+            self.outliers = OutliersConfig(params["outliers"])
         else:
-            self.model_const_hparams = {}
-        self.outliers = OutliersConfig(params["outliers"])
+            self.method = None
+            self.model_class = None
+            self.model_const_hparams = None
+            self.outliers = None
+            self.pure_prediction_col = None
+            self.calibrated_prediction_col = None
