@@ -600,13 +600,13 @@ class PyGLMNetGLM(PredictiveModel):
     def get_default_hparams(cls) -> Dict[str, Any]:
         return {
             "alpha": 0.5,
-            "reg_lambda": 0.1,
+            "reg_lambda": 1e-4,
             "eta": 2.0,
             "fit_intercept": True,
             "force_min_y_pred": False,
             "max_iter": 1000,
             "tol": 1e-6,
-            "learning_rate": 0.01,
+            "learning_rate": 1e-4,
             "solver": "batch-gradient",
             "random_state": 0,
         }
