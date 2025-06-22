@@ -157,57 +157,76 @@ class DataScienceConfig:
 
         hopt_params = params["hyperopt"]
         self.hopt_enabled = hopt_params["enabled"]
-        if hopt_params["metric"] is None or hopt_params["metric"] != "auto":
-            self.hopt_metric = MetricEnum(hopt_params["metric"])
-        else:
-            match exprmnt.target:
-                case Target.CLAIMS_NUMBER:
-                    self.hopt_metric = MetricEnum.POISSON_DEV
-                case Target.FREQUENCY:
-                    self.hopt_metric = MetricEnum.POISSON_DEV
-                case Target.TOTAL_AMOUNT:
-                    self.hopt_metric = None     # each model class has a method metric_function(self)
-                                                # e.g. TweedieRegressor has a method tweedie_deviance where the parameter p
-                                                # is extracted from hyperparameters
-                case Target.POSITIVE_AMOUNT:
-                    self.hopt_metric = MetricEnum.GAMMA_DEV
-                case Target.AVG_CLAIM_AMOUNT:
-                    self.hopt_metric = None
-                case Target.POSITIVE_SEVERITY:
-                    self.hopt_metric = MetricEnum.GAMMA_DEV
-                case _:
-                    raise ValueError(f"Metric for target {exprmnt.target} is not defined -> see p01_init/config.py.")
-        self.hopt_overfit_penalty = hopt_params["overfit_penalty"]
-        self.hopt_max_evals = hopt_params["max_evals"]
-        self.hopt_early_stop_enabled = hopt_params["early_stopping"]["enabled"]
-        if self.hopt_early_stop_enabled:
-            self.hopt_early_iteration_stop_count= hopt_params["early_stopping"]["iteration_stop_count"]
-            self.hopt_early_stop_percent_increase = hopt_params["early_stopping"]["percent_increase"]
-        self.hopt_algo = HyperoptAlgoEnum(hopt_params["algo"])
-        self.hopt_show_progressbar = hopt_params["show_progressbar"]
-        self.hopt_trial_verbose = hopt_params["trial_verbose"]
-        self.hopt_fmin_random_seed = hopt_params["random_seed"]
+        if self.hopt_enabled:
+            if hopt_params["metric"] is None or hopt_params["metric"] != "auto":
+                self.hopt_metric = MetricEnum(hopt_params["metric"])
+            else:
+                match exprmnt.target:
+                    case Target.CLAIMS_NUMBER:
+                        self.hopt_metric = MetricEnum.POISSON_DEV
+                    case Target.FREQUENCY:
+                        self.hopt_metric = MetricEnum.POISSON_DEV
+                    case Target.TOTAL_AMOUNT:
+                        self.hopt_metric = None     # each model class has a method metric_function(self)
+                                                    # e.g. TweedieRegressor has a method tweedie_deviance where the parameter p
+                                                    # is extracted from hyperparameters
+                    case Target.POSITIVE_AMOUNT:
+                        self.hopt_metric = MetricEnum.GAMMA_DEV
+                    case Target.AVG_CLAIM_AMOUNT:
+                        self.hopt_metric = None
+                    case Target.POSITIVE_SEVERITY:
+                        self.hopt_metric = MetricEnum.GAMMA_DEV
+                    case _:
+                        raise ValueError(f"Metric for target {exprmnt.target} is not defined -> see p01_init/config.py.")
+            self.hopt_overfit_penalty = hopt_params["overfit_penalty"]
+            self.hopt_max_evals = hopt_params["max_evals"]
+            self.hopt_early_stop_enabled = hopt_params["early_stopping"]["enabled"]
+            if self.hopt_early_stop_enabled:
+                self.hopt_early_iteration_stop_count= hopt_params["early_stopping"]["iteration_stop_count"]
+                self.hopt_early_stop_percent_increase = hopt_params["early_stopping"]["percent_increase"]
+            self.hopt_algo = HyperoptAlgoEnum(hopt_params["algo"])
+            self.hopt_show_progressbar = hopt_params["show_progressbar"]
+            self.hopt_trial_verbose = hopt_params["trial_verbose"]
+            self.hopt_fmin_random_seed = hopt_params["random_seed"]
 
-        hopt_val_params = hopt_params["validation"]
-        self.hopt_validation_method = HypertuneValidationEnum(hopt_val_params["method"])
-        self.hopt_cv_folds = hopt_val_params["cross_validation"]["folds"]
-        self.hopt_cv_random_seed = hopt_val_params["cross_validation"]["random_seed"]
-        self.hopt_repeated_split_val_size = hopt_val_params["repeated_split"]["val_size"]
-        self.hopt_repeated_split_n_repeats = hopt_val_params["repeated_split"]["n_repeats"]
-        self.hopt_repeated_split_random_seed = hopt_val_params["repeated_split"]["random_seed"]
-        match self.hopt_validation_method:
-            case HypertuneValidationEnum.CROSS_VALIDATION:
-                if self.hopt_cv_folds <= 1:
-                    raise ValueError("Number of folds should be greater than 1.")
-            case HypertuneValidationEnum.SAMPLE_VAL_SET:
-                if smpl.validation_set == SampleValidationSet.NONE:
-                    raise ValueError("Sample validation set hypertuning method is not supported when no validation set is created in sampling pipeline.\n"
-                                     "Please set `sampling.validation.val_set` to `calib_set` or `split_train_val`.\n"
-                                     "Alternatively, set `data_science.hyperopt.validation.method` to `cross_validation` or `repeated_split`.")
+            hopt_val_params = hopt_params["validation"]
+            self.hopt_validation_method = HypertuneValidationEnum(hopt_val_params["method"])
+            self.hopt_cv_folds = hopt_val_params["cross_validation"]["folds"]
+            self.hopt_cv_random_seed = hopt_val_params["cross_validation"]["random_seed"]
+            self.hopt_repeated_split_val_size = hopt_val_params["repeated_split"]["val_size"]
+            self.hopt_repeated_split_n_repeats = hopt_val_params["repeated_split"]["n_repeats"]
+            self.hopt_repeated_split_random_seed = hopt_val_params["repeated_split"]["random_seed"]
+            match self.hopt_validation_method:
+                case HypertuneValidationEnum.CROSS_VALIDATION:
+                    if self.hopt_cv_folds <= 1:
+                        raise ValueError("Number of folds should be greater than 1.")
+                case HypertuneValidationEnum.SAMPLE_VAL_SET:
+                    if smpl.validation_set == SampleValidationSet.NONE:
+                        raise ValueError("Sample validation set hypertuning method is not supported when no validation set is created in sampling pipeline.\n"
+                                         "Please set `sampling.validation.val_set` to `calib_set` or `split_train_val`.\n"
+                                         "Alternatively, set `data_science.hyperopt.validation.method` to `cross_validation` or `repeated_split`.")
 
-        if (hopt_params["excluded_params"] is not None
-                and self.model.value in hopt_params["excluded_params"]
-                and hopt_params["excluded_params"][self.model.value] is not None):
-            self.hopt_excluded_params = hopt_params["excluded_params"][self.model.value]
+            if (hopt_params["excluded_params"] is not None
+                    and self.model.value in hopt_params["excluded_params"]
+                    and hopt_params["excluded_params"][self.model.value] is not None):
+                self.hopt_excluded_params = hopt_params["excluded_params"][self.model.value]
+            else:
+                self.hopt_excluded_params = []
         else:
-            self.hopt_excluded_params = []
+            self.hopt_metric = None
+            self.hopt_overfit_penalty = None
+            self.hopt_max_evals = None
+            self.hopt_early_stop_enabled = False
+            self.hopt_early_iteration_stop_count = None
+            self.hopt_early_stop_percent_increase = None
+            self.hopt_algo = None
+            self.hopt_show_progressbar = False
+            self.hopt_trial_verbose = False
+            self.hopt_fmin_random_seed = None
+            self.hopt_validation_method = None
+            self.hopt_cv_folds = None
+            self.hopt_cv_random_seed = None
+            self.hopt_repeated_split_val_size = None
+            self.hopt_repeated_split_n_repeats = None
+            self.hopt_repeated_split_random_seed = None
+            self.hopt_excluded_params = None
