@@ -2,7 +2,7 @@ TODO – framework:
 0.    [DONE] ogarnąć gammaGLM (daje wartości zero lub mniejsze z inverse linkiem - trzeba poprawić, gdyż wywala błąd na metryce Tweedie z p = 2)
         -> wystarczyło zamieniać ujemne wartości na dodatnie
 1.    [DONE] dopisać add_constant do StatsmodelGLM
-1.5.  [DONE] Przepisać kalibrację tak, aby korzystała z modeli predykcyjnych z pipeline'u ds - może jakieś wielodziedziczenie (wystarczy coś zrobić z dwiema zmiennymi: target_col i pred_col).
+1.5.  [DONE] Przepisać kalibrację tak, aby korzystała z modeli predykcyjnych z pipelineu ds - może jakieś wielodziedziczenie (wystarczy coś zrobić z dwiema zmiennymi: target_col i pred_col).
 2.    [ZAWIESZONE] Dodać statsmodels.discrete.count_model.ZeroInflatedGeneralizedPoisson dla częstotliwości
 3.    [DONE] Ogarnąć wszystko dla TweediegoGLM (w przypadku Tweediego w kalibracji trzeba będzie zrobić mikro hyperopta – już nie trzeba, bo nie da się kalibrować dla powe linka - ujemne wartości w regresji -> wywala błąd)
 4.    [DONE] Sprawdzić poprawność obliczania giniego (gini nie powinien być równy 1 dla trywialnego modelu - constant)
@@ -50,9 +50,13 @@ ________________________________________________________________________________
 ./run_experiment.sh sev_002_statsmodels_glm_inverse_features_engineering all_to_test --other-pipeline de_to_test
 ./run_experiment.sh sev_002_statsmodels_glm_inverse_features_engineering de_to_test --from-run-name run_0003_intercept_10
 ./run_experiment.sh sev_003_glm_link_scaled_trg_and_intercept summary --run-name run_0488_StandardScaler_m_s_log_trg_SklearnGammaGLM
-./run_experiment.sh sev_004_outliers_feature_selection_default_regularization all_to_test --other-pipeline smpl_to_test
+./run_experiment.sh sev_004_outliers_feature_selection_sklearn_default_regularization all_to_test --other-pipeline smpl_to_test
+
+./run_experiment.sh sev_004_outliers_feature_selection_default_regularization smpl_to_test --run-name run_0002_keep_PyGLMNetGammaGLM
 
 ./run_experiment.sh sev_004_outliers_feature_selection_default_regularization smpl_to_ds --run-name run_0005_keep_fs__maxftrs_20_SklearnGammaGLM
+
+./run_experiment.sh sev_005_sklearn_and_pyglmnet_hyperopt_regularization all_to_test --other-pipeline ds_clb_test
 
 X.    BACKLOG Dodać hyperopta dla modeli kalibracji
 
