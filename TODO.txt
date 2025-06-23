@@ -58,6 +58,8 @@ ________________________________________________________________________________
 
 ./run_experiment.sh sev_005_sklearn_and_pyglmnet_hyperopt_regularization all_to_test --other-pipeline ds_clb_test
 
+./run_experiment.sh sev_006_sklearn_and_pyglmnet_hyperopt_regularization_2 all_to_test --other-pipeline smpl_to_test
+
 X.    BACKLOG Dodać hyperopta dla modeli kalibracji
 
 X.    BACKLOG Dodać RGLMNet - bo tam jest L1 dla Poisson i obsługa wag (wagi nie są obsługiwne w pyglmnet)
