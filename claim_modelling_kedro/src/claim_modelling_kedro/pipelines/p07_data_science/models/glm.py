@@ -406,7 +406,7 @@ class SklearnGammaGLM(SklearnGLM):
     def get_hparams_space(cls) -> Dict[str, Any]:
         return {
             "alpha": hp.loguniform("alpha", np.log(1e-6), np.log(100)),
-            "max_iter": hp.quniform("max_iter", 50, 500, 10),
+            "max_iter": hp.quniform("max_iter", 50, 1000, 10),
             "tol": hp.loguniform("tol", np.log(1e-6), np.log(1e-2)),
             "fit_intercept": hp.choice("fit_intercept", [True, False]),
             "solver": hp.choice("solver", cls._get_solver_options())
@@ -587,9 +587,9 @@ class PyGLMNetGLM(PredictiveModel):
     def get_hparams_space(cls) -> Dict[str, Any]:
         return {
             "alpha": hp.uniform("alpha", 0.0, 1.0),
-            "reg_lambda": hp.loguniform("reg_lambda", np.log(1e-6), np.log(1)),
+            "reg_lambda": hp.loguniform("reg_lambda", np.log(1e-6), np.log(100)),
             "eta": hp.loguniform("eta", np.log(1e-5), np.log(2)),
-            "max_iter": hp.quniform("max_iter", 50, 500, 10),
+            "max_iter": hp.quniform("max_iter", 50, 1000, 10),
             "tol": hp.loguniform("tol", np.log(1e-5), np.log(1e-2)),
             "fit_intercept": hp.choice("fit_intercept", [True, False]),
             "learning_rate": hp.uniform("learning_rate", 0.001, 0.5),
