@@ -50,7 +50,7 @@ ________________________________________________________________________________
 ./run_experiment.sh sev_002_statsmodels_glm_inverse_features_engineering all_to_test --other-pipeline de_to_test
 ./run_experiment.sh sev_002_statsmodels_glm_inverse_features_engineering de_to_test --from-run-name run_0003_intercept_10
 
-./run_experiment.sh sev_006_sklearn_and_pyglmnet_hyperopt_regularization_2 all_to_test --other-pipeline de_to_test
+./run_experiment.sh sev_007_pyglmnet_hyperopt all_to_test --other-pipeline de_to_test
 
 X.    BACKLOG Dodać hyperopta dla modeli kalibracji
 
