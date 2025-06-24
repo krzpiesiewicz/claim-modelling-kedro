@@ -590,9 +590,9 @@ class PyGLMNetGLM(PredictiveModel):
             "reg_lambda": hp.loguniform("reg_lambda", np.log(1e-6), np.log(100)),
             "eta": hp.loguniform("eta", np.log(1e-5), np.log(2)),
             "max_iter": hp.quniform("max_iter", 50, 1000, 10),
-            "tol": hp.loguniform("tol", np.log(1e-5), np.log(1e-2)),
+            "tol": hp.loguniform("tol", np.log(1e-7), np.log(1e-2)),
             "fit_intercept": hp.choice("fit_intercept", [True, False]),
-            "learning_rate": hp.uniform("learning_rate", 0.001, 0.5),
+            "learning_rate": hp.uniform("learning_rate", 0.001, 1),
             "solver": hp.choice("solver", ["batch-gradient", "cdfast"])
         }
 
