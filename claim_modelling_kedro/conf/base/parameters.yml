@@ -61,9 +61,9 @@ sampling:
   allow_lower_ratio: True # allow the ratio of nonzero samples to be lower than target_ratio
   include_zeros: True # include zero values of target in a sample
   outliers:
-    policy: keep # 'keep', 'drop', 'clip'
+    policy: clip # 'keep', 'drop', 'clip'
     lower_bound:
-    upper_bound:
+    upper_bound: 100000
   validation:
     val_set: 'calib_set' # 'none', 'calib_set' or 'split_train_val'
     # if val_set is 'none', then no validation set is used
@@ -160,13 +160,13 @@ data_engineering:
     max_categories: # (int) the maximum number of categories in a feature
     min_frequency: # (int) the minimum frequency of a category in a feature
   polynomial_features:
-    enabled: False # whether to use the polynomial features
+    enabled: True # whether to use the polynomial features
     degree: 2 # (int) the degree of the polynomial features
     interaction_only: False # (bool) whether to include only interaction features
     include_bias: False # (bool) whether to include a bias term
   pca:
-    enabled: False
-    n_components: 0.95 # (int or float) the number of components to keep or the explained variance ratio to keep
+    enabled: True
+    n_components: 0.99 # (int or float) the number of components to keep or the explained variance ratio to keep
     random_state: 0
 
 
@@ -174,10 +174,10 @@ data_science:
   mlflow_run_id: # If provided a MLFLow run id, the selector and prediction model are saved to /
     # downloaded from the MLflow run
   target_transformer:
-    enabled: False # whether to use the target transformer
+    enabled: True # whether to use the target transformer
     model: LogTargetTransformer
   feature_selection:
-    enabled: True # whether to use the feature selection
+    enabled: False # whether to use the feature selection
     max_n_features: 100 # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
     min_importance: 0.00001 # the minimum importance of a feature
     max_iter: 100 # the maximum number of iterations
@@ -219,7 +219,7 @@ data_science:
       # 'spearman_correlation', 'exposure_weighted_spearman_correlation', 'claim_nb_weighted_spearman_correlation'
       # tweedie_deviance(p), where p is a float number, e.g., tweedie_deviance(1.5)
       # exposure_weighted_tweedie_deviance(p) or claim_nb_weighted_tweedie_deviance(p), where p is a float number, e.g., weighted_tweedie_deviance(1.5)
-    overfit_penalty: 0.5 # the penalty for overfitting (>= 0) added to hyperopt loss; penalty = overfit_penalty * max(0, loss_val - loss_train)
+    overfit_penalty: 0.8 # the penalty for overfitting (>= 0) added to hyperopt loss; penalty = overfit_penalty * max(0, loss_val - loss_train)
                          # where loss_{set} = -metric_{set} if large is better else metric_{set}
                          # if overfit_penalty == 0, then no penalty is applied
     max_evals: 100 # the maximum number of evaluations
@@ -259,7 +259,7 @@ data_science:
       PyGLMNetGammaGLM:
         - solver
   model:
-    model: SklearnGammaGLM # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
+    model: PyGLMNetGammaGLM # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
     # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM', 'PyGLMNetPoissonGLM', 'PyGLMNetGammaGLM',
     model_class: # model_class: str, e.g.,
                  # model_class: claim_modelling_kedro.pipelines.p07_data_science.models.SklearnPoissonGLM
@@ -288,6 +288,13 @@ data_science:
       PyGLMNetGammaGLM:
         fit_intercept: True
         random_state: 1 # the random seed for the model
+        # parameters from the best severity model:
+        alpha: 0.6399265426981426
+        eta: 0.015594119911448767
+        learning_rate: 0.8597199755338596
+        max_iter: 620.0
+        reg_lambda: 7.539218714111269e-05
+        tol: 3.216445376073702e-07
 
 
 calibration:
@@ -322,6 +329,9 @@ calibration:
       link: inverse # 'log', 'inverse'
       kernel: gaussian # 'gaussian', 'rectangular', 'triangular'
       frac: # (float) the fraction of the data used for the local polynomial regression
+    LocalPolynomialRegression:
+      span:    # (float) the fraction of the data (neighborhood) used for the local polynomial regression
+      degree:  # (int >= 0) degree of the polynomial used for local regression
   outliers:
     policy: keep # 'keep', 'drop', 'clip'
     lower_bound:
