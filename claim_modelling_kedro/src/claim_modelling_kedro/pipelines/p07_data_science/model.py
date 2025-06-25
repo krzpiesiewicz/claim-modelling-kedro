@@ -68,7 +68,7 @@ class PredictiveModel(ABC):
             if sample_weight is not None:
                 kwargs["sample_weight"] = sample_weight
         if "sample_weight" in kwargs:
-            kwargs["sample_weight"] = sample_weight.loc[index]
+            kwargs["sample_weight"] = kwargs["sample_weight"].loc[index]
         self._fit(features_df, target_df, **self._fit_kwargs, **kwargs)
         self._not_fitted = False
 
