@@ -78,8 +78,7 @@ class SklearnLikeIsotonicRegression(IsotonicLikeCalibrationModel, SklearnModel):
 
     def _fit(self, pure_predictions_df: pd.DataFrame, target_df: pd.DataFrame, **kwargs):
         logger.debug("SklearnLikeIsotonicRegression._fit called")
-        if self._force_positive:
-            target_df = self._clip_lowest_and_highest_bins(pure_predictions_df, target_df)
+        target_df = self._clip_lowest_and_highest_bins(pure_predictions_df, target_df)
         pure_predictions_df = pure_predictions_df[self.pure_pred_col]
         SklearnModel._fit(self, pure_predictions_df, target_df, **kwargs)
 
