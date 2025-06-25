@@ -52,6 +52,7 @@ ________________________________________________________________________________
 
 ./run_experiment.sh sev_007_pyglmnet_hyperopt all_to_test --other-pipeline de_to_test
 ./run_experiment.sh sev_008_calibration_sev_007_run_0001 all_to_test --other-pipeline clb_test
+./run_experiment.sh sev_008_calibration_sev_007_run_0001  summary --run-name run_0323_calib_IsotonicRegression_clip_low_0.3_high_0.3 run_0816_calib_LocalPolynomialRegression_span_1_degree_1 run_0815_calib_LocalPolynomialRegression_span_1_degree_0 run_0817_calib_LocalPolynomialRegression_span_1_degree_2 run_0001_no_calib
 
 X.    BACKLOG Dodać hyperopta dla modeli kalibracji
 
