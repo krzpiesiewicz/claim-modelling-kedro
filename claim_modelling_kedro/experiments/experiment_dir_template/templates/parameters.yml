@@ -323,6 +323,9 @@ calibration:
       link: inverse # 'log', 'inverse'
       kernel: gaussian # 'gaussian', 'rectangular', 'triangular'
       frac: # (float) the fraction of the data used for the local polynomial regression
+    LocalPolynomialRegression:
+      span:    # (float) the fraction of the data (neighborhood) used for the local polynomial regression
+      degree:  # (int >= 0) degree of the polynomial used for local regression
   outliers:
     policy: keep # 'keep', 'drop', 'clip'
     lower_bound:
