@@ -21,7 +21,7 @@ from claim_modelling_kedro.pipelines.utils.utils import get_class_from_path
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
 from claim_modelling_kedro.pipelines.utils.dataframes import (
     preds_as_dataframe_with_col_name,
-    save_metrics_table_in_mlflow, save_metrics_cv_stats_in_mlflow
+    save_metrics_table_in_mlflow, save_metrics_cv_stats_in_mlflow, save_pd_dataframe_as_csv_in_mlflow
 )
 
 logger = logging.getLogger(__name__)
@@ -200,11 +200,8 @@ def fit_transform_predictive_model_part(config: Config, selected_sample_features
     # Save the features importance
     logger.info(f"Saving the features importance for partition '{part}'...")
     try:
-        features_importance = model.get_features_importance()
-        with tempfile.TemporaryDirectory() as tempdir:
-            file_path = os.path.join(tempdir, _features_importance_filename)
-            features_importance.to_csv(file_path)
-            mlflow.log_artifact(file_path, _ds_artifact_path)
+        features_importance = model.get_features_importance().reset_index()
+        save_pd_dataframe_as_csv_in_mlflow(features_importance, _ds_artifact_path, _features_importance_filename, index=True)
         logger.info(
             f"Successfully saved the features importance for partition '{part}' to MLFlow path {os.path.join(_ds_artifact_path, _features_importance_filename)}")
     except ValueError as e:
