@@ -359,7 +359,7 @@ calibration:
       n_bins: <CALIBRATION_EQUAL_BINS_MEANS_N_BINS>
     LocalStatsmodelsGLM:
       model: StatsmodelsGammaGLM # 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM'
-      link: inverse # 'log', 'inverse'
+      link: <CALIBRATION_LOCAL_GLM_LINK> # 'log', 'inverse'
       kernel: <CALIBRATION_LOCAL_GLM_KERNEL> # 'gaussian', 'rectangular', 'triangular'
       frac: <CALIBRATION_LOCAL_GLM_FRAC> # (float) the fraction of the data used for the local polynomial regression
     LocalPolynomialRegression:
