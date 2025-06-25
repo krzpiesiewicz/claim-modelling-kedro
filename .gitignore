@@ -211,3 +211,5 @@ out/
 
 # kate
 *.kate-swp
+/severity-experiments/
+/frequency-experiments/
