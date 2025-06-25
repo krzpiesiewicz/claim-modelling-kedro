@@ -97,12 +97,14 @@ class LocalStatsmodelsGLMCalibration(CalibrationModel, ABC):
     def get_default_hparams(cls) -> Dict[str, Any]:
         return {
             "frac": 0.2,
+            "kernel": KernelEnum.GAUSSIAN.value,
         }
 
     @classmethod
     def get_hparams_space(cls) -> Dict[str, Any]:
         return {
             "frac": hp.uniform("frac", 0.01, 0.2),
+            "kernel": hp.choice("kernel", [KernelEnum.GAUSSIAN.value, KernelEnum.TRIANGULAR.value, KernelEnum.UNIFORM.value]),
         }
 
     def _updated_hparams(self):
