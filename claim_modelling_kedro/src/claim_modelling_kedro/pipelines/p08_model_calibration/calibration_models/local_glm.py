@@ -1,4 +1,3 @@
-from abc import ABC
 from typing import Dict, Any
 import numpy as np
 import pandas as pd
@@ -18,7 +17,7 @@ from claim_modelling_kedro.pipelines.utils.dataframes import index_ordered_by_co
 from claim_modelling_kedro.pipelines.utils.metrics import Metric
 
 
-class LocalStatsmodelsGLMCalibration(CalibrationModel, ABC):
+class LocalStatsmodelsGLMCalibration(CalibrationModel):
     def __init__(self, config: Config, **kwargs):
         CalibrationModel.__init__(self, config=config, **kwargs)
 
