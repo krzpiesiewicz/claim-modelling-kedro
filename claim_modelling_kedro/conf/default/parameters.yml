@@ -300,9 +300,17 @@ data_science:
 calibration:
   mlflow_run_id: # If provided a MLFLow run id, the calibration model is saved to / downloaded from the MLflow run
   enabled: True # whether to use the calibration
+  outliers:
+    policy: keep # 'keep', 'drop', 'clip'
+    lower_bound:
+    upper_bound:
   method: IsotonicRegression # the method of calibrating pure predictions of data science model from the previous stage
     # 'IsotonicRegression', 'CenteredIsotonicRegression', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM'
     # 'LocalStatsmodelsGLM', 'EqualBinsMeans', 'LocalPolynomialRegression'
+  # 'Pure', 'IsotonicRegression', 'CenteredIsotonicRegression',
+  # 'LocalStatsmodelsGLM', 'EqualBinsMeans', 'LocalPolynomialRegression'
+  # 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM'
+  # If method is 'Pure', then no calibration is applied and the pure predictions are used as calibrated predictions.
   const_hparams:
     IsotonicRegression:
       force_positive: False
@@ -332,10 +340,9 @@ calibration:
     LocalPolynomialRegression:
       span:    # (float) the fraction of the data (neighborhood) used for the local polynomial regression
       degree:  # (int >= 0) degree of the polynomial used for local regression
-  outliers:
-    policy: keep # 'keep', 'drop', 'clip'
-    lower_bound:
-    upper_bound:
+  post_calibration_rebalancing:
+    enabled: True # whether to use the post-calibration
+    method: scale # 'scale' - scale the calibrated predictions to match the total target in the calibration set
 
 
 test:
