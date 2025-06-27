@@ -136,6 +136,10 @@ loggers:
     formatter: simple
     level: INFO
 
+  claim_modelling_kedro.pipelines.p08_model_calibration.calibration_model:
+    formatter: simple
+    level: INFO
+
   claim_modelling_kedro.pipelines.p08_model_calibration.calibration_models:
     formatter: simple
     level: INFO
