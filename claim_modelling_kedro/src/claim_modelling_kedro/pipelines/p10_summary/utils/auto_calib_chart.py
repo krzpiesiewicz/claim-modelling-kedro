@@ -42,7 +42,7 @@ def plot_auto_calib_chart(
     df = pd.DataFrame({
         "y_true": y_true,
         "y_pred": y_pred,
-        "weight": sample_weight
+        "weight": sample_weight or np.ones(len(y_true)),
     })
 
     # Sort by prediction

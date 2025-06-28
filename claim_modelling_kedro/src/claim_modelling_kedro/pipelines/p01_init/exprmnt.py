@@ -16,6 +16,7 @@ class ExperimentInfo:
     name: str
     author: str
     target: Target
+    weighted_target: bool
     description: str
 
     def __init__(self, parameters: Dict):
@@ -23,4 +24,5 @@ class ExperimentInfo:
         self.name = params["name"]
         self.author = params["author"]
         self.target = Target(params["target"])
+        self.weighted_target = params["weighted_target"]
         self.description = params["description"]

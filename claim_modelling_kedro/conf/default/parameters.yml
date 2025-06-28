@@ -7,6 +7,10 @@ experiment:
                            # 'frequency' – the number of claims (including zeros) per unit of exposure (claim_number / exposure),
                            # 'avg_claim_amount' – the average amount of claims (total_claims_amount / claim_number) without zeros,
                            # 'pure_premium' – the total amount of claims (including zeros) per unit of exposure (total_claims_amount / exposure)
+  weighted_target: True # whether to use the weighted target
+                        # if True, 1) exposure is used as a weight for the targets: claim_number, total_claims_amount, frequency, pure_premium
+                        #          2) claim_number is used as a weight for the target avg_claim_amount
+                        # if False, the targets are not weighted by exposure
 
 
 data:
