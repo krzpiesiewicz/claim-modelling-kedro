@@ -20,7 +20,7 @@ class ModelTask:
             case Target.CLAIMS_NUMBER:
                 self.target_col = data.claims_number_target_col
                 self.prediction_col = data.claims_number_pred_col
-                self.exposure_weighted = True
+                self.exposure_weighted = exprmnt.weighted_target
                 self.claim_nb_weighted = False
                 self.evaluation_metrics = [
                     # MetricEnum.POISSON_DEV,
@@ -52,7 +52,7 @@ class ModelTask:
             case Target.FREQUENCY:
                 self.target_col = data.claims_freq_target_col
                 self.prediction_col = data.claims_freq_pred_col
-                self.exposure_weighted = True
+                self.exposure_weighted = exprmnt.weighted_target
                 self.claim_nb_weighted = False
                 self.evaluation_metrics = [
                     # MetricEnum.POISSON_DEV,
@@ -84,7 +84,7 @@ class ModelTask:
             case Target.TOTAL_AMOUNT:
                 self.target_col = data.claims_total_amount_target_col
                 self.prediction_col = data.claims_total_amount_pred_col
-                self.exposure_weighted = True
+                self.exposure_weighted = exprmnt.weighted_target
                 self.claim_nb_weighted = False
                 self.evaluation_metrics = [
                     # MetricEnum.MAE,
@@ -118,7 +118,7 @@ class ModelTask:
                 self.target_col = data.claims_avg_amount_target_col
                 self.prediction_col = data.claims_avg_amount_pred_col
                 self.exposure_weighted = False
-                self.claim_nb_weighted = True
+                self.claim_nb_weighted = exprmnt.weighted_target
                 self.evaluation_metrics = [
                     # MetricEnum.GAMMA_DEV,
                     MetricEnum.CLNB_WEIGHTED_GAMMA_DEV,
@@ -149,7 +149,7 @@ class ModelTask:
             case Target.PURE_PREMIUM:
                 self.target_col = data.claims_pure_premium_target_col
                 self.prediction_col = data.claims_pure_premium_pred_col
-                self.exposure_weighted = True
+                self.exposure_weighted = exprmnt.weighted_target
                 self.claim_nb_weighted = False
                 self.evaluation_metrics = [MetricEnum.MAE, MetricEnum.EXP_WEIGHTED_MAE,
                                            MetricEnum.RMSE, MetricEnum.EXP_WEIGHTED_RMSE, MetricEnum.R2,

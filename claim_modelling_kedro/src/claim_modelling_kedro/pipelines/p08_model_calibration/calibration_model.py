@@ -39,7 +39,7 @@ class CalibrationModel(PredictiveModel, ABC):
             logger.debug(f"{self.config.clb.post_clb_rebalance_method=}")
             match self.config.clb.post_clb_rebalance_method:
                 case RebalanceInTotalsMethod.SCALE:
-                    sample_weight = kwargs["sample_weight"]
+                    sample_weight = kwargs.get("sample_weight")
                     if sample_weight is None:
                         logger.debug("sample_weight is not provided, using unweighted averages")
                         weighted_avg_target = np.average(target_df[self.target_col])
