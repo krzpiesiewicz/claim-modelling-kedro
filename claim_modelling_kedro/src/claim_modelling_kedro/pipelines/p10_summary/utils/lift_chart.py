@@ -188,6 +188,11 @@ def create_lift_chart_fig(
     dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
     logger.info(f"Generating the lift chart for dataset: {dataset}...")
     params = config.summary.lift_chart_params or {}
+    params = params.copy()
+    if max_val is not None:
+        params["max_val"] = max_val
+    if min_val is not None:
+        params["min_val"] = min_val
     fig = plot_cv_mean_lift_chart([summary_df], interpolate_pred_mean=False, **params)
     logger.info("Generated the lift chart.")
 
@@ -208,8 +213,9 @@ def create_lift_cv_mean_chart_fig(
     summary_dfs: List[pd.DataFrame],
     n_bins: int,
     dataset: str,
-    prefix: str = None
-) -> None:
+    prefix: str = None,
+    min_val: float = None,
+    max_val: float = None) -> None:
     """
     Creates a chart showing the mean deviation lines between predictions and targets.
 
@@ -224,6 +230,11 @@ def create_lift_cv_mean_chart_fig(
     dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
     logger.info(f"Generating the CV-mean lift chart for dataset: {dataset}...")
     params = config.summary.lift_chart_params or {}
+    params = params.copy()
+    if max_val is not None:
+        params["max_val"] = max_val
+    if min_val is not None:
+        params["min_val"] = min_val
     fig = plot_cv_mean_lift_chart(summary_dfs, interpolate_pred_mean=False, **params)
     logger.info("Generated the CV-mean lift chart.")
 
