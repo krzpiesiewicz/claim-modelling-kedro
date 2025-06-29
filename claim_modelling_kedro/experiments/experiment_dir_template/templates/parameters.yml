@@ -7,7 +7,7 @@ experiment:
                            # 'frequency' – the number of claims (including zeros) per unit of exposure (claim_number / exposure),
                            # 'avg_claim_amount' – the average amount of claims (total_claims_amount / claim_number) without zeros,
                            # 'pure_premium' – the total amount of claims (including zeros) per unit of exposure (total_claims_amount / exposure)
-  weighted_target: True # whether to use the weighted target
+  weighted_target: <WEIGHTED_TARGET> # whether to use the weighted target
                         # if True, 1) exposure is used as a weight for the targets: claim_number, total_claims_amount, frequency, pure_premium
                         #          2) claim_number is used as a weight for the target avg_claim_amount
                         # if False, the targets are not weighted by exposure
@@ -65,9 +65,9 @@ sampling:
   allow_lower_ratio: True # allow the ratio of nonzero samples to be lower than target_ratio
   include_zeros: True # include zero values of target in a sample
   outliers:
-    policy: keep # 'keep', 'drop', 'clip'
+    policy: <OUTLIERS_POLICY> # 'keep', 'drop', 'clip'
     lower_bound:
-    upper_bound:
+    upper_bound: <OUTLIERS_UPPER_BOUND>
   validation:
     val_set: 'calib_set' # 'none', 'calib_set' or 'split_train_val'
     # if val_set is 'none', then no validation set is used
@@ -142,14 +142,14 @@ data_engineering:
     strategy: constant # 'mean', 'median', 'most_frequent', 'constant'
     fill_value: 0 # the value used to fill missing values
   scaler:
-    enabled: True # whether to use the scaler
-    method: StandardScaler # 'StandardScaler', 'MinMaxScaler', 'RobustScaler', 'MaxAbsScaler'
+    enabled: <SCALER_ENABLED> # whether to use the scaler
+    method: <SCALER_METHOD> # 'StandardScaler', 'MinMaxScaler', 'RobustScaler', 'MaxAbsScaler'
     params:
       StandardScaler:
-        with_mean: True # whether to center the data before scaling
-        with_std: True # whether to scale the data to unit variance
+        with_mean: <SCALER_MEAN> # whether to center the data before scaling
+        with_std: <SCALER_STD> # whether to scale the data to unit variance
       MinMaxScaler:
-        feature_range: [ 0, 1 ] # the range of the scaled data
+        feature_range: <SCALER_RANGE> # the range of the scaled data
       RobustScaler:
         with_centering: True # whether to center the data before scaling
         with_scaling: True # whether to scale the data to unit variance
@@ -164,13 +164,13 @@ data_engineering:
     max_categories: # (int) the maximum number of categories in a feature
     min_frequency: # (int) the minimum frequency of a category in a feature
   polynomial_features:
-    enabled: False # whether to use the polynomial features
-    degree: 2 # (int) the degree of the polynomial features
-    interaction_only: False # (bool) whether to include only interaction features
+    enabled: <POLY_FTRS_ENABLED> # whether to use the polynomial features
+    degree: <POLY_FTRS_DEGREE> # (int) the degree of the polynomial features
+    interaction_only: <POLY_FTRS_INTERACTION_ONLY> # (bool) whether to include only interaction features
     include_bias: False # (bool) whether to include a bias term
   pca:
-    enabled: False
-    n_components: 0.95 # (int or float) the number of components to keep or the explained variance ratio to keep
+    enabled: <PCA_ENABLED>
+    n_components: <PCA_N_COMPONENTS> # (int or float) the number of components to keep or the explained variance ratio to keep
     random_state: 0
 
 
@@ -178,12 +178,12 @@ data_science:
   mlflow_run_id: # If provided a MLFLow run id, the selector and prediction model are saved to /
     # downloaded from the MLflow run
   target_transformer:
-    enabled: False # whether to use the target transformer
+    enabled: <LOG_TARGET_ENABLED> # whether to use the target transformer
     model: LogTargetTransformer
   feature_selection:
-    enabled: False # whether to use the feature selection
-    max_n_features: 100 # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
-    min_importance: 0.00001 # the minimum importance of a feature
+    enabled: <FS_ENABLED> # whether to use the feature selection
+    max_n_features: <FS_MAX_N_FTRS> # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
+    min_importance: <FS_MIN_IMP> # the minimum importance of a feature
     max_iter: 100 # the maximum number of iterations
     method: pyglmnet # 'model', 'pyglmnet', 'lasso', 'rfe'
       # 'model' – uses the model from parameter model.model as a base model, e.g., PoissonGLM
@@ -214,8 +214,8 @@ data_science:
           max_iter: 100
           alpha: 0.01 # the regularization parameter
   hyperopt:
-    enabled: True # whether to use the hyperopt
-    metric: claim_nb_weighted_normalized_cc_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
+    enabled: <HYPEROPT_ENABLED> # whether to use the hyperopt
+    metric: <HYPEROPT_METRIC> # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
       # 'gamma_deviance', 'exposure_weighted_gamma_deviance', 'claim_nb_weighted_gamma_deviance',
       # 'rmse', 'exposure_weighted_rmse', 'claim_nb_weighted_rmse', 'r2', 'exposure_weighted_r2', 'claim_nb_weighted_r2',
       # 'lc_gini', 'exposure_weighted_lc_gini', 'claim_nb_weighted_lc_gini',
@@ -224,27 +224,27 @@ data_science:
       # 'spearman_correlation', 'exposure_weighted_spearman_correlation', 'claim_nb_weighted_spearman_correlation'
       # tweedie_deviance(p), where p is a float number, e.g., tweedie_deviance(1.5)
       # exposure_weighted_tweedie_deviance(p) or claim_nb_weighted_tweedie_deviance(p), where p is a float number, e.g., weighted_tweedie_deviance(1.5)
-    overfit_penalty: 0.5 # the penalty for overfitting (>= 0) added to hyperopt loss; penalty = overfit_penalty * max(0, loss_val - loss_train)
+    overfit_penalty: <HYPEROPT_OVERFIT_PENALTY> # the penalty for overfitting (>= 0) added to hyperopt loss; penalty = overfit_penalty * max(0, loss_val - loss_train)
                          # where loss_{set} = -metric_{set} if large is better else metric_{set}
                          # if overfit_penalty == 0, then no penalty is applied
     max_evals: 100 # the maximum number of evaluations
     early_stopping:
       enabled: True # whether to use early stopping
       iteration_stop_count: 50 # the number of trials after which the optimization is stopped if no improvement is observed
-      percent_increase: 0.01 # the percent increase in the metric that is required to continue the optimization
+      percent_increase: 0.0001 # the percent increase in the metric that is required to continue the optimization
     algo: tpe # 'tpe', 'random'
     show_progressbar: True # whether to show the progress bar
     trial_verbose: True # whether to show each trial in the console
     random_seed: 0 # the random seed for the hyperopt fmin function
     validation:
-      method: sample_val_set # 'sample_val_set', 'cross_validation', 'repeated_split'
+      method: <HYPEROPT_VALIDATION_METHOD> # 'sample_val_set', 'cross_validation', 'repeated_split'
       # if method is 'sample_val_set', then the sample_val_keys set is used (created in sampling pipeline)
       # if method is 'cross_validation' or 'repeated_split', the union of sample_train_keys and sample_val_keys
       # is used for splitting in cross-validation or repeated splitting
       # if method is 'cross_validation', then the data is split into folds and the model is trained on each fold
       # if method is 'repeated_split', then the data is split into train and validation sets
       cross_validation:
-        folds: 10 # the number of folds in cross-validation
+        folds: <HYPEROPT_CROSS_VALIDATION_FOLDS> # the number of folds in cross-validation
                   # val_size = 1 / folds
                   # train_size = 1 - val_size
         random_seed: 0 # the random seed for stratified splitting the data into folds
@@ -264,7 +264,7 @@ data_science:
       PyGLMNetGammaGLM:
         - solver
   model:
-    model: SklearnGammaGLM # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
+    model: <MODEL> # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
     # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM', 'PyGLMNetPoissonGLM', 'PyGLMNetGammaGLM',
     # 'LightGBMPoissonRegressor', 'LightGBMGammaRegressor', 'LightGBMTweedieRegressor'
     model_class: # model_class: str, e.g.,
@@ -278,12 +278,12 @@ data_science:
         force_min_y_pred: False
         fit_intercept: True
       StatsmodelsGammaGLM:
-        link: inverse # 'log' (all families), 'inverse' (Gamma), 'power' (Tweedie)
+        link: <STATSMODELS_LINK> # 'log' (all families), 'inverse' (Gamma), 'power' (Tweedie)
         force_min_y_pred: True
         fit_intercept: True
-        intercept_scale: # float or 'mean' - the scale of the intercept (intercept := intercept_scale), default is 1.0,
+        intercept_scale: <INTERCEPT_SCALE> # float or 'mean' - the scale of the intercept (intercept := intercept_scale), default is 1.0,
                          # 'mean': intercept_scale := mean target value in train set
-        trg_divisor: # float or 'mean' - the divisor of the target value in train set (target := target / trg_divisor), default is 1.0,
+        trg_divisor: <TRG_DIVISOR> # float or 'mean' - the divisor of the target value in train set (target := target / trg_divisor), default is 1.0,
                      # 'mean': trg_divisor := mean target value in train set
       SklearnGammaGLM:
         fit_intercept: True
