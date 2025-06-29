@@ -19,7 +19,7 @@ from tabulate import tabulate
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.ds_config import HyperoptAlgoEnum, HypertuneValidationEnum
-from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel
+from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel, save_ds_model_in_mlflow
 from claim_modelling_kedro.pipelines.utils.dataframes import save_pd_dataframe_as_csv_in_mlflow
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
 from claim_modelling_kedro.pipelines.utils.metrics import get_metric_from_enum, Metric
@@ -438,6 +438,9 @@ def process_hypertune_part(config: Config, part: str, selected_sample_features_d
             for param, value in best_hparams_part.items():
                 msg += f"    - {param}: {value}\n"
             logger.info(msg)
+            if config.ds.hopt_enabled and config.ds.hopt_validation_method == HypertuneValidationEnum.SAMPLE_VAL_SET:
+                fitted_model = best_trial["attachments"].pop("model")
+                save_ds_model_in_mlflow(fitted_model)
     except Exception as e:
         cancel_event.set()
         raise
@@ -447,12 +450,11 @@ def process_hypertune_part(config: Config, part: str, selected_sample_features_d
 def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFrame],
               sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
               sample_val_keys: Dict[str, pd.Index], save_best_hparams_in_mlflow: bool = True
-              ) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, PredictiveModel]]:
+              ) -> Dict[str, Dict[str, Any]]:
     logger.info(f"Tuning the hyper parameters of the predictive model {config.ds.model_class}...")
     parts_cnt = len(selected_sample_features_df)
     best_hparams = {}
     best_trials = {}
-    best_models = {}
     manager = Manager()
     cancel_event = manager.Event()
     mlflow_run_id = mlflow.active_run().info.run_id
@@ -470,11 +472,8 @@ def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFram
                     assert part1 == part, "The part returned from the future does not match the key."
                     best_hparams[part] = best_hparams_part
                     best_trials[part] = best_trial
-                    fitted_model = best_trial.get("attachments", {}).get("model")
-                    best_models[part] = fitted_model
-                    model_hparams = fitted_model.get_hparams() or {}
                     logger.info(f"The best hyperparameters for partition '{part}' of the sample dataset:\n"
-                                f"{model_hparams=}\n{best_hparams_part=}")
+                                f"{best_hparams_part=}")
                 except Exception as e:
                     for f in futures:
                         f.cancel()
@@ -488,4 +487,4 @@ def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFram
         mlflow.log_dict(best_hparams, f"{_hypertune_artifact_path}/best_trials_hparams.yml")
     log_best_trials_info_to_mlflow(best_trials, best_hparams, artifact_path=_hypertune_artifact_path,
                                    log_folds_metrics=(config.ds.hopt_validation_method != HypertuneValidationEnum.SAMPLE_VAL_SET))
-    return best_hparams, best_models
+    return best_hparams
