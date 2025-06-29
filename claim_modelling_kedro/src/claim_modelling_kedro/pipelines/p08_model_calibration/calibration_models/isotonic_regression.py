@@ -76,8 +76,12 @@ class SklearnLikeIsotonicRegression(IsotonicLikeCalibrationModel, SklearnModel):
         SklearnModel.__init__(self, config=config, model_class=model_class,
                               pred_col=self.pred_col, target_col=self.target_col, **kwargs)
 
-    def _fit(self, pure_predictions_df: pd.DataFrame, target_df: pd.DataFrame, **kwargs):
+    def _fit(self, pure_predictions_df: pd.DataFrame, target_df: pd.DataFrame,
+             sample_train_keys: pd.Index = None, sample_val_keys: pd.Index = None, **kwargs) -> None:
         logger.debug("SklearnLikeIsotonicRegression._fit called")
+        if sample_train_keys is not None:
+            pure_predictions_df = pure_predictions_df.loc[sample_train_keys, :]
+            target_df = target_df.loc[sample_train_keys, :]
         target_df = self._clip_lowest_and_highest_bins(pure_predictions_df, target_df)
         pure_predictions_df = pure_predictions_df[self.pure_pred_col]
         SklearnModel._fit(self, pure_predictions_df, target_df, **kwargs)

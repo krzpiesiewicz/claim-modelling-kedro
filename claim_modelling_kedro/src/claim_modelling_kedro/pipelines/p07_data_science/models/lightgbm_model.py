@@ -6,15 +6,15 @@ import pandas as pd
 from hyperopt import hp
 from lightgbm import LGBMRegressor
 
-from claim_modelling_kedro.pipelines.p07_data_science.models.sklearn_model import SklearnModel
+from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel
 from claim_modelling_kedro.pipelines.utils.metrics.metric import MeanPoissonDeviance, MeanGammaDeviance, \
     MeanTweedieDeviance
 from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_test_split_keys
 
 
-class LightGBMRegressorABC(SklearnModel, ABC):
-    def __init__(self, config, target_col: str, pred_col: str, model_class, **kwargs):
-        super().__init__(config=config, target_col=target_col, pred_col=pred_col, model_class=model_class, **kwargs)
+class LightGBMRegressorABC(PredictiveModel):
+    def __init__(self, config, target_col: str, pred_col: str, **kwargs):
+        PredictiveModel.__init__(self, config=config, target_col=target_col, pred_col=pred_col, **kwargs)
 
     def _updated_hparams(self):
         self._random_state = int(self._hparams.get("random_state", 0))
@@ -23,7 +23,7 @@ class LightGBMRegressorABC(SklearnModel, ABC):
         for param in ["n_estimators", "max_depth", "min_child_samples"]:
             if param in self._hparams:
                 self._hparams[param] = int(self._hparams[param])
-        SklearnModel._updated_hparams(self)
+        self.model = None
 
     @classmethod
     def _sklearn_hparams_names(cls) -> Collection[str]:
@@ -72,21 +72,22 @@ class LightGBMRegressorABC(SklearnModel, ABC):
             "eval_metric": None,  # to be set in child classes
         }
 
-    def _fit(self, features_df: Union[pd.DataFrame, np.ndarray], target_df: Union[pd.DataFrame, np.ndarray], eval_set: Optional[List[Tuple]] = None, eval_names: Optional[List[str]] = None, **kwargs) -> None:
-        # Ensure target is a Series if DataFrame
-        if type(target_df) is not None and hasattr(target_df, "columns") and self.target_col in target_df:
-            target_df = target_df[self.target_col]
+    def _fit(self, features_df: pd.DataFrame, target_df: pd.DataFrame,
+             sample_train_keys: Optional[pd.Index] = None, sample_val_keys: Optional[pd.Index] = None, **kwargs) -> None:
         # Ensure target_df is DataFrame for stratified split
-        if eval_set is None and isinstance(target_df, pd.Series):
-            target_df = target_df.to_frame(name=self.target_col)
+        index = features_df.index.intersection(target_df.index)
+        if sample_train_keys is not None:
+            index = index.intersection(sample_train_keys.union(sample_val_keys if sample_val_keys is not None else pd.Index([])))
+            sample_train_keys = sample_train_keys.intersection(index)
+        if sample_train_keys is None:
+            sample_train_keys = index.difference(sample_val_keys or pd.Index([]))
         fit_kwargs = kwargs.copy()
-        sample_weight = fit_kwargs.pop("sample_weight", None)
-        if eval_set is None:
+        if sample_val_keys is None:
             split_kwargs = {}
-            if sample_weight is not None:
-                split_kwargs["sample_weight"] = sample_weight
-            train_keys, val_keys = get_stratified_train_test_split_keys(
-                target_df,
+            sample_weight = kwargs.get("sample_weight", None)
+            split_kwargs["sample_weight"] = sample_weight
+            sample_train_keys, sample_val_keys = get_stratified_train_test_split_keys(
+                target_df.loc[index,:],
                 stratify_target_col=self.target_col,
                 test_size=self._val_size,
                 shuffle=True,
@@ -94,36 +95,53 @@ class LightGBMRegressorABC(SklearnModel, ABC):
                 verbose=False,
                 **split_kwargs
             )
-            X_train = features_df.loc[train_keys,:] if isinstance(features_df, pd.DataFrame) else features_df[train_keys]
-            y_train = target_df.loc[train_keys,:] if isinstance(target_df, pd.DataFrame) else target_df[train_keys]
-            X_val = features_df.loc[val_keys,:] if isinstance(features_df, pd.DataFrame) else features_df[val_keys]
-            y_val = target_df.loc[val_keys,:] if isinstance(target_df, pd.DataFrame) else target_df[val_keys]
-            fit_kwargs["eval_set"] = [(X_val, y_val)]
-            features_df = X_train
-            target_df = y_train
-        else:
-            fit_kwargs["eval_set"] = eval_set
-        if eval_names is not None:
-            fit_kwargs["eval_names"] = eval_names
-        self.model.fit(features_df, target_df, **fit_kwargs)
+        X_train = features_df.loc[sample_train_keys,:]
+        y_train = target_df.loc[sample_train_keys,:]
+        X_val = features_df.loc[sample_val_keys,:]
+        y_val = target_df.loc[sample_val_keys,:]
+        y_train = y_train[self.target_col]
+        y_val = y_val[self.target_col]
+        fit_kwargs["eval_set"] = [(X_val, y_val)]
+        if "sample_weight" in fit_kwargs:
+            fit_kwargs["eval_sample_weight"] = [fit_kwargs["sample_weight"].loc[sample_val_keys]]
+            fit_kwargs["sample_weight"] = fit_kwargs["sample_weight"].loc[sample_train_keys]
+        self.model = LGBMRegressor(**self.get_hparams())
+        self.model.fit(X_train, y_train, **fit_kwargs)
+
+    def _predict(self, features_df: pd.DataFrame) -> pd.Series:
+        return self.model.predict(features_df)
+
+    def get_params(self, deep: bool = True) -> Dict[str, Any]:
+        """
+        for compatibility with sklearn models (for clone method)
+        """
+        return dict(config=self.config)
+        # return dict(config=copy.deepcopy(self.config))
+
+    def summary(self) -> str:
+        return f"model: {self.model} with hyper parameters: {self.get_hparams()}"
 
 
 class LightGBMPoissonRegressor(LightGBMRegressorABC):
     def __init__(self, config, target_col: str, pred_col: str, **kwargs):
-        if "hparams" not in kwargs:
-            kwargs["hparams"] = {}
-        kwargs["hparams"]["eval_metric"] = "poisson"
-        super().__init__(config=config, target_col=target_col, pred_col=pred_col,
-                         model_class=LGBMRegressor, objective="poisson", **kwargs)
+        super().__init__(config=config, target_col=target_col, pred_col=pred_col, **kwargs)
 
     def metric(self):
         return MeanPoissonDeviance(self.config, pred_col=self.pred_col)
 
+    @classmethod
+    def get_default_hparams(cls) -> Dict[str, Any]:
+        defaults = super().get_default_hparams()
+        defaults.update({
+            "eval_metric": "poisson",
+            "objective": "poisson",
+        })
+        return defaults
+
 
 class LightGBMGammaRegressor(LightGBMRegressorABC):
     def __init__(self, config, target_col: str, pred_col: str, **kwargs):
-        super().__init__(config=config, target_col=target_col, pred_col=pred_col,
-                         model_class=LGBMRegressor, **kwargs)
+        super().__init__(config=config, target_col=target_col, pred_col=pred_col, **kwargs)
 
     def metric(self):
         return MeanGammaDeviance(self.config, pred_col=self.pred_col)
@@ -140,11 +158,7 @@ class LightGBMGammaRegressor(LightGBMRegressorABC):
 
 class LightGBMTweedieRegressor(LightGBMRegressorABC):
     def __init__(self, config, target_col: str, pred_col: str, **kwargs):
-        if "hparams" not in kwargs:
-            kwargs["hparams"] = {}
-        kwargs["hparams"]["eval_metric"] = "tweedie"
-        super().__init__(config=config, target_col=target_col, pred_col=pred_col,
-                         model_class=LGBMRegressor, objective="tweedie", **kwargs)
+        super().__init__(config=config, target_col=target_col, pred_col=pred_col,  **kwargs)
 
     def metric(self):
         power = self._hparams.get("tweedie_variance_power", None)
@@ -166,5 +180,7 @@ class LightGBMTweedieRegressor(LightGBMRegressorABC):
         defaults = super().get_default_hparams()
         defaults.update({
             "tweedie_variance_power": 1.5,
+            "eval_metric": "tweedie",
+            "objective": "tweedie",
         })
         return defaults

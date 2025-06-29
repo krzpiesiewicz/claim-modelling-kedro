@@ -22,7 +22,8 @@ class CalibrationModel(PredictiveModel, ABC):
         self.calib_pred_col = config.clb.calibrated_prediction_col
 
     def fit(self, pure_predictions_df: Union[pd.DataFrame, np.ndarray],
-            target_df: Union[pd.DataFrame, pd.Series, np.ndarray], **kwargs):
+            target_df: Union[pd.DataFrame, pd.Series, np.ndarray],
+            sample_train_keys: pd.Index = None, sample_val_keys: pd.Index = None, **kwargs):
         logger.debug("CalibrationModel fit called")
         assert_pandas_no_lacking_indexes(pure_predictions_df, target_df, "pure_predictions_df", "target_df")
         target_df = trunc_target_index(pure_predictions_df, target_df)
@@ -32,9 +33,13 @@ class CalibrationModel(PredictiveModel, ABC):
                 kwargs["sample_weight"] = sample_weight
         if "sample_weight" in kwargs:
             kwargs["sample_weight"] = kwargs["sample_weight"].loc[target_df.index]
-        super().fit(pure_predictions_df, target_df, **kwargs)
+        super().fit(pure_predictions_df, target_df, sample_train_keys=sample_train_keys, sample_val_keys=sample_val_keys, **kwargs)
         logger.debug(f"{self.config.clb.post_calibration_rebalancing_enabled=}")
         if self.config.clb.post_calibration_rebalancing_enabled:
+            if sample_train_keys is not None:
+                index = sample_train_keys.union(sample_val_keys or pd.Index([]))
+                pure_predictions_df = pure_predictions_df.loc[index, :]
+                target_df = target_df.loc[index, :]
             preds = super().predict(pure_predictions_df)
             logger.debug(f"{self.config.clb.post_clb_rebalance_method=}")
             match self.config.clb.post_clb_rebalance_method:

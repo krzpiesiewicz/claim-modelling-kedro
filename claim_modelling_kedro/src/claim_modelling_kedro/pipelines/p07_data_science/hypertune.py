@@ -188,22 +188,18 @@ def process_fold(config: Config, fold: str, train_keys_cv: Dict[str, pd.Index], 
                  hparams: Dict[str, Any], model: PredictiveModel, metric: Metric) -> Tuple[float, float, PredictiveModel]:
     train_keys = train_keys_cv[fold]
     val_keys = val_keys_cv[fold]
-    train_features_df = selected_sample_features_df.loc[train_keys]
-    val_features_df = selected_sample_features_df.loc[val_keys]
-    train_target_df = sample_target_df.loc[train_keys]
-    val_target_df = sample_target_df.loc[val_keys]
 
     model = get_class_from_path(config.ds.model_class)(config=config, target_col=config.mdl_task.target_col,
                                                        pred_col=config.mdl_task.prediction_col)
     model.update_hparams(config.ds.model_const_hparams)
     model.update_hparams(hparams)
-    model.fit(train_features_df, train_target_df)
+    model.fit(selected_sample_features_df, sample_target_df, sample_train_keys=train_keys, sample_val_keys=val_keys)
 
-    train_predictions_df = model.predict(train_features_df)
-    val_predictions_df = model.predict(val_features_df)
+    train_predictions_df = model.predict(selected_sample_features_df.loc[train_keys, :])
+    val_predictions_df = model.predict(selected_sample_features_df.loc[val_keys, :])
 
-    train_score = metric.eval(train_target_df, train_predictions_df)
-    val_score = metric.eval(val_target_df, val_predictions_df)
+    train_score = metric.eval(sample_target_df.loc[train_keys, :], train_predictions_df)
+    val_score = metric.eval(sample_target_df.loc[train_keys, :], val_predictions_df)
 
     return train_score, val_score, model
 

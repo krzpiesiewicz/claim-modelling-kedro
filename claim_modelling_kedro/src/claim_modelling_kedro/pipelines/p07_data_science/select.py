@@ -2,7 +2,8 @@ import logging
 import os
 import tempfile
 from abc import ABC, abstractmethod
-from typing import Sequence, Dict, Tuple
+from optparse import Option
+from typing import Sequence, Dict, Tuple, Optional
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import mlflow
@@ -33,7 +34,8 @@ class SelectorModel(ABC):
         self._selected_features = None
 
     @abstractmethod
-    def fit(self, features_df: pd.DataFrame, target_df: pd.DataFrame, **kwargs) -> pd.DataFrame:
+    def fit(self, features_df: pd.DataFrame, target_df: pd.DataFrame,
+            sample_train_keys: Optional[pd.Index] = None, sample_val_keys: Optional[pd.Index] = None, **kwargs) -> pd.DataFrame:
         pass
 
     def transform(self, features_df: pd.DataFrame) -> pd.DataFrame:
@@ -99,7 +101,7 @@ def fit_transform_features_selector_part(config: Config, transformed_sample_feat
                                          sample_val_keys: pd.Index, part: str) -> pd.DataFrame:
     selector = get_class_from_path(config.ds.fs_model_class)(config=config)
     logger.info(f"Fitting the features selector for partition '{part}'...")
-    selector.fit(transformed_sample_features_df.loc[sample_train_keys,:], sample_target_df.loc[sample_train_keys,:])
+    selector.fit(transformed_sample_features_df, sample_target_df, sample_train_keys=sample_train_keys, sample_val_keys=sample_val_keys)
     logger.info(f"Fitted the features selector for partition '{part}'.")
     # Save the selector
     MLFlowModelLogger(selector, f"features selector model").log_model(_selector_artifact_path)

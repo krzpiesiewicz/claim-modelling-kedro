@@ -1,7 +1,7 @@
 import copy
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Union, Collection
+from typing import Dict, Any, Union, Collection, Optional
 
 import numpy as np
 import pandas as pd
@@ -25,9 +25,20 @@ class SklearnModel(PredictiveModel, ABC):
         self.update_hparams(hparams)
         logger.debug(f"hparams: {self._hparams}")
 
-    def _fit(self, features_df: Union[pd.DataFrame, np.ndarray], target_df: Union[pd.DataFrame, np.ndarray], **kwargs):
-        if type(target_df) is pd.DataFrame:
+    def _fit(self, features_df: Union[pd.DataFrame, pd.Series], target_df: Union[pd.Series, np.ndarray],
+             sample_train_keys: Optional[pd.Index] = None, sample_val_keys: Optional[pd.Index] = None, **kwargs) -> None:
+        """
+        By default, the model is trained on the sample_train_keys. If you want to train on the entire dataset (including validation)
+        or with a specific validation logic, you can override this method in your subclass.
+        """
+        if sample_train_keys is None:
+            sample_train_keys = features_df.index
+        features_df = features_df.loc[sample_train_keys, :] if isinstance(features_df, pd.DataFrame) else features_df.loc[sample_train_keys]
+        if isinstance(target_df, pd.DataFrame):
             target_df = target_df[self.target_col]
+        target_df = target_df.loc[sample_train_keys]
+        if "sample_weight" in kwargs:
+            kwargs["sample_weight"] = kwargs["sample_weight"].loc[sample_train_keys]
         self.model.fit(features_df, target_df, **kwargs)
 
     def _predict(self, features_df: Union[pd.DataFrame, np.ndarray]) -> pd.Series:

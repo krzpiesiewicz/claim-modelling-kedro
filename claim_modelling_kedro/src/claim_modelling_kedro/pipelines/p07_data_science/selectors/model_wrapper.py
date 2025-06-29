@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
@@ -20,9 +22,11 @@ class ModelWrapperFeatureSelector(SelectorModel):
                                   pred_col=self.config.mdl_task.prediction_col,
                                   hparams=self.config.ds.fs_params)
 
-    def fit(self, features_df: pd.DataFrame, target_df: pd.DataFrame, **kwargs):
+    def fit(self, features_df: pd.DataFrame, target_df: pd.DataFrame,
+            sample_train_keys: Optional[pd.Index] = None, sample_val_keys: Optional[pd.Index] = None, **kwargs) -> pd.DataFrame:
         logger.debug(f"{self.config.ds.fs_params=}")
         self._model.update_hparams(self.config.ds.fs_params)
-        self._model.fit(features_df, target_df, **kwargs)
+        self._model.fit(features_df, target_df,
+                        sample_train_keys=sample_train_keys, sample_val_keys=sample_val_keys, **kwargs)
         self._set_features_importance(self._model.get_features_importance())
         self._set_selected_features_from_importance()

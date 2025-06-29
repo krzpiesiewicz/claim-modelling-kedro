@@ -1,6 +1,5 @@
 import logging
 import os
-import tempfile
 import time
 from abc import ABC, abstractmethod
 from datetime import timedelta
@@ -15,14 +14,14 @@ from tabulate import tabulate
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.ds_config import HypertuneValidationEnum
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum
-from claim_modelling_kedro.pipelines.utils.metrics import get_metric_from_enum, Metric
-from claim_modelling_kedro.pipelines.utils.mlflow_model import MLFlowModelLogger, MLFlowModelLoader
-from claim_modelling_kedro.pipelines.utils.utils import get_class_from_path
-from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
 from claim_modelling_kedro.pipelines.utils.dataframes import (
     preds_as_dataframe_with_col_name,
     save_metrics_table_in_mlflow, save_metrics_cv_stats_in_mlflow, save_pd_dataframe_as_csv_in_mlflow
 )
+from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
+from claim_modelling_kedro.pipelines.utils.metrics import get_metric_from_enum, Metric
+from claim_modelling_kedro.pipelines.utils.mlflow_model import MLFlowModelLogger, MLFlowModelLoader
+from claim_modelling_kedro.pipelines.utils.utils import get_class_from_path
 
 logger = logging.getLogger(__name__)
 
@@ -59,18 +58,30 @@ class PredictiveModel(ABC):
         self._features_importance = None
         self._not_fitted = True
 
-    def fit(self, features_df: Union[pd.DataFrame, np.ndarray],
-            target_df: Union[pd.DataFrame, pd.Series, np.ndarray], **kwargs):
-        index = features_df.index.intersection(target_df.index)
-        target_df = target_df.loc[index]
-        features_df =  features_df.loc[index]
+    def fit(self,
+            features_df: pd.DataFrame,
+            target_df: pd.DataFrame,
+            sample_train_keys: Optional[pd.Index] = None,
+            sample_val_keys: Optional[pd.Index] = None,
+            **kwargs):
+        data_index = features_df.index.intersection(target_df.index)
+        if sample_train_keys is not None:
+            sample_train_keys = sample_train_keys.intersection(data_index)
+        else:
+            sample_train_keys = data_index.difference(sample_val_keys if sample_val_keys is not None else pd.Index([]))
+        if sample_val_keys is not None:
+            sample_val_keys = sample_val_keys.intersection(data_index)
+        data_index = data_index.intersection(sample_train_keys.union(sample_val_keys if sample_val_keys is not None else pd.Index([])))
+        features_df = features_df.loc[data_index, :]
+        target_df = target_df.loc[data_index, :]
         if not "sample_weight" in kwargs:
             sample_weight = get_sample_weight(self.config, target_df)
             if sample_weight is not None:
                 kwargs["sample_weight"] = sample_weight
         if "sample_weight" in kwargs:
-            kwargs["sample_weight"] = kwargs["sample_weight"].loc[index]
-        self._fit(features_df, target_df, **self._fit_kwargs, **kwargs)
+            kwargs["sample_weight"] = kwargs["sample_weight"].loc[data_index]
+        self._fit(features_df, target_df, sample_train_keys=sample_train_keys, sample_val_keys=sample_val_keys,
+                  **self._fit_kwargs, **kwargs)
         self._not_fitted = False
 
     def predict(self, features_df: Union[pd.DataFrame, np.ndarray]) -> pd.DataFrame:
@@ -86,7 +97,8 @@ class PredictiveModel(ABC):
         return self.predict(features_df)
 
     @abstractmethod
-    def _fit(self, features_df: pd.DataFrame, target_df: pd.DataFrame, **kwargs):
+    def _fit(self, features_df: pd.DataFrame, target_df: pd.DataFrame, sample_train_keys: pd.Index,
+             sample_val_keys: Optional[pd.Index] = None, **kwargs):
         pass
 
     @abstractmethod
@@ -198,7 +210,7 @@ def fit_transform_predictive_model_part(config: Config, selected_sample_features
         model.update_hparams(best_hparams)
         logger.info(f" for partition '{part}': {model.get_hparams()=}")
         start_time = time.time()
-        model.fit(selected_sample_features_df.loc[sample_train_keys,:], sample_target_df.loc[sample_train_keys,:])
+        model.fit(selected_sample_features_df, sample_target_df, sample_train_keys=sample_train_keys, sample_val_keys=sample_val_keys)
         end_time = time.time()
         elapsed_time = end_time - start_time
         formatted_time = str(timedelta(seconds=elapsed_time))
@@ -208,7 +220,8 @@ def fit_transform_predictive_model_part(config: Config, selected_sample_features
     logger.info(f"Saving the features importance for partition '{part}'...")
     try:
         features_importance = model.get_features_importance().reset_index()
-        save_pd_dataframe_as_csv_in_mlflow(features_importance, _ds_artifact_path, _features_importance_filename, index=True)
+        save_pd_dataframe_as_csv_in_mlflow(features_importance, _ds_artifact_path, _features_importance_filename,
+                                           index=True)
         logger.info(
             f"Successfully saved the features importance for partition '{part}' to MLFlow path {os.path.join(_ds_artifact_path, _features_importance_filename)}")
     except ValueError as e:
@@ -222,7 +235,8 @@ def fit_transform_predictive_model_part(config: Config, selected_sample_features
 
 def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
                               target_df: pd.DataFrame, prefix: str, part: str, log_metrics_to_mlflow: bool,
-                              log_metrics_to_console: bool = True, keys: pd.Index = None) -> List[Tuple[MetricEnum, str, float]]:
+                              log_metrics_to_console: bool = True, keys: pd.Index = None) -> List[
+    Tuple[MetricEnum, str, float]]:
     """
     prefix: str - default None, but can by any string like train, test, pure, cal etc.
     If prefix is not None, it will be added to the metric name separated by underscore.
@@ -247,7 +261,7 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
         scores[(metric_enum, metric_name)] = score
     if log_metrics_to_console:
         logger.info(f"Evaluated the predictions for partition '{part}':\n" +
-                "\n".join(f"    - {name}: {score}" for (_, name), score in scores.items()))
+                    "\n".join(f"    - {name}: {score}" for (_, name), score in scores.items()))
     if log_metrics_to_mlflow:
         logger.info(f"Logging the metrics for partition '{part}' to MLFlow...")
         for (_, metric_name), score in scores.items():
@@ -284,9 +298,11 @@ def predict_by_mlflow_model(config: Config, selected_features_df: Dict[str, pd.D
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
+
 def process_part(config: Config, part: str, selected_sample_features_df: Dict[str, pd.DataFrame],
                  sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
-                 sample_val_keys: Dict[str, pd.Index], best_hparams: Dict[str, Dict[str, Any]]) -> Tuple[str, pd.DataFrame]:
+                 sample_val_keys: Dict[str, pd.Index], best_hparams: Dict[str, Dict[str, Any]]) -> Tuple[
+    str, pd.DataFrame]:
     selected_sample_features_part_df = get_partition(selected_sample_features_df, part)
     sample_target_part_df = get_partition(sample_target_df, part)
     sample_train_keys_part = get_partition(sample_train_keys, part)
@@ -299,6 +315,7 @@ def process_part(config: Config, part: str, selected_sample_features_df: Dict[st
                                                          sample_target_part_df, sample_train_keys_part,
                                                          sample_val_keys_part, best_hparams_part, part,
                                                          mlflow_subrun_id)
+
 
 def fit_transform_predictive_model(config: Config, selected_sample_features_df: Dict[str, pd.DataFrame],
                                    sample_target_df: Dict[str, pd.DataFrame],
@@ -369,7 +386,8 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
     scores_table = scores_df.T.sort_index()
     scores_table.index.name = joined_prefix
     scores_table.columns = [name.replace(f"{joined_prefix}_", "") for name in scores_table.columns]
-    mean_and_std_table = pd.DataFrame.from_records([scores_table.mean(), scores_table.std()], index=pd.Index(["mean", "std"], name=joined_prefix))
+    mean_and_std_table = pd.DataFrame.from_records([scores_table.mean(), scores_table.std()],
+                                                   index=pd.Index(["mean", "std"], name=joined_prefix))
     scores_table = scores_table.map(partial(round, ndigits=4))
     mean_and_std_table = mean_and_std_table.map(partial(round, ndigits=4))
     logger.info(f"Scores of {joined_prefix} predictions:\n" +
