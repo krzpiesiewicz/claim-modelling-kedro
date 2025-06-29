@@ -181,8 +181,8 @@ data_science:
     enabled: False # whether to use the target transformer
     model: LogTargetTransformer
   feature_selection:
-    enabled: True # whether to use the feature selection
-    max_n_features: 40 # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
+    enabled: False # whether to use the feature selection
+    max_n_features: 100 # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
     min_importance: 0.00001 # the minimum importance of a feature
     max_iter: 100 # the maximum number of iterations
     method: pyglmnet # 'model', 'pyglmnet', 'lasso', 'rfe'
@@ -266,6 +266,7 @@ data_science:
   model:
     model: SklearnGammaGLM # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
     # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM', 'PyGLMNetPoissonGLM', 'PyGLMNetGammaGLM',
+    # 'LightGBMPoissonRegressor', 'LightGBMGammaRegressor', 'LightGBMTweedieRegressor'
     model_class: # model_class: str, e.g.,
                  # model_class: claim_modelling_kedro.pipelines.p07_data_science.models.SklearnPoissonGLM
                  # if empty, the model class is inferred from the parameter model.model
