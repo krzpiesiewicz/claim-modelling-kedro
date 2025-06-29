@@ -24,6 +24,9 @@ class ModelEnum(Enum):
     RGLMNET_POISSON_GLM: str = "RGLMNetPoissonGLM"
     PYGLMNET_POISSON_GLM: str = "PyGLMNetPoissonGLM"
     PYGLMNET_GAMMA_GLM: str = "PyGLMNetGammaGLM"
+    LIGHTGBM_POISSON_REGRESSOR: str = "LightGBMPoissonRegressor"
+    LIGHTGBM_GAMMA_REGRESSOR: str = "LightGBMGammaRegressor"
+    LIGHTGBM_TWEEDIE_REGRESSOR: str = "LightGBMTweedieRegressor"
 
 class FeatureSelectionMethod(Enum):
     MODEL: str = "model"
@@ -104,6 +107,12 @@ class DataScienceConfig:
                     model_class_name = "PyGLMNetGLM"
                 case ModelEnum.PYGLMNET_GAMMA_GLM:
                     model_class_name = "PyGLMNetGLM"
+                case ModelEnum.LIGHTGBM_POISSON_REGRESSOR:
+                    model_class_name = "LightGBMPoissonRegressor"
+                case ModelEnum.LIGHTGBM_GAMMA_REGRESSOR:
+                    model_class_name = "LightGBMGammaRegressor"
+                case ModelEnum.LIGHTGBM_TWEEDIE_REGRESSOR:
+                    model_class_name = "LightGBMTweedieRegressor"
                 case _:
                     raise ValueError(f"Model {self.model} not supported.")
             self.model_class = f"claim_modelling_kedro.pipelines.p07_data_science.models.{model_class_name}"
