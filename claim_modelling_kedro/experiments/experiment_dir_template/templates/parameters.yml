@@ -304,8 +304,6 @@ calibration:
     lower_bound:
     upper_bound:
   method: IsotonicRegression # the method of calibrating pure predictions of data science model from the previous stage
-    # 'IsotonicRegression', 'CenteredIsotonicRegression', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM'
-    # 'LocalStatsmodelsGLM', 'EqualBinsMeans', 'LocalPolynomialRegression'
   # 'Pure', 'IsotonicRegression', 'CenteredIsotonicRegression',
   # 'LocalStatsmodelsGLM', 'EqualBinsMeans', 'LocalPolynomialRegression'
   # 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM'
