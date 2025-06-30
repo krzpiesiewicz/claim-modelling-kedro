@@ -7,6 +7,7 @@ from cir_model import CenteredIsotonicRegression
 from sklearn.isotonic import IsotonicRegression
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
+from claim_modelling_kedro.pipelines.p07_data_science.model import get_sample_weight
 from claim_modelling_kedro.pipelines.p07_data_science.models.sklearn_model import SklearnModel
 from claim_modelling_kedro.pipelines.p08_model_calibration.calibration_model import CalibrationModel
 from claim_modelling_kedro.pipelines.utils.metrics import Metric, RootMeanSquaredError
@@ -33,6 +34,7 @@ class IsotonicLikeCalibrationModel(CalibrationModel, ABC):
         n_low = int(n_obs * self._clip_low_bin)
 
         lowest_idx = sorted_df.index[:n_low] if n_low > 0 else None
+        sample_weight = get_sample_weight(self.config, target_df)
         if self._force_positive:
             if n_low > 0:
                 if sorted_df.loc[lowest_idx, self.target_col].max() <= 0:
@@ -46,7 +48,7 @@ class IsotonicLikeCalibrationModel(CalibrationModel, ABC):
                 first_positive_position = sorted_df[sorted_df[self.target_col] > 0].index[0]
                 lowest_idx = sorted_df.index[:first_positive_position]
         if lowest_idx is not None:
-            self._y_min = sorted_df.loc[lowest_idx, self.target_col].mean()
+            self._y_min = np.average(sorted_df.loc[lowest_idx, self.target_col], weights=sample_weight.loc[lowest_idx])
             adjusted_target_df.loc[lowest_idx, self.target_col] = self._y_min
             logger.debug(f"Clipped lower bin: {n_low} obs → mean={self._y_min}")
 
@@ -54,7 +56,7 @@ class IsotonicLikeCalibrationModel(CalibrationModel, ABC):
         n_high = int(n_obs * self._clip_high_bin)
         if n_high > 0:
             highest_idx = sorted_df.index[-n_high:]
-            self._y_max = sorted_df.loc[highest_idx, self.target_col].mean()
+            self._y_max = np.average(sorted_df.loc[highest_idx, self.target_col], weights=sample_weight.loc[lowest_idx])
             adjusted_target_df.loc[highest_idx, self.target_col] = self._y_max
             logger.debug(f"Clipped upper bin: {n_high} obs → mean={self._y_max}")
 
