@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Callable
+from typing import Callable, Union, Optional
 
 import numpy as np
 import pandas as pd
@@ -57,16 +57,21 @@ class Metric(ABC):
     def is_larger_better(self) -> bool:
         pass
 
-    def eval(self, target_df: pd.DataFrame, prediction_df: pd.DataFrame) -> float:
+    def eval(self, target_df: Union[pd.DataFrame, np.ndarray], prediction_df: Union[pd.DataFrame, np.ndarray],
+             sample_weight: Optional[Union[pd.Series, np.ndarray]] = None) -> float:
         assert self.sklearn_like_metric is not None
-        y_true = target_df[self.target_col]
-        y_pred = prediction_df[self.pred_col]
-
-        sample_weight = pd.Series(np.ones_like(y_true), index=y_true.index)
-        if self.exposure_weighted:
-            sample_weight = sample_weight * target_df[self.config.data.policy_exposure_col]
-        if self.claim_nb_weighted:
-            sample_weight = sample_weight * np.fmax(target_df[self.config.data.claims_number_target_col], 1)
+        y_true = target_df[self.target_col] if isinstance(target_df, pd.DataFrame) else target_df
+        y_pred = prediction_df[self.pred_col] if isinstance(prediction_df, pd.DataFrame) else prediction_df
+        if sample_weight is not None:
+            if isinstance(sample_weight, pd.Series):
+                sample_weight = sample_weight.values
+        else:
+            sample_weight = pd.Series(np.ones_like(y_true), index=y_true.index)
+            if isinstance(target_df, pd.DataFrame):
+                if self.exposure_weighted:
+                    sample_weight = sample_weight * target_df[self.config.data.policy_exposure_col]
+                if self.claim_nb_weighted:
+                    sample_weight = sample_weight * np.fmax(target_df[self.config.data.claims_number_target_col], 1)
         return self.sklearn_like_metric(y_true, y_pred, sample_weight=sample_weight)
 
 
