@@ -271,6 +271,7 @@ def fit_model(hparams: Dict[str, any],
         status = STATUS_OK
     except Exception as e:
         logger.error(f"Error during hyperopt trial {trial_no}: {e}")
+        logger.debug(traceback.format_exc())
         train_score_mean = np.nan
         val_score_mean = np.nan
         train_score_std = np.nan
