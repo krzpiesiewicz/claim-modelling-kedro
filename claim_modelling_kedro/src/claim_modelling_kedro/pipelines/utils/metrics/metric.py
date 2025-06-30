@@ -10,6 +10,7 @@ import wcorr
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.metric_config import TWEEDIE_DEV, EXP_WEIGHTED_TWEEDIE_DEV, \
     CLNB_WEIGHTED_TWEEDIE_DEV, MetricEnum
+from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
 from claim_modelling_kedro.pipelines.utils.dataframes import ordered_by_pred_and_hashed_index
 
 
@@ -68,10 +69,7 @@ class Metric(ABC):
         else:
             sample_weight = pd.Series(np.ones_like(y_true), index=y_true.index)
             if isinstance(target_df, pd.DataFrame):
-                if self.exposure_weighted:
-                    sample_weight = sample_weight * target_df[self.config.data.policy_exposure_col]
-                if self.claim_nb_weighted:
-                    sample_weight = sample_weight * np.fmax(target_df[self.config.data.claims_number_target_col], 1)
+                sample_weight = get_sample_weight(self.config, target_df)
         return self.sklearn_like_metric(y_true, y_pred, sample_weight=sample_weight)
 
 

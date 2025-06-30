@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.feature_selection import RFE
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p07_data_science.model import get_sample_weight
+from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
 from claim_modelling_kedro.pipelines.p07_data_science.select import SelectorModel
 from claim_modelling_kedro.pipelines.utils.utils import get_class_from_path
 

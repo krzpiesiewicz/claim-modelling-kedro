@@ -6,7 +6,7 @@ import pandas as pd
 from hyperopt import hp
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p07_data_science.model import get_sample_weight
+from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
 from claim_modelling_kedro.pipelines.p08_model_calibration.calibration_model import CalibrationModel
 from claim_modelling_kedro.pipelines.utils.dataframes import ordered_by_pred_and_hashed_index
 from claim_modelling_kedro.pipelines.utils.metrics import RootMeanSquaredError

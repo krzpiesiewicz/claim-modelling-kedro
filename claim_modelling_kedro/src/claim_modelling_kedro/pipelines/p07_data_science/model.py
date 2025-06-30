@@ -22,6 +22,7 @@ from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_ml
 from claim_modelling_kedro.pipelines.utils.metrics import get_metric_from_enum, Metric
 from claim_modelling_kedro.pipelines.utils.mlflow_model import MLFlowModelLogger, MLFlowModelLoader
 from claim_modelling_kedro.pipelines.utils.utils import get_class_from_path
+from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
 
 logger = logging.getLogger(__name__)
 
@@ -30,20 +31,6 @@ _ds_artifact_path = "model_ds"
 _model_name = "predictive model"
 _predictive_model_artifact_path = f"{_ds_artifact_path}/{_model_name}"
 _features_importance_filename = "model_features_importance.csv"
-
-
-def get_sample_weight(config: Config, target_df: Union[pd.DataFrame, np.ndarray]) -> Union[pd.Series, None]:
-    sample_weight = None
-    if config.mdl_task.exposure_weighted and config.mdl_task.claim_nb_weighted:
-        raise ValueError("Only one of exposure_weighted and claim_nb_weighted can be True.")
-    if type(target_df) is pd.DataFrame:
-        if config.mdl_task.exposure_weighted:
-            sample_weight = target_df[config.data.policy_exposure_col]
-            logger.debug("Using policy exposure as sample weight.")
-        if config.mdl_task.claim_nb_weighted:
-            sample_weight = np.fmax(target_df[config.data.claims_number_target_col], 1).astype(int)
-            logger.debug("Using claims number as sample weight.")
-    return sample_weight
 
 
 class PredictiveModel(ABC):

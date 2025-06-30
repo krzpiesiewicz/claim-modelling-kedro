@@ -7,7 +7,7 @@ import numpy as np
 from typing import List, Optional, Dict, Union
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p07_data_science.model import get_sample_weight
+from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
 from claim_modelling_kedro.pipelines.utils.dataframes import ordered_by_pred_and_hashed_index
 
 logger = logging.getLogger(__name__)

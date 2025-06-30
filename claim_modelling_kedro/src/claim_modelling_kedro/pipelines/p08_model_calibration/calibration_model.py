@@ -6,7 +6,8 @@ import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.clb_config import RebalanceInTotalsMethod
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel, get_sample_weight
+from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel
+from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
 from claim_modelling_kedro.pipelines.utils.dataframes import assert_pandas_no_lacking_indexes, trunc_target_index
 
 
