@@ -67,7 +67,8 @@ def _get_folds_labels(target: pd.Series, cv_folds: int,
 
 
 def _get_stratified_train_calib_test_cv(target_df: pd.DataFrame, stratify_target_col: str, cv_folds: int,
-                                        sample_weight: pd.Series = None, shuffle: bool = True, random_seed: int = 0,
+                                        sample_weight: pd.Series = None, balance_sample_weights: bool = True,
+                                        shuffle: bool = True, random_seed: int = 0,
                                         verbose: bool = False, cv_type: str = 'train_test',
                                         cv_parts_names: list = None):
     """
@@ -95,7 +96,9 @@ def _get_stratified_train_calib_test_cv(target_df: pd.DataFrame, stratify_target
     n_samples = target_df.shape[0]
 
     # Create folds_labels based on the stratify_target_col
-    if sample_weight is not None:
+    if balance_sample_weights:
+        if sample_weight is None:
+            sample_weight = pd.Series(1.0, index=target_df.index, dtype=float)
         sorted_target_df = target_df.assign(_weight=sample_weight).sort_values(
             by=[stratify_target_col, "_weight"], ascending=[False, False]
         )
