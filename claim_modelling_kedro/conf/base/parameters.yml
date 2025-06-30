@@ -301,6 +301,7 @@ data_science:
         reg_lambda: 7.539218714111269e-05
         tol: 3.216445376073702e-07
       LightGBMGammaRegressor:
+        eval_metric: # 'poisson', 'gamma', 'tweedie', 'cc_gini'
 #        colsample_bytree: 0.6891196434854645
 #        learning_rate: 0.037440280667384564
 #        max_depth: 4.0
