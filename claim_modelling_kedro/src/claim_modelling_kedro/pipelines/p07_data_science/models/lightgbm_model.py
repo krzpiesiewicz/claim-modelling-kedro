@@ -193,6 +193,8 @@ class LightGBMPoissonRegressor(LightGBMRegressorABC):
     def metric(self):
         return MeanPoissonDeviance(self.config, pred_col=self.pred_col)
 
+    # TODO min_child_weight = hp.loguniform("min_child_weight", np.log(0.001), np.log(100)),
+
     @classmethod
     def get_default_hparams(cls) -> Dict[str, Any]:
         defaults = super().get_default_hparams()
