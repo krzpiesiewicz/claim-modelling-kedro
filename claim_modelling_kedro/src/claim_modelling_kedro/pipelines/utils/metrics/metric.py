@@ -67,9 +67,10 @@ class Metric(ABC):
             if isinstance(sample_weight, pd.Series):
                 sample_weight = sample_weight.values
         else:
-            sample_weight = pd.Series(np.ones_like(y_true), index=y_true.index)
             if isinstance(target_df, pd.DataFrame):
                 sample_weight = get_sample_weight(self.config, target_df)
+            else:
+                sample_weight = np.ones_like(y_true)
         return self.sklearn_like_metric(y_true, y_pred, sample_weight=sample_weight)
 
 
