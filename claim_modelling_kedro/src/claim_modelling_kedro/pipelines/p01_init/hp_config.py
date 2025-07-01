@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List
 
+from claim_modelling_kedro.pipelines.p01_init.hp_space_config import HyperOptSpaceConfig
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum
 from claim_modelling_kedro.pipelines.p01_init.smpl_config import SamplingConfig, SampleValidationSet
 
@@ -37,6 +38,7 @@ class HypertuneConfig:
     repeated_split_n_repeats: int
     repeated_split_random_seed: int
     excluded_params: List[str]
+    space: HyperOptSpaceConfig
 
     def __init__(self, params: Dict, smpl: SamplingConfig, model_name: str):
         self.enabled = params["enabled"]
@@ -52,7 +54,7 @@ class HypertuneConfig:
             self.show_progressbar = params["show_progressbar"]
             self.trial_verbose = params["trial_verbose"]
             self.fmin_random_seed = params["random_seed"]
-
+            # Validation method
             val_params = params["validation"]
             self.validation_method = HypertuneValidationEnum(val_params["method"])
             self.cv_folds = val_params["cross_validation"]["folds"]
@@ -69,13 +71,20 @@ class HypertuneConfig:
                         raise ValueError("Sample validation set hypertuning method is not supported when no validation set is created in sampling pipeline.\n"
                                          "Please set `sampling.validation.val_set` to `calib_set` or `split_train_val`.\n"
                                          "Alternatively, set `data_science.hyperopt.validation.method` to `cross_validation` or `repeated_split`.")
-
+            # Excluded params
             if (params["excluded_params"] is not None
                     and model_name in params["excluded_params"]
                     and params["excluded_params"][model_name] is not None):
                 self.excluded_params = params["excluded_params"][model_name]
             else:
                 self.excluded_params = []
+            # Params space
+            if (params["params_space"] is not None
+                    and model_name in params["params_space"]
+                    and params["params_space"][model_name] is not None):
+                self.space = HyperOptSpaceConfig(params["params_space"][model_name], excluded_params=self.excluded_params)
+            else:
+                self.space = None
         else:
             self.metric = None
             self.overfit_penalty = None
@@ -94,3 +103,4 @@ class HypertuneConfig:
             self.repeated_split_n_repeats = None
             self.repeated_split_random_seed = None
             self.excluded_params = None
+            self.space = None

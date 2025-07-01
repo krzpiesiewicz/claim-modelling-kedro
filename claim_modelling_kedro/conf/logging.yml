@@ -64,6 +64,10 @@ loggers:
     formatter: simple
     level: INFO
 
+  claim_modelling_kedro.pipelines.p01_init.hp_space_config:
+    formatter: simple
+    level: INFO
+
   claim_modelling_kedro.pipelines.p02_data_preprocessing:
     formatter: simple
     level: INFO

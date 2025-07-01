@@ -49,7 +49,7 @@ def log_config_to_mlflow(config: Config):
     with tempfile.TemporaryDirectory() as temp_dir:
         file_path = os.path.join(temp_dir, "config.yml")
         with open(file_path, "w") as file:
-            yaml.dump(asdict(config), file)
+            yaml.dump(asdict(config), file, default_flow_style=False, sort_keys=False)
         mlflow.log_artifact(file_path)
 
 
