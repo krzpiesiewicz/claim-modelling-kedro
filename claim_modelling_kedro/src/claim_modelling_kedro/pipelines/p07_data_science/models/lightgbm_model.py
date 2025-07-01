@@ -23,9 +23,9 @@ class LightGBMRegressorABC(PredictiveModel):
         # Dynamically calculate early_stopping_rounds based on learning_rate
         learning_rate = float(self._hparams.get("learning_rate", 0.1))
         # The lower the learning_rate, the higher early_stopping_rounds should be
-        # early_stopping = int(60 / learning_rate)
-        # early_stopping = max(30, min(early_stopping, 200))  # Clamp to [30, 200]
-        # self._hparams["early_stopping_rounds"] = early_stopping
+        early_stopping = int(60 / learning_rate)
+        early_stopping = max(30, min(early_stopping, 200))  # Clamp to [30, 200]
+        self._hparams["early_stopping_rounds"] = early_stopping
         # Ensure num_leaves is not greater than 2 ** max_depth
         if "max_depth" in self._hparams:
             max_depth = int(self._hparams["max_depth"])
@@ -68,6 +68,7 @@ class LightGBMRegressorABC(PredictiveModel):
             # n_estimators=hp.quniform("n_estimators", 50, 1500, 50),
             max_depth=max_depth,
             num_leaves=num_leaves,
+            # early_stopping_rounds=0,
             min_child_samples=hp.quniform("min_child_samples", 15, 100, 1),
             subsample=hp.uniform("subsample", 0.5, 1.0),
             # colsample_bytree=hp.uniform("colsample_bytree", 0.1, 1.0),
@@ -87,6 +88,7 @@ class LightGBMRegressorABC(PredictiveModel):
             # Default hyperparameters for LightGBM
             "learning_rate": 0.1,
             "n_estimators": 2000,
+            "early_stopping_rounds": 200,
             "max_depth": 6,
             "min_child_samples": 20,
             "subsample": 1.0,
