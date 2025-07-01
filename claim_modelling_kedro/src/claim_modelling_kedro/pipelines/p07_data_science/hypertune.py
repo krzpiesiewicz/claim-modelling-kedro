@@ -18,6 +18,8 @@ from tabulate import tabulate
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.hp_config import HyperoptAlgoEnum, HypertuneValidationEnum
+from claim_modelling_kedro.pipelines.p01_init.hp_space_config import build_hyperopt_space, hyperopt_space_to_config, \
+    hyperopt_space_config_to_yaml
 from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel, save_ds_model_in_mlflow
 from claim_modelling_kedro.pipelines.utils.dataframes import save_pd_dataframe_as_csv_in_mlflow
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
@@ -316,10 +318,46 @@ def fit_model(hparams: Dict[str, any],
     }
 
 
+def get_hparam_space(config: Config, log_space_to_mlflow: bool = False) -> Tuple[PredictiveModel, Metric, Dict[str, Any]]:
+    model = get_class_from_path(config.ds.model_class)(config=config, target_col=config.mdl_task.target_col,
+                                                       pred_col=config.mdl_task.prediction_col)
+    model.update_hparams(config.ds.model_const_hparams)
+    metric = model.metric() if config.ds.hp.metric is None else get_metric_from_enum(config, config.ds.hp.metric,
+                                                                                     pred_col=config.mdl_task.prediction_col)
+    # Check if a custom hyperparameter space is provided in config; otherwise use the model's default
+    if getattr(config.ds.hp, "space", None) is not None:
+        logger.info("Using custom hyperparameter space from config.ds.hp.space.")
+        hparam_space = build_hyperopt_space(config.ds.hp.space)
+    else:
+        logger.info("Using default hyperparameter space from the model class.")
+        hparam_space = model.get_hparams_space()
+    excluded = config.ds.hp.excluded_params + list(config.ds.model_const_hparams.keys())
+    logger.info(f"Excluded hyperparameters: " + (str(excluded) if excluded else "-"))
+    excluded_values = {k: hparam_space[k] for k in excluded if k in hparam_space}
+    if excluded_values:
+        msg = "Values of excluded hyperparameters:\n" + "\n".join(f"  - {k}: {v}" for k, v in excluded_values.items())
+        logger.info(msg)
+    const_hparams = list(config.ds.model_const_hparams.keys())
+    logger.info(f"Constant hyperparameters: {const_hparams}")
+    for hparam in excluded:
+        if hparam in hparam_space:
+            hparam_space.pop(hparam)
+    if hparam_space is None or len(hparam_space) == 0:
+        raise Exception(f"No hyperparameter space defined for {config.ds.hp.algo}.")
+    space_config = hyperopt_space_to_config(hparam_space)
+    yaml_content = hyperopt_space_config_to_yaml(space_config)
+    logger.info(f"Hyperparameter space for {config.ds.model.value}:\n{yaml_content}")
+    if log_space_to_mlflow:
+        yaml_file_path = f"{_hypertune_artifact_path}/space.yml"
+        mlflow.log_text(yaml_content, yaml_file_path)
+    return model, metric, hparam_space
+
+
 def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
                    sample_target_df: pd.DataFrame, sample_train_keys: pd.Index,
                    sample_val_keys: pd.Index, part: str, hyperopt_artifact_path: str,
-                   save_best_hparams_in_mlfow: bool = True, cancel_event: Event = None
+                   save_best_hparams_in_mlfow: bool = True, cancel_event: Event = None,
+                   log_space_to_mlflow: bool = False
 ) -> Tuple[Trials, Dict[str, Any], Dict[str, Any]]:
     match config.ds.hp.algo:
         case HyperoptAlgoEnum.TPE:
@@ -328,18 +366,7 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
             hopt_algo = hyperopt.random.suggest
         case _:
             raise ValueError(f"Hyperopt algorithm {config.ds.hp.algo} not supported.")
-    model = get_class_from_path(config.ds.model_class)(config=config, target_col=config.mdl_task.target_col,
-                                                       pred_col=config.mdl_task.prediction_col)
-    model.update_hparams(config.ds.model_const_hparams)
-    metric = model.metric() if config.ds.hp.metric is None else get_metric_from_enum(config, config.ds.hp.metric,
-                                                                                       pred_col=config.mdl_task.prediction_col)
-    hparam_space = model.get_hparams_space()
-    for hparam in config.ds.hp.excluded_params + list(config.ds.model_const_hparams.keys()):
-        if hparam in hparam_space:
-            hparam_space.pop(hparam)
-    if hparam_space is None or len(hparam_space) == 0:
-        raise Exception(f"No hyperparameter space defined for {config.ds.hp.algo}.")
-
+    model, metric, hparam_space = get_hparam_space(config, log_space_to_mlflow=log_space_to_mlflow)
     # Set up the hyperopt validation method - using the sample train and validation keys
     # sample_val_set - use a sample validation set already defined in the sampling process
     # cross_validation - use cross-validation with the sample train and validation keys
@@ -413,7 +440,7 @@ def hypertune_part(config: Config, selected_sample_features_df: pd.DataFrame,
 def process_hypertune_part(config: Config, part: str, selected_sample_features_df: Dict[str, pd.DataFrame],
                            sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
                            sample_val_keys: Dict[str, pd.Index], save_best_hparams_in_mlflow: bool,
-                           parent_mlflow_run_id: str = None, cancel_event: Event = None
+                           parent_mlflow_run_id: str = None, cancel_event: Event = None,
                            ) -> Tuple[str, Dict[str, Any], Dict[str, Any]]:
     try:
         selected_sample_features_part_df = get_partition(selected_sample_features_df, part)
@@ -423,11 +450,12 @@ def process_hypertune_part(config: Config, part: str, selected_sample_features_d
         mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mlflow_run_id=parent_mlflow_run_id)
         logger.info(f"Tuning the hyper parameters of the predictive model on partition '{part}' of the sample dataset...")
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
+            log_space_to_mlflow = mlflow_subrun_id != parent_mlflow_run_id
             trials, best_trial, best_hparams_part = hypertune_part(
                 config, selected_sample_features_part_df, sample_target_part_df,
                 sample_train_keys_part, sample_val_keys_part, part=part,
                 hyperopt_artifact_path=f"{_hypertune_artifact_path}",
-                cancel_event=cancel_event
+                cancel_event=cancel_event, log_space_to_mlflow=log_space_to_mlflow
             )
             msg = create_hyperopt_result_message(trials, best_trial, part=part, is_best=True, max_evals=config.ds.hp.max_evals)
             msg += f"\nThe best hyperparameters for partition '{part}':\n"
@@ -454,6 +482,7 @@ def hypertune(config: Config, selected_sample_features_df: Dict[str, pd.DataFram
     manager = Manager()
     cancel_event = manager.Event()
     mlflow_run_id = mlflow.active_run().info.run_id
+    _ = get_hparam_space(config, log_space_to_mlflow=True) # only to log the hyperparameter space to MLFlow
     with ProcessPoolExecutor(max_workers=min(parts_cnt, 10)) as executor:
         futures = {
             executor.submit(process_hypertune_part, config, part, selected_sample_features_df, sample_target_df,
