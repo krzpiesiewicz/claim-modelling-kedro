@@ -12,7 +12,7 @@ import pandas as pd
 from tabulate import tabulate
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p01_init.ds_config import HypertuneValidationEnum
+from claim_modelling_kedro.pipelines.p01_init.hp_config import HypertuneValidationEnum
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum
 from claim_modelling_kedro.pipelines.utils.dataframes import (
     preds_as_dataframe_with_col_name,
@@ -182,7 +182,7 @@ def fit_transform_predictive_model_part(config: Config, selected_sample_features
                                         sample_target_df: pd.DataFrame, sample_train_keys: pd.Index,
                                         sample_val_keys: pd.Index, best_hparams: Dict[str, Any], part: str,
                                         mlflow_run_id: str) -> pd.DataFrame:
-    if config.ds.hopt_enabled and config.ds.hopt_validation_method == HypertuneValidationEnum.SAMPLE_VAL_SET:
+    if config.ds.hp.enabled and config.ds.hp.validation_method == HypertuneValidationEnum.SAMPLE_VAL_SET:
         # use the best model from the hypertuning
         logger.info(f"Using the best model from hypertuning for partition '{part}' - loading the model from mlflow...")
         model = load_ds_model_from_mlflow(mlflow_run_id=mlflow_run_id)

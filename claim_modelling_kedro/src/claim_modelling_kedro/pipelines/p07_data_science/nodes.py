@@ -21,7 +21,7 @@ def fit_target_transformer(config: Config, sample_target_df: Dict[str, pd.DataFr
 def fit_features_selector(config: Config, transformed_sample_features_df: Dict[str, pd.DataFrame],
                           transformed_sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
                           sample_val_keys: Dict[str, pd.Index]) -> Dict[str, pd.DataFrame]:
-    if config.ds.fs_enabled:
+    if config.ds.fs.enabled:
         return fit_transform_features_selector(config, transformed_sample_features_df, transformed_sample_target_df, sample_train_keys, sample_val_keys)
     return transformed_sample_features_df
 
@@ -29,7 +29,7 @@ def fit_features_selector(config: Config, transformed_sample_features_df: Dict[s
 def tune_hyper_parameters(config: Config, selected_sample_features_df: Dict[str, pd.DataFrame],
                           transformed_sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
                           sample_val_keys: Dict[str, pd.Index]) -> Dict[str, Dict[str, Any]]:
-    if config.ds.hopt_enabled:
+    if config.ds.hp.enabled:
         return hypertune(config, selected_sample_features_df, transformed_sample_target_df, sample_train_keys, sample_val_keys)
     return {part: config.ds.model_const_hparams for part in selected_sample_features_df.keys()}
 

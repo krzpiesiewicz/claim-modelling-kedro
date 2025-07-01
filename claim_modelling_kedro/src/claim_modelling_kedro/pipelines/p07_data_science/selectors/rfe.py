@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 class RecursiveFeatureEliminationSelector(SelectorModel):
     def __init__(self, config: Config):
         super().__init__(config=config)
-        if "estimator_kwargs" in config.ds.fs_params:
-            self.estimator_kwargs = config.ds.fs_params["estimator_kwargs"]
+        if "estimator_kwargs" in config.ds.fs.params:
+            self.estimator_kwargs = config.ds.fs.params["estimator_kwargs"]
         if self.estimator_kwargs is None:
             self.estimator_kwargs = {}
         self.estimator = get_class_from_path(config.ds.model_class)(config=config,

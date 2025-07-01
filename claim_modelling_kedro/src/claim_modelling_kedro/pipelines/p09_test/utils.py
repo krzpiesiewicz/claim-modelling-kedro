@@ -77,7 +77,7 @@ def run_eval_pipeline(
     transformed_features = transform_features_by_mlflow_model(
         config, features_wo_outliers, mlflow_run_id=config.de.mlflow_run_id
     )
-    if config.ds.fs_enabled:
+    if config.ds.fs.enabled:
         selected_features = select_features_by_mlflow_model(
             config, transformed_features, mlflow_run_id=config.ds.mlflow_run_id
         )

@@ -27,9 +27,9 @@ class SelectorModel(ABC):
     def __init__(self, config: Config):
         self.config = config
         self.target_col = config.mdl_task.target_col
-        self.max_n_features = config.ds.fs_max_n_features
-        self.min_importance = config.ds.fs_min_importance
-        self.max_iter = config.ds.fs_max_iter
+        self.max_n_features = config.ds.fs.max_n_features
+        self.min_importance = config.ds.fs.min_importance
+        self.max_iter = config.ds.fs.max_iter
         self._features_importance = None
         self._selected_features = None
 
@@ -99,7 +99,7 @@ def select_features_by_mlflow_model(config: Config, transformed_features_df: Dic
 def fit_transform_features_selector_part(config: Config, transformed_sample_features_df: pd.DataFrame,
                                          sample_target_df: pd.DataFrame, sample_train_keys: pd.Index,
                                          sample_val_keys: pd.Index, part: str) -> pd.DataFrame:
-    selector = get_class_from_path(config.ds.fs_model_class)(config=config)
+    selector = get_class_from_path(config.ds.fs.model_class)(config=config)
     logger.info(f"Fitting the features selector for partition '{part}'...")
     selector.fit(transformed_sample_features_df, sample_target_df, sample_train_keys=sample_train_keys, sample_val_keys=sample_val_keys)
     logger.info(f"Fitted the features selector for partition '{part}'.")
