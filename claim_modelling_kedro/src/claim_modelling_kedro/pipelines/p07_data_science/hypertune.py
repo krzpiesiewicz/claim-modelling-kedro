@@ -199,7 +199,7 @@ def process_fold(config: Config, fold: str, train_keys_cv: Dict[str, pd.Index], 
     val_predictions_df = model.predict(selected_sample_features_df.loc[val_keys, :])
 
     train_score = metric.eval(sample_target_df.loc[train_keys, :], train_predictions_df)
-    val_score = metric.eval(sample_target_df.loc[train_keys, :], val_predictions_df)
+    val_score = metric.eval(sample_target_df.loc[val_keys, :], val_predictions_df)
 
     return train_score, val_score, model
 
