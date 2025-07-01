@@ -7,7 +7,7 @@ import mlflow
 import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p07_data_science.model import get_sample_weight
+from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
 from claim_modelling_kedro.pipelines.utils.concentration_curve import plot_mean_concentration_curve, \
     plot_concentration_curve
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition

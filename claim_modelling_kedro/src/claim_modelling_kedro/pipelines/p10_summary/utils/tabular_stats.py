@@ -7,7 +7,7 @@ import numpy as np
 from typing import List, Optional, Dict, Union
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p07_data_science.model import get_sample_weight
+from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
 from claim_modelling_kedro.pipelines.utils.dataframes import ordered_by_pred_and_hashed_index
 
 logger = logging.getLogger(__name__)
@@ -196,15 +196,18 @@ def create_average_prediction_group_summary(
         df["bias_deviation"] = df["mean_target"] - df["mean_pred"]
         df["mean_overpricing"] = np.max([df["mean_target"], df["mean_pred"]], axis=0) - df["mean_target"]
         df["mean_underpricing"] = df["mean_target"] - np.min([df["mean_target"], df["mean_pred"]], axis=0)
+        df["abs_bias_deviation"] = np.abs(df["bias_deviation"])
     avg_stats_df = pd.concat(summary_df).groupby(level=0).mean()
     avg_stats_df["std_of_mean_pred"] = pd.concat(summary_df).mean_pred.groupby(level=0).std()
     avg_stats_df["std_of_mean_target"] = pd.concat(summary_df).mean_target.groupby(level=0).std()
     avg_stats_df["std_of_bias_deviation"] = pd.concat(summary_df).bias_deviation.groupby(level=0).std()
     avg_stats_df["std_of_mean_overpricing"] = pd.concat(summary_df).mean_overpricing.groupby(level=0).std()
     avg_stats_df["std_of_mean_underpricing"] = pd.concat(summary_df).mean_underpricing.groupby(level=0).std()
+    avg_stats_df["std_of_abs_bias_deviation"] = pd.concat(summary_df).abs_bias_deviation.groupby(level=0).std()
     avg_stats_df["rel_bias_deviation"] = df["bias_deviation"] / df["mean_target"]
     avg_stats_df["rel_mean_overpricing"] = df["mean_overpricing"] / df["mean_target"]
     avg_stats_df["rel_mean_underpricing"] = df["mean_underpricing"] / df["mean_target"]
+    avg_stats_df["rel_abs_bias_deviation"] = df["abs_bias_deviation"] / df["mean_target"]
 
     # Save and log the averaged summary DataFrame as a CSV file to MLflow
     with tempfile.TemporaryDirectory() as temp_dir:

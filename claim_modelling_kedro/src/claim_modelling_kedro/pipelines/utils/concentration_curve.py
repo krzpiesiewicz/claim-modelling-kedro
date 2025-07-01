@@ -38,6 +38,12 @@ def calculate_concentration_curve_parts(
         - Colinear points are merged to simplify the curve representation.
     """
     # Sort data by y_pred and handle ties using hashed index
+    if isinstance(y_true, np.ndarray):
+        y_true = pd.Series(y_true)
+    if isinstance(y_pred, np.ndarray):
+        y_pred = pd.Series(y_pred)
+    if isinstance(sample_weight, np.ndarray):
+        sample_weight = pd.Series(sample_weight)
     y_true, y_pred, sample_weight = ordered_by_pred_and_hashed_index(y_true, y_pred, sample_weight)
 
     # Convert inputs to NumPy arrays for faster processing

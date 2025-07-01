@@ -8,7 +8,7 @@ from tabulate import tabulate
 import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p07_data_science.model import get_sample_weight
+from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
 from claim_modelling_kedro.pipelines.utils.stratified_cv_split import get_stratified_train_calib_test_cv
 from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_calib_test_split_keys
 

@@ -263,8 +263,9 @@ data_science:
       PyGLMNetGammaGLM:
         - solver
   model:
-    model: PyGLMNetGammaGLM # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
+    model: LightGBMGammaRegressor # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
     # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM', 'PyGLMNetPoissonGLM', 'PyGLMNetGammaGLM',
+    # 'LightGBMPoissonRegressor', 'LightGBMGammaRegressor', 'LightGBMTweedieRegressor'
     model_class: # model_class: str, e.g.,
                  # model_class: claim_modelling_kedro.pipelines.p07_data_science.models.SklearnPoissonGLM
                  # if empty, the model class is inferred from the parameter model.model
@@ -299,6 +300,15 @@ data_science:
         max_iter: 620.0
         reg_lambda: 7.539218714111269e-05
         tol: 3.216445376073702e-07
+      LightGBMGammaRegressor:
+#        colsample_bytree: 0.6891196434854645
+#        learning_rate: 0.037440280667384564
+#        max_depth: 4.0
+#        min_child_samples: 40.0
+#        n_estimators: 410.0
+##        reg_alpha: 0.0007428382076432981
+#        reg_lambda: 0.08310265814767956
+#        subsample: 0.7210771337355122
 
 
 calibration:
@@ -309,8 +319,6 @@ calibration:
     lower_bound:
     upper_bound:
   method: IsotonicRegression # the method of calibrating pure predictions of data science model from the previous stage
-    # 'IsotonicRegression', 'CenteredIsotonicRegression', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM'
-    # 'LocalStatsmodelsGLM', 'EqualBinsMeans', 'LocalPolynomialRegression'
   # 'Pure', 'IsotonicRegression', 'CenteredIsotonicRegression',
   # 'LocalStatsmodelsGLM', 'EqualBinsMeans', 'LocalPolynomialRegression'
   # 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM'
