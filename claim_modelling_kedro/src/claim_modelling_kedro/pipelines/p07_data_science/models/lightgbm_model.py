@@ -95,8 +95,10 @@ class LightGBMRegressorABC(PredictiveModel):
             "reg_lambda": 0.0,
             "random_state": 0,
             "val_size": 0.25,
+            "random_state": 0,
             "force_col_wise": True,
-            "early_stopping_rounds": 50,
+            "deterministic": True,
+            "verbose": -1,  # Suppress LightGBM's own logging
             "objective": None,  # to be set in child classes
             "eval_metric": None,  # to be set in child classes
         }
@@ -156,6 +158,12 @@ class LightGBMRegressorABC(PredictiveModel):
         if "sample_weight" in fit_kwargs:
             fit_kwargs["eval_sample_weight"] = [fit_kwargs["sample_weight"].loc[sample_val_keys]]
             fit_kwargs["sample_weight"] = fit_kwargs["sample_weight"].loc[sample_train_keys]
+
+        import numpy as np
+        import random
+        np.random.seed(self._random_state)
+        random.seed(self._random_state)
+
         self.model = LGBMRegressor(**lgbm_params)
         self.model.fit(X_train, y_train, **fit_kwargs)
         # Set feature importance after fitting
