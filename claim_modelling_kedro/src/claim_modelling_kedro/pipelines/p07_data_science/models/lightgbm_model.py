@@ -60,15 +60,12 @@ class LightGBMRegressorABC(PredictiveModel):
 
     @classmethod
     def get_hparams_space(cls) -> Dict[str, Any]:
-        max_depth = hp.quniform("max_depth", 2, 10, 1)
-        num_leaves = hp.quniform("num_leaves", 2, 50, 1)
-        boosting_types = ["gbdt"]
         space = dict(
             learning_rate=hp.uniform("learning_rate", 0.001, 0.5),
-            # n_estimators=hp.quniform("n_estimators", 50, 1500, 50),
-            max_depth=max_depth,
-            num_leaves=num_leaves,
-            # early_stopping_rounds=0,
+            n_estimators=hp.quniform("n_estimators", 50, 1500, 50),
+            max_depth=hp.quniform("max_depth", 2, 10, 1),
+            num_leaves=hp.quniform("num_leaves", 2, 50, 1),
+            early_stopping_rounds=0,
             min_child_samples=hp.quniform("min_child_samples", 15, 100, 1),
             subsample=hp.uniform("subsample", 0.5, 1.0),
             colsample_bytree=hp.uniform("colsample_bytree", 0.1, 1.0),
@@ -76,9 +73,8 @@ class LightGBMRegressorABC(PredictiveModel):
             reg_alpha=hp.loguniform("reg_alpha", np.log(1e-5), np.log(10)),
             reg_lambda=hp.loguniform("reg_lambda", np.log(1e-5), np.log(10)),
             min_split_gain=hp.uniform("min_split_gain", 0.5, 1.0), # test different ranges
-            # min_child_weight=hp.loguniform("min_child_weight", np.log(0.001), np.log(100)),
             max_bin=hp.quniform("max_bin", 8, 256, 4),
-            boosting_type=hp.choice("boosting_type", boosting_types),
+            boosting_type=hp.choice("boosting_type", ["gbdt", "dart", "goss"]),
         )
         return space
 
