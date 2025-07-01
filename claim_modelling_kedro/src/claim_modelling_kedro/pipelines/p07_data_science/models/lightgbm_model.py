@@ -96,7 +96,6 @@ class LightGBMRegressorABC(PredictiveModel):
             "feature_fraction": 1.0,
             "reg_alpha": 0.0,
             "reg_lambda": 0.0,
-            "random_state": 0,
             "val_size": 0.25,
             "random_state": 0,
             "force_col_wise": True,
@@ -119,7 +118,6 @@ class LightGBMRegressorABC(PredictiveModel):
         lgbm_params = self.get_hparams().copy()
         lgbm_params.pop("eval_metric", None)
         lgbm_params.pop("val_size", None)
-        # Usuwamy tol i greater_is_better całkowicie, nie przekazujemy ich do modelu
         eval_metric = self._hparams.get("eval_metric", None)
         if eval_metric == "cc_gini":
             from claim_modelling_kedro.pipelines.utils.metrics.gini import ConcentrationCurveGiniIndex
