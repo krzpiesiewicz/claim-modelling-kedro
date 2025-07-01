@@ -7,6 +7,7 @@ from hyperopt import hp
 from lightgbm import LGBMRegressor
 
 from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel
+from claim_modelling_kedro.pipelines.utils.metrics import NormalizedConcentrationCurveGiniIndex
 from claim_modelling_kedro.pipelines.utils.metrics.metric import MeanPoissonDeviance, MeanGammaDeviance, \
     MeanTweedieDeviance
 from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_test_split_keys
@@ -124,8 +125,7 @@ class LightGBMRegressorABC(PredictiveModel):
             pred_col = self.pred_col
 
             def cc_gini_metric(y_true, y_pred, sample_weight=None):
-                metric = ConcentrationCurveGiniIndex(config, pred_col=pred_col)
-                assert sample_weight is not None
+                metric = NormalizedConcentrationCurveGiniIndex(config, pred_col=pred_col)
                 value = metric.eval(y_true, y_pred, sample_weight=sample_weight)
                 is_larger_better = metric.is_larger_better()
                 return "cc_gini", value if is_larger_better else -value, is_larger_better
