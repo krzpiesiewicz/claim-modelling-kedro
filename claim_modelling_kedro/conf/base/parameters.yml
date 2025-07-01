@@ -251,6 +251,65 @@ data_science:
         val_size: 0.25 # the part of data used for validation – used only if cross_validation.enabled is False
         n_repeats: 10 # the number of times the data is split into train and validation sets
         random_seed: 0 # the random seed for stratified splitting the data into train and validation sets
+    params_space: # the space of hyperparameters to optimize
+      LightGBMGammaRegressor:
+        learning_rate:
+          type: uniform
+          low: 0.001
+          high: 0.5
+        n_estimators:
+          type: quniform
+          low: 50
+          high: 1500
+          q: 50
+        max_depth:
+          type: quniform
+          low: 2
+          high: 10
+          q: 1
+        num_leaves:
+          type: quniform
+          low: 2
+          high: 50
+          q: 1
+        early_stopping_rounds: 0
+        min_child_samples:
+          type: quniform
+          low: 15
+          high: 100
+          q: 1
+        subsample:
+          type: uniform
+          low: 0.5
+          high: 1.0
+        colsample_bytree:
+          type: uniform
+          low: 0.1
+          high: 1.0
+        feature_fraction:
+          type: uniform
+          low: 0.5
+          high: 1.0
+        reg_alpha:
+          type: loguniform
+          low: 1e-5
+          high: 10
+        reg_lambda:
+          type: loguniform
+          low: 1e-5
+          high: 10
+        min_split_gain:
+          type: uniform
+          low: 0.5
+          high: 1.0
+        max_bin:
+          type: quniform
+          low: 8
+          high: 256
+          q: 4
+        boosting_type: # 'gbdt', 'dart', 'goss', 'rf'
+          type: choice
+          values: ['gbdt']
     excluded_params:
       SklearnPoissonGLM:
         - solver
