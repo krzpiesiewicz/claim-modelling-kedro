@@ -60,6 +60,8 @@ ________________________________________________________________________________
 
 ./run_experiment.sh sev_009_pyglmnet_hyperopt all_to_test --other-pipeline smpl_to_test
 
+'f547a891694f4125bfeb58ef2b4f9554', 'af1078e042d64481b3e3f394c3d63879', '06bf905ecc12468aa4a4ea46cb7cbedb', '826bd3f1577445afbd23fa20492209d7', '9d751b25bb174c33900e3bd84d7ebc70'
+'620f4fa81a24450eaab6765b5c2471ac', '1ac95fd32d3f4bcc89006bdb3846d72d', '307a912eb4704b7c9fa9bb38eb72df37', '7db4e0707d0544fba44f111f45951481', '3ac1df5097084ec48c8daddc35b47e72'
 
 ./run_experiment.sh sev_010_calibration_sev_007_run_0001 all_to_smpl --run-name run_0001_no_calib
 
