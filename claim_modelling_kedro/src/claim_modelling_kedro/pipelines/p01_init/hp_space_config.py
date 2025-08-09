@@ -104,8 +104,12 @@ class HyperOptSpaceConfig:
                     self.space[param] = QUniformSpace(conf["low"], conf["high"], conf["q"])
                 elif t == "loguniform":
                     self.space[param] = LogUniformSpace(conf["low"], conf["high"])
-                elif t == "choice":
-                    self.space[param] = ChoiceSpace(conf["values"])
+                elif t == "choice" or t == "switch":
+                    values = conf.get("values", None)
+                    if not isinstance(values, list) or len(values) == 0:
+                        # Zamień pojedynczą wartość na listę
+                        values = [values] if values is not None else []
+                    self.space[param] = ChoiceSpace(values)
                 else:
                     raise HyperOptSpaceConfigError(f"Unknown space type: {t} for parameter {param}")
             else:
@@ -172,9 +176,8 @@ def hyperopt_space_to_config(space: Dict[str, Any]) -> HyperOptSpaceConfig:
                 params[param] = {"type": "quniform", "low": float(args[1]), "high": float(args[2]), "q": float(args[3])}
             elif fn == "loguniform":
                 params[param] = {"type": "loguniform", "low": float(args[1]), "high": float(args[2])}
-            elif fn == "choice":
-                # args[1] is a list of values
-                params[param] = {"type": "choice", "values": args[1]}
+            elif fn == "choice" or fn == "switch":
+                params[param] = {"type": fn, "values": args[1]}
             elif fn in ("float", "int", "str"):
                 # This is a constant value (float/int/str) or a hyperopt_param generator
                 value = args[0]
@@ -303,8 +306,8 @@ def _resolve_hyperopt_constant(param, fn, value):
                     return {"type": "quniform", "low": float(_extract_literal_value(gen_args[0])), "high": float(_extract_literal_value(gen_args[1])), "q": float(_extract_literal_value(gen_args[2]))}
                 elif gen_fn == "loguniform":
                     return {"type": "loguniform", "low": float(_extract_literal_value(gen_args[0])), "high": float(_extract_literal_value(gen_args[1]))}
-                elif gen_fn == "choice":
-                    return {"type": "choice", "values": _extract_literal_value(gen_args[1])}
+                elif gen_fn == "choice" or gen_fn == "switch":
+                    return {"type": gen_fn, "values": _extract_literal_value(gen_args[1])}
                 else:
                     raise HyperOptSpaceConfigError(f"Unsupported generator type in hyperopt_param for parameter {param}: {gen_fn}")
             else:
