@@ -92,6 +92,7 @@ class LightGBMRegressorABC(PredictiveModel):
             "feature_fraction": 1.0,
             "reg_alpha": 0.0,
             "reg_lambda": 0.0,
+            "boosting_type": "gbdt",
             "val_size": 0.25,
             "random_state": 0,
             "force_col_wise": True,
