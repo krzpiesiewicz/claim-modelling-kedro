@@ -201,7 +201,7 @@ data_science:
     overfit_penalty: 1 # the penalty for overfitting (>= 0) added to hyperopt loss; penalty = overfit_penalty * max(0, loss_val - loss_train)
                          # where loss_{set} = -metric_{set} if large is better else metric_{set}
                          # if overfit_penalty == 0, then no penalty is applied
-    max_evals: 30 # the maximum number of evaluations
+    max_evals: 2 # the maximum number of evaluations
     early_stopping:
       enabled: True # whether to use early stopping
       iteration_stop_count: 50 # the number of trials after which the optimization is stopped if no improvement is observed
@@ -232,12 +232,11 @@ data_science:
           type: uniform
           low: 0.001
           high: 0.5
-        n_estimators: 1000
-#        n_estimators:
-#          type: quniform
-#          low: 50
-#          high: 1500
-#          q: 50
+        n_estimators:
+          type: quniform
+          low: 50
+          high: 1500
+          q: 50
         max_depth:
           type: quniform
           low: 2
@@ -248,12 +247,11 @@ data_science:
           low: 2
           high: 30
           q: 1
-        early_stopping_rounds: 50
-#        early_stopping_rounds:
-#          type: quniform
-#          low: 40
-#          high: 100
-#          q: 5
+        early_stopping_rounds:
+          type: quniform
+          low: 40
+          high: 100
+          q: 5
         min_child_samples:
           type: quniform
           low: 10
@@ -267,11 +265,10 @@ data_science:
           type: uniform
           low: 0.1
           high: 1.0
-        feature_fraction: 1
-#        feature_fraction:
-#          type: uniform
-#          low: 0.5
-#          high: 1.0
+        feature_fraction:
+          type: uniform
+          low: 0.5
+          high: 1.0
         reg_alpha:
           type: loguniform
           low: 1e-6
@@ -289,10 +286,12 @@ data_science:
           low: 8
           high: 512
           q: 4
-        boosting_type: gbdt # 'gbdt', 'dart', 'goss', 'rf'
-#          type: choice
-#          values: ['gbdt', 'dart']
+        boosting_type: # 'gbdt', 'dart', 'goss', 'rf'
+          type: choice
+          values: ['gbdt', 'dart']
     excluded_params:
+      LightGBMGammaRegressor:
+        - boosting_type
   model:
     model: LightGBMGammaRegressor # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
     # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM', 'PyGLMNetPoissonGLM', 'PyGLMNetGammaGLM',
@@ -303,6 +302,10 @@ data_science:
     const_hparams:
       LightGBMGammaRegressor:
         eval_metric: cc_gini # 'poisson', 'gamma', 'tweedie', 'cc_gini', gamma_deviance
+        n_estimators: 1000
+#        boosting_type: gbdt
+        feature_fraction: 1.0
+        early_stopping_rounds: 50
 #        colsample_bytree: 0.6891196434854645
 #        learning_rate: 0.037440280667384564
 #        max_depth: 4.0
