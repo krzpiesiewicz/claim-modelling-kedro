@@ -140,7 +140,7 @@ class PredictiveModel(ABC):
     def get_hparams(self) -> Dict[str, Any]:
         hparams = self.get_default_hparams()
         hparams.update(self._hparams)
-        return hparams
+        return hparams.copy()
 
     def update_hparams(self, hparams: Dict[str, Any] = None, call_updated_hparams: bool = True, **kwargs):
         _current_hparams = self._hparams or {}
