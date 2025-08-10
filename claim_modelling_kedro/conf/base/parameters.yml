@@ -257,11 +257,12 @@ data_science:
           type: uniform
           low: 0.001
           high: 0.5
-        n_estimators:
-          type: quniform
-          low: 50
-          high: 1500
-          q: 50
+        n_estimators: 1000
+#        n_estimators:
+#          type: quniform
+#          low: 50
+#          high: 1500
+#          q: 50
         max_depth:
           type: quniform
           low: 2
@@ -270,46 +271,52 @@ data_science:
         num_leaves:
           type: quniform
           low: 2
-          high: 50
+          high: 30
           q: 1
-        early_stopping_rounds: 0
+        early_stopping_rounds: 50
+#        early_stopping_rounds:
+#          type: quniform
+#          low: 40
+#          high: 100
+#          q: 5
         min_child_samples:
           type: quniform
-          low: 15
+          low: 10
           high: 100
           q: 1
         subsample:
           type: uniform
-          low: 0.5
+          low: 0.1
           high: 1.0
         colsample_bytree:
           type: uniform
           low: 0.1
           high: 1.0
-        feature_fraction:
-          type: uniform
-          low: 0.5
-          high: 1.0
+        feature_fraction: 1
+#        feature_fraction:
+#          type: uniform
+#          low: 0.5
+#          high: 1.0
         reg_alpha:
           type: loguniform
-          low: 1e-5
-          high: 10
+          low: 1e-6
+          high: 2
         reg_lambda:
           type: loguniform
-          low: 1e-5
-          high: 10
+          low: 1e-6
+          high: 2
         min_split_gain:
           type: uniform
-          low: 0.5
+          low: 0.1
           high: 1.0
         max_bin:
           type: quniform
           low: 8
-          high: 256
+          high: 512
           q: 4
-        boosting_type: # 'gbdt', 'dart', 'goss', 'rf'
-          type: choice
-          values: ['gbdt']
+        boosting_type: gbdt # 'gbdt', 'dart', 'goss', 'rf'
+#          type: choice
+#          values: ['gbdt', 'dart']
     excluded_params:
       SklearnPoissonGLM:
         - solver
@@ -360,7 +367,7 @@ data_science:
         reg_lambda: 7.539218714111269e-05
         tol: 3.216445376073702e-07
       LightGBMGammaRegressor:
-#        eval_metric: gamma # 'poisson', 'gamma', 'tweedie', 'cc_gini', gamma_deviance
+        eval_metric: cc_gini # 'poisson', 'gamma', 'tweedie', 'cc_gini', gamma_deviance
 #        colsample_bytree: 0.6891196434854645
 #        learning_rate: 0.037440280667384564
 #        max_depth: 4.0
