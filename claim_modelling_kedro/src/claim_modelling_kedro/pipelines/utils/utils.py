@@ -79,6 +79,8 @@ def convert_np_to_native(obj):
         return int(obj)
     elif isinstance(obj, np.floating):
         return float(obj)
+    elif isinstance(obj, np.generic):
+        return obj.item()
     elif isinstance(obj, np.ndarray):
         return obj.tolist()  # Convert arrays to lists
     elif isinstance(obj, dict):
