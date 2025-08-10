@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List
+from typing import Dict, List, Any
 
 from claim_modelling_kedro.pipelines.p01_init.hp_space_config import HyperOptSpaceConfig
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum
@@ -40,7 +40,7 @@ class HypertuneConfig:
     excluded_params: List[str]
     space: HyperOptSpaceConfig
 
-    def __init__(self, params: Dict, smpl: SamplingConfig, model_name: str):
+    def __init__(self, params: Dict, smpl: SamplingConfig, model_name: str, model_const_hparams: Dict[str, Any]):
         self.enabled = params["enabled"]
         if self.enabled:
             self.metric = MetricEnum(params["metric"]) if params["metric"] is None or params["metric"] != "auto" else None
@@ -82,7 +82,8 @@ class HypertuneConfig:
             if (params["params_space"] is not None
                     and model_name in params["params_space"]
                     and params["params_space"][model_name] is not None):
-                self.space = HyperOptSpaceConfig(params["params_space"][model_name], excluded_params=self.excluded_params)
+                self.space = HyperOptSpaceConfig(params["params_space"][model_name], excluded_params=self.excluded_params,
+                                                 const_params=model_const_hparams)
             else:
                 self.space = None
         else:

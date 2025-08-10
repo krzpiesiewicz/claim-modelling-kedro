@@ -89,12 +89,15 @@ class HyperOptSpaceConfig:
     """
     space: Dict[str, HyperParamSpaceType] = field(default_factory=dict)
     excluded_params: List[str] = field(default_factory=list)
+    model_const_params: Dict[str, Any] = field(default_factory=dict)
 
-    def __init__(self, params: Dict[str, Any], excluded_params: Optional[List[str]] = None):
+    def __init__(self, params: Dict[str, Any], excluded_params: List[str] = None,
+                 const_params: Dict[str, Any] = None):
         self.space = {}
         self.excluded_params = excluded_params or []
+        self.model_const_params = const_params or {}
         for param, conf in params.items():
-            if param in self.excluded_params:
+            if param in self.excluded_params or param in self.model_const_params:
                 continue
             if isinstance(conf, dict) and "type" in conf:
                 t = conf["type"]
@@ -107,7 +110,7 @@ class HyperOptSpaceConfig:
                 elif t == "choice" or t == "switch":
                     values = conf.get("values", None)
                     if not isinstance(values, list) or len(values) == 0:
-                        # Zamień pojedynczą wartość na listę
+                        # Convert single value to a list
                         values = [values] if values is not None else []
                     self.space[param] = ChoiceSpace(values)
                 else:
@@ -115,7 +118,9 @@ class HyperOptSpaceConfig:
             else:
                 # Constant value (e.g. early_stopping_rounds: 0)
                 self.space[param] = ConstSpace(conf)
-        logger.debug(f"Hyperparameter search space: {self.space}")
+        logger.debug(f"Const hyperparameters: {self.model_const_params}\n"
+                     f"Excluded parameters: {self.excluded_params}\n"
+                     f"Hyperparameter search space: {self.space}")
 
 
 def build_hyperopt_space(config: HyperOptSpaceConfig) -> Dict[str, Any]:
@@ -147,7 +152,8 @@ def build_hyperopt_space(config: HyperOptSpaceConfig) -> Dict[str, Any]:
     return space
 
 
-def hyperopt_space_to_config(space: Dict[str, Any]) -> HyperOptSpaceConfig:
+def hyperopt_space_to_config(space: Dict[str, Any],  excluded_params: List[str] = None,
+                             const_params: Dict[str, Any] = None) -> HyperOptSpaceConfig:
     """
     Converts a Hyperopt search space dictionary (e.g., built by build_hyperopt_space) to a HyperOptSpaceConfig object.
 
@@ -188,7 +194,7 @@ def hyperopt_space_to_config(space: Dict[str, Any]) -> HyperOptSpaceConfig:
         else:
             # Could be another type, e.g., a constant number
             params[param] = definition
-    return HyperOptSpaceConfig(params)
+    return HyperOptSpaceConfig(params, excluded_params=excluded_params, const_params=const_params)
 
 
 def hyperopt_space_config_to_yaml(config: HyperOptSpaceConfig) -> str:
@@ -232,11 +238,12 @@ def hyperopt_space_config_to_yaml(config: HyperOptSpaceConfig) -> str:
             const_params[param] = definition.value
         else:
             raise HyperOptSpaceConfigError(f"Unknown hyperparameter space type for parameter '{param}'")
-    out = {
-        "excluded_params": config.excluded_params,
-        "const_params": const_params,
-        "space": space,
-    }
+    logger.debug(f"{const_params=}")
+    const_params.update(config.model_const_params)
+    logger.debug(f"after update {const_params=}")
+    out = {"excluded_params": config.excluded_params} if len(config.excluded_params) > 0 else {}
+    out["const_params"] = const_params
+    out["space"] = space
     return yaml.dump(out, default_flow_style=False, sort_keys=False)
 
 
