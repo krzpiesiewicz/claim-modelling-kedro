@@ -142,7 +142,7 @@ data_engineering:
     strategy: constant # 'mean', 'median', 'most_frequent', 'constant'
     fill_value: 0 # the value used to fill missing values
   scaler:
-    enabled: False # whether to use the scaler
+    enabled: True # whether to use the scaler
     method: StandardScaler # 'StandardScaler', 'MinMaxScaler', 'RobustScaler', 'MaxAbsScaler'
     params:
       StandardScaler:
@@ -155,7 +155,7 @@ data_engineering:
         with_scaling: True # whether to scale the data to unit variance
         quantile_range: [ 25.0, 75.0 ]
   ohe:
-    enabled: False # whether to use the OHE
+    enabled: True # whether to use the OHE
     drop_reference_cat: False # whether to drop the reference category
     drop_first: False # whether to drop the first category if drop_reference_cat is False
     # or the feature does not have a reference category
@@ -164,12 +164,12 @@ data_engineering:
     max_categories: # (int) the maximum number of categories in a feature
     min_frequency: # (int) the minimum frequency of a category in a feature
   polynomial_features:
-    enabled: False # whether to use the polynomial features
+    enabled: True # whether to use the polynomial features
     degree: 2 # (int) the degree of the polynomial features
     interaction_only: False # (bool) whether to include only interaction features
     include_bias: False # (bool) whether to include a bias term
   pca:
-    enabled: False
+    enabled: True
     n_components: 0.99 # (int or float) the number of components to keep or the explained variance ratio to keep
     random_state: 0
 
@@ -223,10 +223,10 @@ data_science:
       # 'spearman_correlation', 'exposure_weighted_spearman_correlation', 'claim_nb_weighted_spearman_correlation'
       # tweedie_deviance(p), where p is a float number, e.g., tweedie_deviance(1.5)
       # exposure_weighted_tweedie_deviance(p) or claim_nb_weighted_tweedie_deviance(p), where p is a float number, e.g., weighted_tweedie_deviance(1.5)
-    overfit_penalty: 0 # the penalty for overfitting (>= 0) added to hyperopt loss; penalty = overfit_penalty * max(0, loss_val - loss_train)
+    overfit_penalty: 0.8 # the penalty for overfitting (>= 0) added to hyperopt loss; penalty = overfit_penalty * max(0, loss_val - loss_train)
                          # where loss_{set} = -metric_{set} if large is better else metric_{set}
                          # if overfit_penalty == 0, then no penalty is applied
-    max_evals: 10 # the maximum number of evaluations
+    max_evals: 30 # the maximum number of evaluations
     early_stopping:
       enabled: True # whether to use early stopping
       iteration_stop_count: 50 # the number of trials after which the optimization is stopped if no improvement is observed
@@ -252,71 +252,35 @@ data_science:
         n_repeats: 10 # the number of times the data is split into train and validation sets
         random_seed: 0 # the random seed for stratified splitting the data into train and validation sets
     params_space: # the space of hyperparameters to optimize
-      LightGBMGammaRegressor:
-        learning_rate:
+      PyGLMNetGammaGLM:
+        alpha:
           type: uniform
-          low: 0.001
-          high: 0.5
-        n_estimators: 1000
-#        n_estimators:
-#          type: quniform
-#          low: 50
-#          high: 1500
-#          q: 50
-        max_depth:
-          type: quniform
-          low: 2
-          high: 10
-          q: 1
-        num_leaves:
-          type: quniform
-          low: 2
-          high: 30
-          q: 1
-        early_stopping_rounds: 50
-#        early_stopping_rounds:
-#          type: quniform
-#          low: 40
-#          high: 100
-#          q: 5
-        min_child_samples:
-          type: quniform
-          low: 10
-          high: 100
-          q: 1
-        subsample:
-          type: uniform
-          low: 0.1
+          low: 0.0
           high: 1.0
-        colsample_bytree:
-          type: uniform
-          low: 0.1
-          high: 1.0
-        feature_fraction: 1
-#        feature_fraction:
-#          type: uniform
-#          low: 0.5
-#          high: 1.0
-        reg_alpha:
-          type: loguniform
-          low: 1e-6
-          high: 2
         reg_lambda:
           type: loguniform
           low: 1e-6
+          high: 100
+        eta:
+          type: loguniform
+          low: 1e-5
           high: 2
-        min_split_gain:
-          type: uniform
-          low: 0.1
-          high: 1.0
-        max_bin:
+        max_iter:
           type: quniform
-          low: 8
-          high: 512
-          q: 4
-        boosting_type: gbdt # 'gbdt', 'dart', 'goss', 'rf'
-#          type: choice
-#          values: ['gbdt', 'dart']
+          low: 50
+          high: 1000
+          q: 10
+        tol:
+          type: loguniform
+          low: 1e-7
+          high: 1e-2
+        fit_intercept:
+          type: choice
+          values: [True, False]
+        learning_rate:
+          type: uniform
+          low: 0.001
+          high: 1
     excluded_params:
       SklearnPoissonGLM:
         - solver
@@ -329,7 +293,7 @@ data_science:
       PyGLMNetGammaGLM:
         - solver
   model:
-    model: LightGBMGammaRegressor # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
+    model: PyGLMNetGammaGLM # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
     # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM', 'PyGLMNetPoissonGLM', 'PyGLMNetGammaGLM',
     # 'LightGBMPoissonRegressor', 'LightGBMGammaRegressor', 'LightGBMTweedieRegressor'
     model_class: # model_class: str, e.g.,
@@ -360,22 +324,12 @@ data_science:
         fit_intercept: True
         random_state: 1 # the random seed for the model
         # parameters from the best severity model:
-        alpha: 0.6399265426981426
-        eta: 0.015594119911448767
-        learning_rate: 0.8597199755338596
-        max_iter: 620.0
-        reg_lambda: 7.539218714111269e-05
-        tol: 3.216445376073702e-07
-      LightGBMGammaRegressor:
-        eval_metric: cc_gini # 'poisson', 'gamma', 'tweedie', 'cc_gini', gamma_deviance
-#        colsample_bytree: 0.6891196434854645
-#        learning_rate: 0.037440280667384564
-#        max_depth: 4.0
-#        min_child_samples: 40.0
-#        n_estimators: 410.0
-##        reg_alpha: 0.0007428382076432981
-#        reg_lambda: 0.08310265814767956
-#        subsample: 0.7210771337355122
+#        alpha: 0.6399265426981426
+#        eta: 0.015594119911448767
+#        learning_rate: 0.8597199755338596
+#        max_iter: 620.0
+#        reg_lambda: 7.539218714111269e-05
+#        tol: 3.216445376073702e-07
 
 
 calibration:
@@ -420,7 +374,7 @@ calibration:
       span:    # (float) the fraction of the data (neighborhood) used for the local polynomial regression
       degree:  # (int >= 0) degree of the polynomial used for local regression
   post_calibration_rebalancing:
-    enabled: False # whether to use the post-calibration
+    enabled: True # whether to use the post-calibration
     method: scale # 'scale' - scale the calibrated predictions to match the total target in the calibration set
 
 
