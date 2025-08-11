@@ -22,6 +22,7 @@ class DataConfig:
     policy_exposure_col: str
     policy_id_col: str
     split_random_seed: int
+    stratify_target_col: str
     cv_enabled: bool
     cv_folds: int
     cv_parts_names: List[str]
