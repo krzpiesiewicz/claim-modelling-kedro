@@ -79,7 +79,7 @@ sampling:
     # if val_set is 'calib_set', then the calib set is used for validation (as sample_val set)
     # if val_set is 'split_train_val', then the sample is split into sample_train and sample_val sets
     split_train_val: # used only if val_set is 'split_train_val'
-      val_size: 0.3 # the part of the sample used for validation
+      val_size: 0.2 # the part of the sample used for validation
       random_seed: 0 # the random seed for splitting the sample into sample_train and sample_val sets
 
 data_engineering:
