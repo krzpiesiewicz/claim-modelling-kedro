@@ -78,10 +78,12 @@ def _get_size_proportion(sample_size: Union[int, float], data_size: int) -> floa
         raise ValueError("Size must be float or int")
 
 
-def get_stratified_train_calib_test_split_keys(
+def _get_stratified_train_calib_test_split_keys(
     target_df: pd.DataFrame,
     stratify_target_col: str,
     test_size: Union[int, float],
+    calib_set_enabled: bool = False,
+    shared_train_calib_set: bool = False,
     shuffle: bool = True,
     random_seed: int = 0,
     verbose: bool = True,
@@ -107,9 +109,10 @@ def get_stratified_train_calib_test_split_keys(
     # Total number of observations
     n = len(target_df)
 
+    # if train/calib set is shared, calib_size is not used
+    calib_size = calib_size if calib_set_enabled and (not shared_train_calib_set) else None
+
     # Compute proportions from sizes
-
-
     p_test = _get_size_proportion(test_size, n)
     p_calib = _get_size_proportion(calib_size, n) if calib_size is not None else 0.0
     p_train = 1.0 - p_test - p_calib
@@ -127,7 +130,10 @@ def get_stratified_train_calib_test_split_keys(
 
     # Extract index masks
     train_keys = bin_labels[bin_labels == 0].index
-    calib_keys = bin_labels[bin_labels == 1].index if calib_size is not None else None
+    if shared_train_calib_set:
+        calib_keys = train_keys
+    else:
+        calib_keys = bin_labels[bin_labels == 1].index if calib_size is not None else pd.Index([])
     test_keys = bin_labels[bin_labels == 2].index if calib_size is not None else bin_labels[bin_labels == 1].index
 
     if verbose:
@@ -143,8 +149,7 @@ def get_stratified_train_calib_test_split_keys(
     if shuffle:
         # Shuffle the keys to ensure randomness
         train_keys = train_keys.to_series().sample(frac=1.0, random_state=random_seed).index
-        if calib_keys is not None:
-            calib_keys = calib_keys.to_series().sample(frac=1.0, random_state=random_seed).index
+        calib_keys = calib_keys.to_series().sample(frac=1.0, random_state=random_seed).index
         test_keys = test_keys.to_series().sample(frac=1.0, random_state=random_seed).index
 
     return train_keys, calib_keys, test_keys
@@ -159,7 +164,7 @@ def get_stratified_sample_keys(target_df: pd.DataFrame, stratify_target_col: str
     # Total number of observations
     n = len(target_df)
     size = _get_size_proportion(size, n)
-    _, _, keys = get_stratified_train_calib_test_split_keys(target_df, stratify_target_col, test_size=size,
+    _, _, keys = _get_stratified_train_calib_test_split_keys(target_df, stratify_target_col, test_size=size,
                                                             shuffle=shuffle, random_seed=random_seed, verbose=verbose,
                                                             sample_weight=sample_weight)
     if shuffle:
@@ -167,12 +172,38 @@ def get_stratified_sample_keys(target_df: pd.DataFrame, stratify_target_col: str
     return keys
 
 
+def get_stratified_train_calib_test_split_keys(
+    target_df: pd.DataFrame,
+    stratify_target_col: str,
+    test_size: Union[int, float],
+    calib_set_enabled: bool,
+    shared_train_calib_set: bool,
+    shuffle: bool = True,
+    random_seed: int = 0,
+    verbose: bool = True,
+    calib_size: Union[int, float] = None,
+    sample_weight: Optional[pd.Series] = None
+) -> Tuple[pd.Index, Optional[pd.Index], pd.Index]:
+    return _get_stratified_train_calib_test_split_keys(
+        target_df=target_df,
+        stratify_target_col=stratify_target_col,
+        test_size=test_size,
+        shuffle=shuffle,
+        random_seed=random_seed,
+        verbose=verbose,
+        calib_set_enabled=calib_set_enabled,
+        shared_train_calib_set=shared_train_calib_set,
+        calib_size=calib_size,
+        sample_weight=sample_weight
+    )
+
 
 def get_stratified_train_test_split_keys(target_df: pd.DataFrame, stratify_target_col: str,
-                                         test_size: Union[int, float], shuffle: bool = True, random_seed: int = 0,
+                                         test_size: Union[int, float],
+                                         shuffle: bool = True, random_seed: int = 0,
                                          verbose: bool = True, sample_weight: Optional[pd.Series] = None
                                          ) -> Tuple[pd.Index, pd.Index]:
-    train_keys, _, test_keys = get_stratified_train_calib_test_split_keys(target_df, stratify_target_col,
+    train_keys, _, test_keys = _get_stratified_train_calib_test_split_keys(target_df, stratify_target_col,
                                                                           test_size=test_size,
                                                                           shuffle=shuffle,
                                                                           random_seed=random_seed,

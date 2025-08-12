@@ -23,6 +23,8 @@ class DataConfig:
     policy_id_col: str
     split_random_seed: int
     stratify_target_col: str
+    calib_set_enabled: bool
+    shared_train_calib_set: bool
     cv_enabled: bool
     cv_folds: int
     cv_parts_names: List[str]
@@ -55,6 +57,9 @@ class DataConfig:
         self.split_random_seed = params["split_random_seed"]
         self.stratify_target_col = params["stratify_target_col"]
 
+        self.calib_set_enabled = params["calib_set"]["enabled"]
+        self.shared_train_calib_set = params["calib_set"]["shared_train_calib_set"]
+
         self.cv_enabled = params["cross_validation"]["enabled"]
         self.cv_mlflow_runs_ids = None
         if self.cv_enabled:
@@ -63,20 +68,32 @@ class DataConfig:
                 raise ValueError("Number of folds should be greater than 1.")
             self.cv_parts_names = list(map(str, range(self.cv_folds)))
             self.test_size = 1 / self.cv_folds
-            self.calib_size = 1 / self.cv_folds
+            if self.calib_set_enabled:
+                self.calib_size = 1 / self.cv_folds if not self.shared_train_calib_set else 1 - self.test_size
+            else:
+                self.calib_size = 0
             self.one_part_key = None
         else:
             self.cv_folds = None
             self.cv_parts_names = None
-            self.calib_size = params["calib_size"]
-            if self.calib_size is None:
-                self.calib_size = 0
-            if self.calib_size < 0:
-                raise ValueError("calib_size should be greater or equal to 0.")
             self.test_size = params["test_size"]
-            if self.test_size + self.calib_size >= 1:
-                raise ValueError("Sum of calib_size and test_size should be less than 1.")
             if self.test_size <= 0:
                 raise ValueError("test_size should be greater than 0.")
+            if self.test_size >= 1:
+                raise ValueError("test_size should be less than 1.")
+            if not self.calib_set_enabled:
+                self.calib_size = 0
+            else:
+                if self.shared_train_calib_set:
+                    self.calib_size = 1 - self.test_size
+                else:
+                    self.calib_size = params["calib_set"]["calib_size"]
+                    if self.calib_size is None:
+                        raise ValueError("calib_size should be provided when calib_set.enabled is True.")
+                    if self.calib_size <= 0:
+                        raise ValueError("calib_size should be greater than 0.")
+                    if self.test_size + self.calib_size >= 1:
+                        raise ValueError("Sum of calib_size and test_size should be less than 1.")
+
             self.one_part_key = "0"
         self.outliers = OutliersConfig(params["outliers"])
