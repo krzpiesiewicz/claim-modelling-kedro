@@ -37,10 +37,10 @@ class Config:
         self.exprmnt = ExperimentInfo(parameters)
         self.data = DataConfig(parameters)
         self.mdl_task = ModelTask(exprmnt=self.exprmnt, data=self.data)
-        self.smpl = SamplingConfig(parameters)
+        self.smpl = SamplingConfig(parameters, data=self.data)
         self.de = DataEngineeringConfig(parameters)
         self.ds = DataScienceConfig(parameters, smpl=self.smpl)
-        self.clb = CalibrationConfig(parameters, mdl_task=self.mdl_task)
+        self.clb = CalibrationConfig(parameters, mdl_task=self.mdl_task, data=self.data)
         self.test = TestConfig(parameters)
         self.summary = SummaryConfig(parameters)
 
