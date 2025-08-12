@@ -181,7 +181,7 @@ def hyperopt_space_to_config(space: Dict[str, Any],  excluded_params: List[str] 
         if isinstance(node, Apply):
             fn = node.name
             args = node.pos_args
-            logger.info(f"Processing hyperopt space for parameter '{param}': {fn} with args {[repr(_unpack_pyll_tree(a)) for a in args]}")
+            logger.debug(f"Processing hyperopt space for parameter '{param}': {fn} with args {[repr(_unpack_pyll_tree(a)) for a in args]}")
             if fn == "uniform":
                 params[param] = {"type": "uniform", "low": float(args[1]), "high": float(args[2])}
             elif fn == "quniform":
