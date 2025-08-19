@@ -50,7 +50,7 @@ def fit_calibration_model(config: Config, pure_sample_predictions_df: Dict[str, 
         # Predict by the pure MLflow model
         pure_calib_predictions_df = predict_by_mlflow_model(config, selected_calib_features_df,
                                                             mlflow_run_id=config.ds.mlflow_run_id)
-        if config.ds.target_transformer_enabled:
+        if config.ds.trg_trans.enabled:
             # Inverse transform the predictions
             pure_calib_predictions_df = inverse_transform_predictions_by_mlflow_model(config, pure_calib_predictions_df,
                                                                                       mlflow_run_id=config.ds.mlflow_run_id)
