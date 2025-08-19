@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List, Union
 
 import numpy as np
 import pandas as pd
@@ -14,44 +14,25 @@ def _get_balanced_folds_labels_by_weighted_target(
         random_seed: int = 0
 ) -> pd.Series:
     """
-    Przypisuje obserwacje do foldów tak, aby sumy weighted_target były możliwie równe.
+    Assigns observations to folds so that the sums of weighted_target are as equal as possible.
+    This function is intended for stratified cross-validation splitting, where the goal is to balance the total weighted target (e.g., weighted sum of a continuous target variable) across all folds.
 
-    Args:
-        target (pd.Series): Ciągła zmienna targetowa (np. średnia szkoda).
-        weights (pd.Series): Wagi obserwacji.
-        n_folds (int): Liczba foldów.
-        random_seed (int): Losowy seed do mieszania identycznych wartości.
+    The assignment is performed by delegating to _get_stratified_bin_labels_by_proportions, which implements a greedy algorithm:
+    - First, observations with positive weighted_target are assigned to the fold that is currently the most underrepresented (relative to the target sum for that fold).
+    - Then, observations with zero weighted_target are assigned to the fold with the lowest current sum, to further balance the folds without affecting the weighted sum.
+    - If any negative weighted_target values are present, an exception is raised.
 
-    Returns:
-        pd.Series: Przypisanie do foldów (wartości od 0 do n_folds-1).
+    All folds are assigned equal proportions (1/n_folds), so the function aims for equal weighted sums in each fold.
+    This approach is robust to imbalanced data and works for both weighted and unweighted targets.
     """
-    assert (target.index == weights.index).all(), "target i weights muszą mieć identyczny index"
-
-    df = pd.DataFrame({
-        "target": target,
-        "weight": weights
-    })
-    df["weighted_target"] = df["target"] * df["weight"]
-
-    # Shuffle w ramach identycznych wartości targetu (opcjonalne, dla stabilności)
-    df = df.sample(frac=1, random_state=random_seed).sort_values(by="target", ascending=False)
-
-    # Inicjalizacja foldów
-    fold_sums = [0.0 for _ in range(n_folds)]
-    fold_assignments = [[] for _ in range(n_folds)]
-
-    for idx, row in df.iterrows():
-        # Znajdź fold o najmniejszej sumie weighted target
-        min_fold = np.argmin(fold_sums)
-        fold_assignments[min_fold].append(idx)
-        fold_sums[min_fold] += row["weighted_target"]
-
-    # Zbuduj Series z przypisaniem do foldów
-    folds_labels = pd.Series(index=target.index, dtype=int)
-    for fold_id, indices in enumerate(fold_assignments):
-        folds_labels.loc[indices] = fold_id
-
-    return folds_labels
+    from .stratified_split import _get_stratified_bin_labels_by_proportions
+    proportions: List[float] = [1.0 / n_folds] * n_folds
+    return _get_stratified_bin_labels_by_proportions(
+        target=target,
+        sample_weight=weights,
+        proportions=proportions,
+        random_seed=random_seed
+    )
 
 
 def _get_folds_labels(target: pd.Series, cv_folds: int,
@@ -116,7 +97,7 @@ def _get_stratified_train_calib_test_cv(target_df: pd.DataFrame, stratify_target
         )
     else:
         sorted_target_df = target_df.sort_values(by=stratify_target_col, ascending=False)
-        folds_labels = _get_folds_labels(sorted_target_df, cv_folds=cv_folds, shuffle=shuffle,
+        folds_labels = _get_folds_labels(sorted_target_df[stratify_target_col], cv_folds=cv_folds, shuffle=shuffle,
                                          random_seed=random_seed)
 
     # Cross-validation splitting based on cv_type
