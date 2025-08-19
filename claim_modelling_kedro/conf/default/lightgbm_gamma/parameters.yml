@@ -7,7 +7,7 @@ experiment:
                            # 'frequency' – the number of claims (including zeros) per unit of exposure (claim_number / exposure),
                            # 'avg_claim_amount' – the average amount of claims (total_claims_amount / claim_number) without zeros,
                            # 'pure_premium' – the total amount of claims (including zeros) per unit of exposure (total_claims_amount / exposure)
-  weighted_target: True # whether to use the weighted target
+  weighted_target: False # whether to use the weighted target
                         # if True, 1) exposure is used as a weight for the targets: claim_number, total_claims_amount, frequency, pure_premium
                         #          2) claim_number is used as a weight for the target avg_claim_amount
                         # if False, the targets are not weighted by exposure
@@ -194,7 +194,7 @@ data_science:
           alpha: 0.01 # the regularization parameter
   hyperopt:
     enabled: True # whether to use the hyperopt
-    metric: claim_nb_weighted_normalized_cc_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
+    metric: normalized_cc_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
       # 'gamma_deviance', 'exposure_weighted_gamma_deviance', 'claim_nb_weighted_gamma_deviance',
       # 'rmse', 'exposure_weighted_rmse', 'claim_nb_weighted_rmse', 'r2', 'exposure_weighted_r2', 'claim_nb_weighted_r2',
       # 'lc_gini', 'exposure_weighted_lc_gini', 'claim_nb_weighted_lc_gini',
