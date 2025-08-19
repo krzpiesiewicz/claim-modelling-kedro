@@ -42,6 +42,7 @@ data:
   calib_set:
     enabled: <CALIBRATION_ENABLED> # whether to use the calibration set. If False, then calibration.enabled has to be set to False.
     shared_train_calib_set: <SHARED_TRAIN_CALIB_SET> # If True, training and calibration sets will be identical (shared keys) with common size: 1 - test_size.
+    enabled: True # whether to use the calibration set. If False, then calibration.enabled has to be set to False.
     # If False, training and calibration sets will be split separately with sizes: calib_size and 1 - calib_size - test_size, respectively.
     # shared_train_calib_set = True is useful for disabling calibration or when no cross-validation is used. If False, sets are split separately.
     calib_size: 0.2 # [0,1) - the part of policies used for model calibration (if shared_train_calib_set is False nd cross_validation.enabled is False)
@@ -322,7 +323,7 @@ data_science:
 
 calibration:
   mlflow_run_id: # If provided a MLFLow run id, the calibration model is saved to / downloaded from the MLflow run
-  enabled: <CALIBRATION_ENABLED> # whether to use the calibration
+  enabled: True # whether to use the calibration
   outliers:
     policy: keep # 'keep', 'drop', 'clip'
     lower_bound:
