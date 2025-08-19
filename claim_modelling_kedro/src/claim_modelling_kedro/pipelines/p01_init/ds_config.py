@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, Any
 
-from claim_modelling_kedro.pipelines.p01_init.exprmnt import ExperimentInfo
 from claim_modelling_kedro.pipelines.p01_init.fs_config import FeatureSelectionConfig
 from claim_modelling_kedro.pipelines.p01_init.hp_config import HypertuneConfig
 from claim_modelling_kedro.pipelines.p01_init.smpl_config import SamplingConfig
