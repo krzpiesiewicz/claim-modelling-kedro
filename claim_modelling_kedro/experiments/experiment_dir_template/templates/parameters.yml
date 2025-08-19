@@ -303,7 +303,7 @@ data_science:
 
 calibration:
   mlflow_run_id: # If provided a MLFLow run id, the calibration model is saved to / downloaded from the MLflow run
-  enabled: True # whether to use the calibration
+  enabled: <CALIB_ENABLED> # whether to use the calibration
   outliers:
     policy: keep # 'keep', 'drop', 'clip'
     lower_bound:
