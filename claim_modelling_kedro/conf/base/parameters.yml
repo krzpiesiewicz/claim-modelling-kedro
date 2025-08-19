@@ -184,7 +184,12 @@ data_science:
     # downloaded from the MLflow run
   target_transformer:
     enabled: True # whether to use the target transformer
-    model: LogTargetTransformer
+    model: PowerTargetTransformer # 'LogTargetTransformer', 'PowerTargetTransformer'
+    params:
+      PowerTargetTransformer:
+        power: 3.0 # (float) the power of the target transformer, e.g., 1.1, 2.0, 3.0, etc.
+                   # the target is transformed as target ** (1 / power) and the predictions are transformed back as predictions ** power;
+                   # that is, the power 2.0 corresponds to the square root transformation, power 3.0 corresponds to the cube root transformation, etc.
   feature_selection:
     enabled: False # whether to use the feature selection
     max_n_features: 100 # the number of features used in the model; if empty, all features that have importance greater than min_importance are used

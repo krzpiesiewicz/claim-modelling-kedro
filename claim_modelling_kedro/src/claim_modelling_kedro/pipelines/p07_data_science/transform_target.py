@@ -27,7 +27,7 @@ class TargetTransformer(ABC):
     A class to transform target variables for machine learning models.
     """
 
-    def __init__(self, target_col: str, pred_col: str = None):
+    def __init__(self, config: Config, target_col: str, pred_col: str = None):
         """
         Initializes the TargetTransformer with the specified target column and prediction column.
 
@@ -35,8 +35,10 @@ class TargetTransformer(ABC):
             target_col (str): The name of the target column to transform.
             pred_col (str, optional): The name of the prediction column. Defaults to None.
         """
+        self.config = config
         self.target_col = target_col
         self.pred_col = pred_col
+        self.params = config.ds.target_transformer_params.copy()
 
     @abstractmethod
     def _fit(self, y_true: pd.Series):
@@ -83,7 +85,7 @@ def process_fit_target_transformer_partition(config: Config, part: str, target_d
     run_id = get_mlflow_run_id_for_partition(config, part)
 
     transformer_class = get_class_from_path(config.ds.target_transformer_class)
-    transformer = transformer_class(target_col=config.mdl_task.target_col, pred_col=config.mdl_task.prediction_col)
+    transformer = transformer_class(config=config, target_col=config.mdl_task.target_col, pred_col=config.mdl_task.prediction_col)
 
     with mlflow.start_run(run_id=run_id, nested=True):
         transformer.fit(target_df)
