@@ -228,7 +228,7 @@ def get_stratified_train_calib_test_split_keys(
     verbose: bool = True,
     calib_size: Union[int, float] = None,
     sample_weight: Optional[pd.Series] = None
-) -> Tuple[pd.Index, Optional[pd.Index], pd.Index]:
+) -> Tuple[pd.Index, pd.Index, pd.Index]:
     return _get_stratified_train_calib_test_split_keys(
         target_df=target_df,
         stratify_target_col=stratify_target_col,
