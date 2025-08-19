@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p07_data_science.model import get_sample_weight
+from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ def plot_auto_calib_chart(
     df = pd.DataFrame({
         "y_true": y_true,
         "y_pred": y_pred,
-        "weight": sample_weight
+        "weight": sample_weight if sample_weight is not None else np.ones(len(y_true)),
     })
 
     # Sort by prediction

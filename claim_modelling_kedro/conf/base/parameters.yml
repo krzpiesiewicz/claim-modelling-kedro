@@ -7,6 +7,10 @@ experiment:
                            # 'frequency' – the number of claims (including zeros) per unit of exposure (claim_number / exposure),
                            # 'avg_claim_amount' – the average amount of claims (total_claims_amount / claim_number) without zeros,
                            # 'pure_premium' – the total amount of claims (including zeros) per unit of exposure (total_claims_amount / exposure)
+  weighted_target: False # whether to use the weighted target
+                        # if True, 1) exposure is used as a weight for the targets: claim_number, total_claims_amount, frequency, pure_premium
+                        #          2) claim_number is used as a weight for the target avg_claim_amount
+                        # if False, the targets are not weighted by exposure
 
 
 data:
@@ -31,19 +35,24 @@ data:
   stratify_target_col: # the target column used for stratification;
     # possible values: 'ClaimNb_TRG', 'ClaimFreq_TRG', 'ClaimTotalAmount_TRG', 'ClaimSeverity_TRG', 'ClaimPurePremium_TRG';
     # if empty, the column corresponding to the model.target is used.
-  calib_size: 0.2 # [0,1) - the part of policies used for model calibration
-    # if calib_size is None or zero, then calibration.enabled has to be set to False
   test_size: 0.2 # (0, 1) the part of policies used for test if cross_validation.enabled is False
     # if cross_validation.enabled is True, then test_size param is ignored (test_size = data_size / folds).
     # test_size has to be greater than 0.
-    # => train_size = 1 - calib_data_size - calib_data_size (train_size has to be greater than 0)
+  calib_set:
+    enabled: True # whether to use the calibration set. If False, then calibration.enabled has to be set to False.
+    shared_train_calib_set: True # If True, training and calibration sets will be identical (shared keys) with common size: 1 - test_size.
+      # If False, training and calibration sets will be split separately with sizes: calib_size and 1 - calib_size - test_size, respectively.
+      # shared_train_calib_set = True is useful for disabling calibration or when no cross-validation is used. If False, sets are split separately.
+    calib_size: 0.2 # [0,1) - the part of policies used for model calibration (if shared_train_calib_set is False nd cross_validation.enabled is False)
+    # => train_size = 1 - calib_size - test_size if calib_set enabled and shared_train_calib_set is False,
+    # otherwise train_size = 1 - test_size. In both cases train_size has to be greater than 0.
   cross_validation:
-    enabled: False # whether to use cross-validation
+    enabled: True # whether to use cross-validation
     folds: 5 # the number of folds in cross-validation (repetitions of data splitting)
     # minimum number of folds is 3
     # test_size = 1 / folds
-    # calib_size = 1 / folds
-    # train_size = 1 - calib_size - test_size
+    # calib_size = 1 / folds if shared_train_calib_set is True, otherwise calib_size = 1 - test_size, that is (folds - 1) / folds
+    # train_size = 1 - calib_size - test_size if shared_train_calib_set is True, otherwise train_size = 1 - test_size, that is (folds - 1) / folds
   outliers:
     policy: clip # 'keep', 'drop', 'clip'
     lower_bound:
@@ -65,12 +74,12 @@ sampling:
     lower_bound:
     upper_bound: 100000
   validation:
-    val_set: 'calib_set' # 'none', 'calib_set' or 'split_train_val'
+    val_set: split_train_val # 'none', 'calib_set' or 'split_train_val'
     # if val_set is 'none', then no validation set is used
     # if val_set is 'calib_set', then the calib set is used for validation (as sample_val set)
     # if val_set is 'split_train_val', then the sample is split into sample_train and sample_val sets
     split_train_val: # used only if val_set is 'split_train_val'
-      val_size: 0.3 # the part of the sample used for validation
+      val_size: 0.2 # the part of the sample used for validation
       random_seed: 0 # the random seed for splitting the sample into sample_train and sample_val sets
 
 data_engineering:
@@ -122,10 +131,10 @@ data_engineering:
   reduce_categories:
     enabled: True # whether to reduce the number of categories in a feature
     max_categories: # the maximum number of categories in a feature
-    join_exceeding_max_categories: "other" # (str) if nonempty, join categories exceeding max_categories
+    join_exceeding_max_categories: other # (str) if nonempty, join categories exceeding max_categories
     # into one category with the name given in this parameter
-    min_frequency: 30 # the minimum frequency of a category in a feature
-    join_infrequent: "other" # (str) if nonempty, join categories with frequency lower than min_frequency
+    min_frequency: 20 # the minimum frequency of a category in a feature
+    join_infrequent: other # (str) if nonempty, join categories with frequency lower than min_frequency
       # into one category with the name given in this parameter
       # ATTENTION: if both join_exceeding_max_categories and join_infrequent are provided,
       # the join_exceeding_max_categories is used instead of join_infrequent.
@@ -152,8 +161,8 @@ data_engineering:
         quantile_range: [ 25.0, 75.0 ]
   ohe:
     enabled: True # whether to use the OHE
-    drop_reference_cat: True # whether to drop the reference category
-    drop_first: True # whether to drop the first category if drop_reference_cat is False
+    drop_reference_cat: False # whether to drop the reference category
+    drop_first: False # whether to drop the first category if drop_reference_cat is False
     # or the feature does not have a reference category
     drop_binary: False # whether to drop one of the two categories if the feature is binary
     # and none of the two categories was dropped as a reference category
@@ -209,8 +218,8 @@ data_science:
           max_iter: 100
           alpha: 0.01 # the regularization parameter
   hyperopt:
-    enabled: False # whether to use the hyperopt
-    metric: claim_nb_weighted_normalized_cc_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
+    enabled: True # whether to use the hyperopt
+    metric: normalized_cc_gini # 'poisson_deviance', 'exposure_weighted_poisson_deviance', 'claim_nb_weighted_poisson_deviance',
       # 'gamma_deviance', 'exposure_weighted_gamma_deviance', 'claim_nb_weighted_gamma_deviance',
       # 'rmse', 'exposure_weighted_rmse', 'claim_nb_weighted_rmse', 'r2', 'exposure_weighted_r2', 'claim_nb_weighted_r2',
       # 'lc_gini', 'exposure_weighted_lc_gini', 'claim_nb_weighted_lc_gini',
@@ -222,24 +231,24 @@ data_science:
     overfit_penalty: 0.8 # the penalty for overfitting (>= 0) added to hyperopt loss; penalty = overfit_penalty * max(0, loss_val - loss_train)
                          # where loss_{set} = -metric_{set} if large is better else metric_{set}
                          # if overfit_penalty == 0, then no penalty is applied
-    max_evals: 100 # the maximum number of evaluations
+    max_evals: 50 # the maximum number of evaluations
     early_stopping:
       enabled: True # whether to use early stopping
-      iteration_stop_count: 50 # the number of trials after which the optimization is stopped if no improvement is observed
-      percent_increase: 0.01 # the percent increase in the metric that is required to continue the optimization
+      iteration_stop_count: 30 # the number of trials after which the optimization is stopped if no improvement is observed
+      percent_increase: 0.0001 # the percent increase in the metric that is required to continue the optimization
     algo: tpe # 'tpe', 'random'
     show_progressbar: True # whether to show the progress bar
     trial_verbose: True # whether to show each trial in the console
     random_seed: 0 # the random seed for the hyperopt fmin function
     validation:
-      method: sample_val_set # 'sample_val_set', 'cross_validation', 'repeated_split'
+      method: cross_validation # 'sample_val_set', 'cross_validation', 'repeated_split'
       # if method is 'sample_val_set', then the sample_val_keys set is used (created in sampling pipeline)
       # if method is 'cross_validation' or 'repeated_split', the union of sample_train_keys and sample_val_keys
       # is used for splitting in cross-validation or repeated splitting
       # if method is 'cross_validation', then the data is split into folds and the model is trained on each fold
       # if method is 'repeated_split', then the data is split into train and validation sets
       cross_validation:
-        folds: 10 # the number of folds in cross-validation
+        folds: 5 # the number of folds in cross-validation
                   # val_size = 1 / folds
                   # train_size = 1 - val_size
         random_seed: 0 # the random seed for stratified splitting the data into folds
@@ -247,6 +256,36 @@ data_science:
         val_size: 0.25 # the part of data used for validation – used only if cross_validation.enabled is False
         n_repeats: 10 # the number of times the data is split into train and validation sets
         random_seed: 0 # the random seed for stratified splitting the data into train and validation sets
+    params_space: # the space of hyperparameters to optimize
+      PyGLMNetGammaGLM:
+        alpha:
+          type: uniform
+          low: 0.0
+          high: 1.0
+        reg_lambda:
+          type: loguniform
+          low: 1e-6
+          high: 100
+        eta:
+          type: loguniform
+          low: 1e-5
+          high: 2
+        max_iter:
+          type: quniform
+          low: 50
+          high: 1000
+          q: 10
+        tol:
+          type: loguniform
+          low: 1e-7
+          high: 1e-2
+        fit_intercept:
+          type: choice
+          values: [True, False]
+        learning_rate:
+          type: uniform
+          low: 0.001
+          high: 1
     excluded_params:
       SklearnPoissonGLM:
         - solver
@@ -261,6 +300,7 @@ data_science:
   model:
     model: PyGLMNetGammaGLM # 'DummyMeanRegressor', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM',
     # 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM', 'PyGLMNetPoissonGLM', 'PyGLMNetGammaGLM',
+    # 'LightGBMPoissonRegressor', 'LightGBMGammaRegressor', 'LightGBMTweedieRegressor'
     model_class: # model_class: str, e.g.,
                  # model_class: claim_modelling_kedro.pipelines.p07_data_science.models.SklearnPoissonGLM
                  # if empty, the model class is inferred from the parameter model.model
@@ -289,20 +329,26 @@ data_science:
         fit_intercept: True
         random_state: 1 # the random seed for the model
         # parameters from the best severity model:
-        alpha: 0.6399265426981426
-        eta: 0.015594119911448767
-        learning_rate: 0.8597199755338596
-        max_iter: 620.0
-        reg_lambda: 7.539218714111269e-05
-        tol: 3.216445376073702e-07
+#        alpha: 0.6399265426981426
+#        eta: 0.015594119911448767
+#        learning_rate: 0.8597199755338596
+#        max_iter: 620.0
+#        reg_lambda: 7.539218714111269e-05
+#        tol: 3.216445376073702e-07
 
 
 calibration:
   mlflow_run_id: # If provided a MLFLow run id, the calibration model is saved to / downloaded from the MLflow run
   enabled: True # whether to use the calibration
+  outliers:
+    policy: keep # 'keep', 'drop', 'clip'
+    lower_bound:
+    upper_bound:
   method: IsotonicRegression # the method of calibrating pure predictions of data science model from the previous stage
-    # 'IsotonicRegression', 'CenteredIsotonicRegression', 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM'
-    # 'LocalStatsmodelsGLM', 'EqualBinsMeans', 'LocalPolynomialRegression'
+  # 'Pure', 'IsotonicRegression', 'CenteredIsotonicRegression',
+  # 'LocalStatsmodelsGLM', 'EqualBinsMeans', 'LocalPolynomialRegression'
+  # 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'SklearnPoissonGLM', 'SklearnGammaGLM', 'SklearnTweedieGLM'
+  # If method is 'Pure', then no calibration is applied and the pure predictions are used as calibrated predictions.
   const_hparams:
     IsotonicRegression:
       force_positive: False
@@ -332,10 +378,9 @@ calibration:
     LocalPolynomialRegression:
       span:    # (float) the fraction of the data (neighborhood) used for the local polynomial regression
       degree:  # (int >= 0) degree of the polynomial used for local regression
-  outliers:
-    policy: keep # 'keep', 'drop', 'clip'
-    lower_bound:
-    upper_bound:
+  post_calibration_rebalancing:
+    enabled: True # whether to use the post-calibration
+    method: scale # 'scale' - scale the calibrated predictions to match the total target in the calibration set
 
 
 test:

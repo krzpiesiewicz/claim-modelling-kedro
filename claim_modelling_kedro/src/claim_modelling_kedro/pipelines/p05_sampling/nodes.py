@@ -10,7 +10,7 @@ from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.smpl_config import SampleValidationSet
 from claim_modelling_kedro.pipelines.p05_sampling.utils import sample_with_no_condition, \
     sample_with_target_ratio, get_all_samples, handle_outliers, get_actual_target_ratio, return_none
-from claim_modelling_kedro.pipelines.p07_data_science.model import get_sample_weight
+from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
 from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_test_split_keys
 from claim_modelling_kedro.pipelines.utils.datasets import get_mlflow_run_id_for_partition, get_partition
 

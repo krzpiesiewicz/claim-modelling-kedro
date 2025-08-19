@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict
 
+from claim_modelling_kedro.pipelines.p01_init.data_config import DataConfig
 from claim_modelling_kedro.pipelines.p01_init.outliers_config import OutliersConfig
 
 
@@ -24,9 +25,12 @@ class SamplingConfig:
     split_val_random_seed: int
     split_val_size: float
 
-    def __init__(self, parameters: Dict):
+    def __init__(self, parameters: Dict, data: DataConfig):
         params = parameters["sampling"]
         self.included_calib_set_in_train_sample = params["included_calib_set_in_train_sample"]
+        if self.included_calib_set_in_train_sample and data.shared_train_calib_set:
+            raise ValueError("The calibration set cannot be added to the sampling dataset if the shared_train_calib_set is True.\n"
+                             "Only one data.shared_train_calib_set and sampling.included_calib_set_in_train_sample can be set to True at the same time.")
         self.random_seed = params["random_seed"]
         self.n_obs = params["n_obs"]
         self.target_ratio = params["target_ratio"]

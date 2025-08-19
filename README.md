@@ -1,6 +1,8 @@
 # claim-modelling-kedro
 
-Project for my master thesis
+Project for my master thesis.
+
+Automates insurance claim modeling in Kedro: data processing, sampling, feature engineering, feature selection, GLM/LightGBM tuning, recalibration, and validation. Configurable via YAML. Supports generating, scheduling, and tracking hundreds of experiments. Outputs: metrics and charts. Uses Kedro, MLflow, Python.
 
 ## Dataset
 

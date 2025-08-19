@@ -1,6 +1,6 @@
 import logging
 from abc import ABC
-from typing import Dict, Any, List, Union, Collection
+from typing import Dict, Any, List, Union, Collection, Optional
 
 import numpy as np
 import pandas as pd
@@ -160,9 +160,13 @@ class StatsmodelsGLM(PredictiveModel, ABC):
             - \"Poisson\" for {ModelEnum.STATSMODELS_POISSON_GLM},
             - \"Tweedie\" fpr {ModelEnum.STATSMODELS_TWEEDIE_GLM}.""")
 
-    def _fit(self, features_df: Union[pd.DataFrame, np.ndarray], target_df: Union[pd.DataFrame, np.ndarray], **kwargs):
+    def _fit(self, features_df: Union[pd.DataFrame, np.ndarray], target_df: Union[pd.DataFrame, np.ndarray],
+             sample_train_keys: Optional[pd.Index] = None, sample_val_keys: Optional[pd.Index] = None, **kwargs):
         logger.debug("StatsmodelsGLM _fit called")
         logger.debug(f"{self.get_hparams()=}")
+        if sample_train_keys is not None:
+            features_df = features_df.loc[sample_train_keys, :]
+            target_df = target_df.loc[sample_train_keys, :]
         if type(target_df) is pd.DataFrame:
             y = target_df[self.target_col]
         else:
@@ -183,14 +187,16 @@ class StatsmodelsGLM(PredictiveModel, ABC):
             trg_divisor = self._y_mean
         else:
             trg_divisor = self._trg_divisor
-        logger.info(f"Target mean: {self._y_mean}, Target divisor: {trg_divisor}")
-        logger.info(f"{y=}")
+        logger.debug(f"Target mean: {self._y_mean}, Target divisor: {trg_divisor}")
+        logger.debug(f"{y=}")
         y = y / trg_divisor
-        logger.info(f"{y=}")
+        logger.debug(f"{y=}")
         logger.debug(f"{features_df.head()=}")
         logger.debug(f"{y.head()=}")
         if "sample_weight" in kwargs:
             weights = kwargs["sample_weight"]
+            if sample_train_keys is not None:
+                weights = weights.loc[sample_train_keys]
             kwargs = {key: val for key, val in kwargs.items() if key != "sample_weight"}
             logger.debug(
                 f"Weights - max: {np.max(weights)}, min: {np.min(weights)}, contains NaN: {np.isnan(weights).any()}, contains +/–inf: {np.isinf(weights).any() or np.isneginf(weights).any()}")
@@ -316,9 +322,10 @@ class SklearnGLM(SklearnModel, ABC):
     def __init__(self, config: Config, model_class, **kwargs):
         SklearnModel.__init__(self, config=config, model_class=model_class, **kwargs)
 
-    def _fit(self, features_df: Union[pd.DataFrame, np.ndarray], target_df: Union[pd.DataFrame, np.ndarray], **kwargs):
+    def _fit(self, features_df: Union[pd.DataFrame, np.ndarray], target_df: Union[pd.DataFrame, np.ndarray],
+             sample_train_keys: Optional[pd.Index], sample_val_keys: Optional[pd.Index] = None, **kwargs):
         np.random.seed(self._random_state)
-        super()._fit(features_df, target_df, **kwargs)
+        SklearnModel._fit(self, features_df, target_df, sample_train_keys, sample_val_keys, **kwargs)
         features_importance = pd.Series(np.abs(self.model.coef_))
         if hasattr(self.model, "feature_names_in_"):
             features_importance.index = self.model.feature_names_in_
@@ -526,19 +533,21 @@ class PyGLMNetGLM(PredictiveModel):
         elif self._distr not in ["poisson", "gamma"]:
             raise ValueError(f"Distribution '{self._distr}' not supported in PyGLMNet. Supported are: \"poisson\", \"gamma\".")
 
-    def _fit(self, features_df: Union[pd.DataFrame, np.ndarray], target_df: Union[pd.DataFrame, np.ndarray], **kwargs):
+    def _fit(self, features_df: pd.DataFrame, target_df: pd.DataFrame,
+             sample_train_keys: Optional[pd.Index], sample_val_keys: Optional[pd.Index] = None, **kwargs):
         logger.debug("PyGLMNetGLM _fit called")
         logger.debug(f"{self.get_hparams()=}")
-        y = target_df[self.target_col].values if isinstance(target_df, pd.DataFrame) else target_df
-        x = features_df.values if isinstance(features_df, pd.DataFrame) else features_df
+        features_df = features_df.loc[sample_train_keys, :]
+        target_df = target_df.loc[sample_train_keys, :]
+        y = target_df[self.target_col].values
+        x = features_df.values
 
         if self._force_min_y_pred:
             self._min_y = np.min(y)
 
         if "sample_weight" in kwargs:
             weights = kwargs["sample_weight"]
-            weights = weights.values if isinstance(weights, pd.DataFrame) else weights
-
+            weights = weights.loc[sample_train_keys]
             # Check if weights are integers (can be float type but must have integer values)
             if not np.all(np.isclose(weights, weights.astype(int))):
                 raise ValueError("Sample weights must have integer values.")

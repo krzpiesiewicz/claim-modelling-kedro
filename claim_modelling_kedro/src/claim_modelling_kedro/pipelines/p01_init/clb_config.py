@@ -2,11 +2,13 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, Any
 
+from claim_modelling_kedro.pipelines.p01_init.data_config import DataConfig
 from claim_modelling_kedro.pipelines.p01_init.mdl_task_config import ModelTask
 from claim_modelling_kedro.pipelines.p01_init.outliers_config import OutliersConfig
 
 
 class CalibrationMethod(Enum):
+    PURE: str = "Pure"
     ISOTONIC_REGRESSION: str = "IsotonicRegression"
     CENTERED_ISOTONIC_REGRESSION: str = "CenteredIsotonicRegression"
     STATS_MODELS_POISSON_GLM: str = "StatsmodelsPoissonGLM"
@@ -20,6 +22,10 @@ class CalibrationMethod(Enum):
     LOCAL_STATS_MODELS_GLM: str = "LocalStatsmodelsGLM"
 
 
+class RebalanceInTotalsMethod(Enum):
+    SCALE: str = "scale"
+
+
 @dataclass
 class CalibrationConfig:
     mlflow_run_id: str
@@ -30,16 +36,22 @@ class CalibrationConfig:
     outliers: OutliersConfig
     pure_prediction_col: str
     calibrated_prediction_col: str
+    post_calibration_rebalancing_enabled: bool
+    post_clb_rebalance_method: RebalanceInTotalsMethod
 
-    def __init__(self, parameters: Dict, mdl_task: ModelTask):
+    def __init__(self, parameters: Dict, mdl_task: ModelTask, data: DataConfig):
         params = parameters["calibration"]
         self.mlflow_run_id = params["mlflow_run_id"]
         self.enabled = params["enabled"]
         if self.enabled:
-            self.method = CalibrationMethod(params["method"])
+            if not data.calib_set_enabled:
+                raise ValueError("Calibration is enabled, but calibration set is not enabled in data config.")
             self.pure_prediction_col = "pure_" + mdl_task.prediction_col
             self.calibrated_prediction_col = "calibrated_" + mdl_task.prediction_col
+            self.method = CalibrationMethod(params["method"])
             match self.method:
+                case CalibrationMethod.PURE:
+                    self.model_class = "PureCalibration"
                 case CalibrationMethod.ISOTONIC_REGRESSION:
                     self.model_class = "SklearnIsotonicRegression"
                 case CalibrationMethod.CENTERED_ISOTONIC_REGRESSION:
@@ -79,3 +91,9 @@ class CalibrationConfig:
             self.outliers = None
             self.pure_prediction_col = None
             self.calibrated_prediction_col = None
+        post_clb_params = params["post_calibration_rebalancing"]
+        self.post_calibration_rebalancing_enabled = post_clb_params["enabled"]
+        if self.post_calibration_rebalancing_enabled:
+            self.post_clb_rebalance_method = RebalanceInTotalsMethod(post_clb_params["method"])
+        else:
+            self.post_clb_rebalance_method = None

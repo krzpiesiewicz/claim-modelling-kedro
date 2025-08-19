@@ -35,8 +35,9 @@ def process_parameters(parameters: Dict) -> Config:
     tags = {
         "author": config.exprmnt.author,
         "target": config.exprmnt.target.value,
+        "target_weight": config.exprmnt.target_weight.value if config.exprmnt.target_weight else "-",
         "model": config.ds.model.value,
-        "fs": config.ds.fs_method.value,
+        "fs": config.ds.fs.method.value if config.ds.fs.enabled else "-",
         "clb": config.clb.method.value if config.clb.enabled else "-",
     }
     for key, val in tags.items():

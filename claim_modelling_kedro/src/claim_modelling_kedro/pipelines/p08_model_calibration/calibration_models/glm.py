@@ -27,7 +27,7 @@ class StatsmodelsGammaGLMCalibration(CalibrationModel, StatsmodelsGammaGLM):
         Use the _fit method from StatsmodelsGLM for fitting the calibration model.
         """
         logger.debug("StatsmodelsGammaGLMCalibration _fit called")
-        pure_predictions_df = pure_predictions_df[self.pure_pred_col]
+        pure_predictions_df = pure_predictions_df.loc[:, [self.pure_pred_col]]
         # Call StatsmodelsGLM's _fit method
         StatsmodelsGammaGLM._fit(self, pure_predictions_df, target_df, **kwargs)
 

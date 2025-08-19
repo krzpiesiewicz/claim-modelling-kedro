@@ -76,6 +76,11 @@ def fit_transform_features_part(config: Config, features_df: pd.DataFrame, featu
     # One-hot encode categorical features
     if config.de.is_ohe_enabled:
         categorical_features_df = fit_transform_one_hot_encoder(config, categorical_features_df, reference_categories)
+    else:
+        # If OHE is not enabled, ensure that categorical features are of type 'category'
+        for col in categorical_features_df.columns:
+            if categorical_features_df[col].dtype != "category":
+                categorical_features_df[col] = categorical_features_df[col].astype("category")
 
     # Save the transformed features in MLFlow
     for transformed_features_df, features_name, features_filename in zip(
@@ -142,6 +147,11 @@ def transform_features_by_mlflow_model_part(config: Config, features_df: pd.Data
     # One-hot encode categorical features
     if config.de.is_ohe_enabled:
         categorical_features_df = one_hot_encode_by_mlflow_model(config, categorical_features_df, mlflow_run_id)
+    else:
+        # If OHE is not enabled, ensure that categorical features are of type 'category'
+        for col in categorical_features_df.columns:
+            if categorical_features_df[col].dtype != "category":
+                categorical_features_df[col] = categorical_features_df[col].astype("category")
 
     # Join categorical and numerical features
     transformed_features_df = join_features_dfs([categorical_features_df, numerical_features_df])

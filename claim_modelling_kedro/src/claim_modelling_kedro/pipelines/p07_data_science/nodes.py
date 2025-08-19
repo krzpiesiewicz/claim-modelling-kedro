@@ -21,23 +21,23 @@ def fit_target_transformer(config: Config, sample_target_df: Dict[str, pd.DataFr
 def fit_features_selector(config: Config, transformed_sample_features_df: Dict[str, pd.DataFrame],
                           transformed_sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
                           sample_val_keys: Dict[str, pd.Index]) -> Dict[str, pd.DataFrame]:
-    if config.ds.fs_enabled:
+    if config.ds.fs.enabled:
         return fit_transform_features_selector(config, transformed_sample_features_df, transformed_sample_target_df, sample_train_keys, sample_val_keys)
     return transformed_sample_features_df
 
 
 def tune_hyper_parameters(config: Config, selected_sample_features_df: Dict[str, pd.DataFrame],
                           transformed_sample_target_df: Dict[str, pd.DataFrame], sample_train_keys: Dict[str, pd.Index],
-                          sample_val_keys: Dict[str, pd.Index]) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, PredictiveModel]]:
-    if config.ds.hopt_enabled:
+                          sample_val_keys: Dict[str, pd.Index]) -> Dict[str, Dict[str, Any]]:
+    if config.ds.hp.enabled:
         return hypertune(config, selected_sample_features_df, transformed_sample_target_df, sample_train_keys, sample_val_keys)
-    return {part: config.ds.model_const_hparams for part in selected_sample_features_df.keys()}, {}
+    return {part: config.ds.model_const_hparams for part in selected_sample_features_df.keys()}
 
 
 def fit_predictive_model(config: Config, selected_sample_features_df: Dict[str, pd.DataFrame],
                          transformed_sample_target_df: Dict[str, pd.DataFrame], sample_target_df: Dict[str, pd.DataFrame],
                          sample_train_keys: Dict[str, pd.Index], sample_val_keys: Dict[str, pd.Index],
-                         best_hparams: Dict[str, Dict[str, Any]] = None, best_models: Dict[str, PredictiveModel] = None) -> Dict[str, pd.DataFrame]:
+                         best_hparams: Dict[str, Dict[str, Any]] = None) -> Dict[str, pd.DataFrame]:
     # Fit the predictive model and transform the predictions
     sample_predictions_df = fit_transform_predictive_model(
         config,
@@ -46,7 +46,6 @@ def fit_predictive_model(config: Config, selected_sample_features_df: Dict[str, 
         sample_train_keys,
         sample_val_keys,
         best_hparams,
-        best_models
     )
     if config.ds.target_transformer_enabled:
         sample_predictions_df = inverse_transform_predictions_by_mlflow_model(config, sample_predictions_df)

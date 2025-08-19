@@ -2,6 +2,8 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 
+from claim_modelling_kedro.pipelines.p01_init.exprmnt import TargetWeight
+
 
 # Common trait for all metric types
 class MetricType:
@@ -122,3 +124,57 @@ class CLNB_WEIGHTED_TWEEDIE_DEV(MetricType):
 
     def __hash__(self):
         return hash(self.serialize())
+
+
+def get_weighted_metric_enum(enum: MetricType, weight: TargetWeight) -> MetricType:
+    """
+    Zwraca odpowiadającą metrykę ważoną (ekspozycją lub liczbą szkód) dla podanej metryki bazowej.
+    """
+    if weight is None:
+        return enum
+    if weight == TargetWeight.EXPOSURE:
+        if isinstance(enum, TWEEDIE_DEV):
+            return EXP_WEIGHTED_TWEEDIE_DEV(enum.p)
+        exposure_map = {
+            MetricEnum.POISSON_DEV: MetricEnum.EXP_WEIGHTED_POISSON_DEV,
+            MetricEnum.GAMMA_DEV: MetricEnum.EXP_WEIGHTED_GAMMA_DEV,
+            MetricEnum.MAE: MetricEnum.EXP_WEIGHTED_MAE,
+            MetricEnum.RMSE: MetricEnum.EXP_WEIGHTED_RMSE,
+            MetricEnum.R2: MetricEnum.EXP_WEIGHTED_R2,
+            MetricEnum.MBD: MetricEnum.EXP_WEIGHTED_MBD,
+            MetricEnum.SPEARMAN: MetricEnum.EXP_WEIGHTED_SPEARMAN,
+            MetricEnum.ABC: MetricEnum.EXP_WEIGHTED_ABC,
+            MetricEnum.CCI: MetricEnum.EXP_WEIGHTED_CCI,
+            MetricEnum.COI: MetricEnum.EXP_WEIGHTED_COI,
+            MetricEnum.CUI: MetricEnum.EXP_WEIGHTED_CUI,
+            MetricEnum.LC_GINI: MetricEnum.EXP_WEIGHTED_LC_GINI,
+            MetricEnum.CC_GINI: MetricEnum.EXP_WEIGHTED_CC_GINI,
+            MetricEnum.NORMALIZED_CC_GINI: MetricEnum.EXP_WEIGHTED_NORMALIZED_CC_GINI,
+        }
+        if enum in exposure_map:
+            return exposure_map[enum]
+        raise ValueError(f"The metric enum: {enum} is not supported for exposure weighting.")
+    elif weight == TargetWeight.CLAIMS_NUMBER:
+        if isinstance(enum, TWEEDIE_DEV):
+            return CLNB_WEIGHTED_TWEEDIE_DEV(enum.p)
+        claims_map = {
+            MetricEnum.POISSON_DEV: MetricEnum.CLNB_WEIGHTED_POISSON_DEV,
+            MetricEnum.GAMMA_DEV: MetricEnum.CLNB_WEIGHTED_GAMMA_DEV,
+            MetricEnum.MAE: MetricEnum.CLNB_WEIGHTED_MAE,
+            MetricEnum.RMSE: MetricEnum.CLNB_WEIGHTED_RMSE,
+            MetricEnum.R2: MetricEnum.CLNB_WEIGHTED_R2,
+            MetricEnum.MBD: MetricEnum.CLNB_WEIGHTED_MBD,
+            MetricEnum.SPEARMAN: MetricEnum.CLNB_WEIGHTED_SPEARMAN,
+            MetricEnum.ABC: MetricEnum.CLNB_WEIGHTED_ABC,
+            MetricEnum.CCI: MetricEnum.CLNB_WEIGHTED_CCI,
+            MetricEnum.COI: MetricEnum.CLNB_WEIGHTED_COI,
+            MetricEnum.CUI: MetricEnum.CLNB_WEIGHTED_CUI,
+            MetricEnum.LC_GINI: MetricEnum.CLNB_WEIGHTED_LC_GINI,
+            MetricEnum.CC_GINI: MetricEnum.CLNB_WEIGHTED_CC_GINI,
+            MetricEnum.NORMALIZED_CC_GINI: MetricEnum.CLNB_WEIGHTED_NORMALIZED_CC_GINI,
+        }
+        if enum in claims_map:
+            return claims_map[enum]
+        raise ValueError(f"The metric enum: {enum} is not supported for claims number weighting.")
+    else:
+        raise ValueError(f"Unsupported target weight: {weight}. Supported weights are: {TargetWeight.EXPOSURE}, {TargetWeight.CLAIMS_NUMBER}.")
