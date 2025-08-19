@@ -33,21 +33,26 @@ data:
   policy_id_col: IDpol
   split_random_seed: 1
   stratify_target_col: # the target column used for stratification;
-    # possible values: 'ClaimNb_TRG', 'ClaimFreq_TRG', 'ClaimTotalAmount_TRG', 'ClaimSeverity_TRG', 'ClaimPurePremium_TRG';
-    # if empty, the column corresponding to the model.target is used.
-  calib_size: 0.2 # [0,1) - the part of policies used for model calibration
-    # if calib_size is None or zero, then calibration.enabled has to be set to False
+  # possible values: 'ClaimNb_TRG', 'ClaimFreq_TRG', 'ClaimTotalAmount_TRG', 'ClaimSeverity_TRG', 'ClaimPurePremium_TRG';
+  # if empty, the column corresponding to the model.target is used.
   test_size: 0.2 # (0, 1) the part of policies used for test if cross_validation.enabled is False
-    # if cross_validation.enabled is True, then test_size param is ignored (test_size = data_size / folds).
-    # test_size has to be greater than 0.
-    # => train_size = 1 - calib_data_size - calib_data_size (train_size has to be greater than 0)
+  # if cross_validation.enabled is True, then test_size param is ignored (test_size = data_size / folds).
+  # test_size has to be greater than 0.
+  calib_set:
+    enabled: <CALIB_ENABLED> # whether to use the calibration set. If False, then calibration.enabled has to be set to False.
+    shared_train_calib_set: <SHARED_TRAIN_CALIB_SET> # If True, training and calibration sets will be identical (shared keys) with common size: 1 - test_size.
+    # If False, training and calibration sets will be split separately with sizes: calib_size and 1 - calib_size - test_size, respectively.
+    # shared_train_calib_set = True is useful for disabling calibration or when no cross-validation is used. If False, sets are split separately.
+    calib_size: 0.2 # [0,1) - the part of policies used for model calibration (if shared_train_calib_set is False nd cross_validation.enabled is False)
+    # => train_size = 1 - calib_size - test_size if calib_set enabled and shared_train_calib_set is False,
+    # otherwise train_size = 1 - test_size. In both cases train_size has to be greater than 0.
   cross_validation:
     enabled: True # whether to use cross-validation
     folds: 5 # the number of folds in cross-validation (repetitions of data splitting)
     # minimum number of folds is 3
     # test_size = 1 / folds
-    # calib_size = 1 / folds
-    # train_size = 1 - calib_size - test_size
+    # calib_size = 1 / folds if shared_train_calib_set is True, otherwise calib_size = 1 - test_size, that is (folds - 1) / folds
+    # train_size = 1 - calib_size - test_size if shared_train_calib_set is True, otherwise train_size = 1 - test_size, that is (folds - 1) / folds
   outliers:
     policy: clip # 'keep', 'drop', 'clip'
     lower_bound:
@@ -56,10 +61,10 @@ data:
 
 
 sampling:
-  included_calib_set_in_train_sample: False # whether to use also the calibration data for creating a training sample
+  included_calib_set_in_train_sample: <SMPL_INCLUDE_CALIB_IN_TRAIN> # whether to use also the calibration data for creating a training sample
   random_seed: 1
   n_obs: # the number of samples which are used to train a model.
-  target_ratio: 0.5 # the ratio of nonzero samples, if None, the ratio is not controlled
+  target_ratio:     # the ratio of nonzero samples, if None, the ratio is not controlled
                     # if target_ratio is not None and n_obs is None, then get all targets and complete the sample with zeros
                     # If both n_obs and target_ratio are Nones, then all training data is used
   allow_lower_ratio: True # allow the ratio of nonzero samples to be lower than target_ratio
@@ -69,12 +74,12 @@ sampling:
     lower_bound:
     upper_bound: <OUTLIERS_UPPER_BOUND>
   validation:
-    val_set: 'calib_set' # 'none', 'calib_set' or 'split_train_val'
+    val_set: split_train_val # 'none', 'calib_set' or 'split_train_val'
     # if val_set is 'none', then no validation set is used
     # if val_set is 'calib_set', then the calib set is used for validation (as sample_val set)
     # if val_set is 'split_train_val', then the sample is split into sample_train and sample_val sets
     split_train_val: # used only if val_set is 'split_train_val'
-      val_size: 0.3 # the part of the sample used for validation
+      val_size: 0.2 # the part of the sample used for validation
       random_seed: 0 # the random seed for splitting the sample into sample_train and sample_val sets
 
 data_engineering:
