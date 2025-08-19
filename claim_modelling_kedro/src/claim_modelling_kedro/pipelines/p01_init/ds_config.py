@@ -7,6 +7,7 @@ from claim_modelling_kedro.pipelines.p01_init.exprmnt import ExperimentInfo
 from claim_modelling_kedro.pipelines.p01_init.fs_config import FeatureSelectionConfig
 from claim_modelling_kedro.pipelines.p01_init.hp_config import HypertuneConfig
 from claim_modelling_kedro.pipelines.p01_init.smpl_config import SamplingConfig
+from claim_modelling_kedro.pipelines.p01_init.trg_trans_config import TargetTransformerConfig
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +38,7 @@ class DataScienceConfig:
     model: ModelEnum
     model_class: str
     model_const_hparams: Dict[str, Any]
-    target_transformer_enabled: bool
-    target_transformer_class: str
-    target_transformer_params: Dict[str, Any]
+    trg_trans: TargetTransformerConfig
     fs: FeatureSelectionConfig
     hp: HypertuneConfig
 
@@ -118,6 +117,7 @@ class DataScienceConfig:
         else:
             self.target_transformer_params = {}
 
+        self.trg_trans = TargetTransformerConfig(trans_params=params["target_transformer"])
         self.fs = FeatureSelectionConfig(params["feature_selection"])
         self.hp = HypertuneConfig(params["hyperopt"], smpl=smpl, model_name=self.model.value,
                                   model_const_hparams=self.model_const_hparams)

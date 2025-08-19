@@ -38,7 +38,7 @@ class TargetTransformer(ABC):
         self.config = config
         self.target_col = target_col
         self.pred_col = pred_col
-        self.params = config.ds.target_transformer_params.copy()
+        self.params = config.ds.trg_trans.model_params.copy()
 
     @abstractmethod
     def _fit(self, y_true: pd.Series):
@@ -84,7 +84,7 @@ def process_fit_target_transformer_partition(config: Config, part: str, target_d
     target_df = get_partition(target_df, part)
     run_id = get_mlflow_run_id_for_partition(config, part)
 
-    transformer_class = get_class_from_path(config.ds.target_transformer_class)
+    transformer_class = get_class_from_path(config.ds.trg_trans.model_class)
     transformer = transformer_class(config=config, target_col=config.mdl_task.target_col, pred_col=config.mdl_task.prediction_col)
 
     with mlflow.start_run(run_id=run_id, nested=True):
