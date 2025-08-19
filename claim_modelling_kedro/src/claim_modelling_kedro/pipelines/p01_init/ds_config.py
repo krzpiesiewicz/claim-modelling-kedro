@@ -94,28 +94,6 @@ class DataScienceConfig:
         logger.debug(f"model_const_hparams: {self.model_const_hparams}")
 
         # Target transformer configuration
-        trans_params = params["target_transformer"]
-        self.target_transformer_enabled = trans_params["enabled"]
-        if self.target_transformer_enabled:
-            model = TargetTransformerEnum(trans_params["model"])
-            match model:
-                case TargetTransformerEnum.LOG_TARGET_TRANSFORMER:
-                    self.target_transformer_class = "claim_modelling_kedro.pipelines.p07_data_science.target_transformers.LogTargetTransformer"
-                case TargetTransformerEnum.POWER_TARGET_TRANSFORMER:
-                    self.target_transformer_class = "claim_modelling_kedro.pipelines.p07_data_science.target_transformers.PowerTargetTransformer"
-                case _:
-                    raise ValueError(f"Target transformer model \"{model}\" not supported.")
-        else:
-            self.target_transformer_class = None
-        # Check if target transformer parameters are provided
-        if (self.target_transformer_enabled
-                and trans_params["params"] is not None
-                and trans_params["model"] in trans_params["params"]
-                and trans_params["params"][trans_params["model"]] is not None):
-            self.target_transformer_params = trans_params["params"][trans_params["model"]]
-        else:
-            self.target_transformer_params = {}
-
         self.trg_trans = TargetTransformerConfig(trans_params=params["target_transformer"])
         # Feature selection configuration
         self.fs = FeatureSelectionConfig(params["feature_selection"])
