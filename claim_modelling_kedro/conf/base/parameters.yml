@@ -47,7 +47,7 @@ data:
     # => train_size = 1 - calib_size - test_size if calib_set enabled and shared_train_calib_set is False,
     # otherwise train_size = 1 - test_size. In both cases train_size has to be greater than 0.
   cross_validation:
-    enabled: False # whether to use cross-validation
+    enabled: True # whether to use cross-validation
     folds: 5 # the number of folds in cross-validation (repetitions of data splitting)
     # minimum number of folds is 3
     # test_size = 1 / folds
@@ -74,12 +74,12 @@ sampling:
     lower_bound:
     upper_bound: 100000
   validation:
-    val_set: calib_set # 'none', 'calib_set' or 'split_train_val'
+    val_set: split_train_val # 'none', 'calib_set' or 'split_train_val'
     # if val_set is 'none', then no validation set is used
     # if val_set is 'calib_set', then the calib set is used for validation (as sample_val set)
     # if val_set is 'split_train_val', then the sample is split into sample_train and sample_val sets
     split_train_val: # used only if val_set is 'split_train_val'
-      val_size: 0.3 # the part of the sample used for validation
+      val_size: 0.2 # the part of the sample used for validation
       random_seed: 0 # the random seed for splitting the sample into sample_train and sample_val sets
 
 data_engineering:
@@ -231,10 +231,10 @@ data_science:
     overfit_penalty: 0.8 # the penalty for overfitting (>= 0) added to hyperopt loss; penalty = overfit_penalty * max(0, loss_val - loss_train)
                          # where loss_{set} = -metric_{set} if large is better else metric_{set}
                          # if overfit_penalty == 0, then no penalty is applied
-    max_evals: 30 # the maximum number of evaluations
+    max_evals: 50 # the maximum number of evaluations
     early_stopping:
       enabled: True # whether to use early stopping
-      iteration_stop_count: 50 # the number of trials after which the optimization is stopped if no improvement is observed
+      iteration_stop_count: 30 # the number of trials after which the optimization is stopped if no improvement is observed
       percent_increase: 0.0001 # the percent increase in the metric that is required to continue the optimization
     algo: tpe # 'tpe', 'random'
     show_progressbar: True # whether to show the progress bar
