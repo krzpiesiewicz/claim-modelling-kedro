@@ -307,7 +307,7 @@ def plot_concentration_curve(
         show_cc: bool = True,
         show_oracle: bool = False,
         fill_between_cc_and_oracle: bool = False,
-        fill_between_equity_and_cc: bool = True,
+        fill_between_equity_and_cc: bool = False,
         show_std_band: bool = False,  # Placeholder for API compatibility
         show_all_curves: bool = False,  # Placeholder for API compatibility
         show_lorenz: bool = False,
