@@ -47,7 +47,7 @@ data:
     # => train_size = 1 - calib_size - test_size if calib_set enabled and shared_train_calib_set is False,
     # otherwise train_size = 1 - test_size. In both cases train_size has to be greater than 0.
   cross_validation:
-    enabled: False # whether to use cross-validation
+    enabled: True # whether to use cross-validation
     folds: 5 # the number of folds in cross-validation (repetitions of data splitting)
     # minimum number of folds is 3
     # test_size = 1 / folds
@@ -206,17 +206,17 @@ data_science:
     overfit_penalty: 1 # the penalty for overfitting (>= 0) added to hyperopt loss; penalty = overfit_penalty * max(0, loss_val - loss_train)
                          # where loss_{set} = -metric_{set} if large is better else metric_{set}
                          # if overfit_penalty == 0, then no penalty is applied
-    max_evals: 2 # the maximum number of evaluations
+    max_evals: 50 # the maximum number of evaluations
     early_stopping:
       enabled: True # whether to use early stopping
-      iteration_stop_count: 50 # the number of trials after which the optimization is stopped if no improvement is observed
+      iteration_stop_count: 30 # the number of trials after which the optimization is stopped if no improvement is observed
       percent_increase: 0.0001 # the percent increase in the metric that is required to continue the optimization
     algo: tpe # 'tpe', 'random'
     show_progressbar: True # whether to show the progress bar
     trial_verbose: True # whether to show each trial in the console
     random_seed: 0 # the random seed for the hyperopt fmin function
     validation:
-      method: sample_val_set # 'sample_val_set', 'cross_validation', 'repeated_split'
+      method: cross_validation # 'sample_val_set', 'cross_validation', 'repeated_split'
       # if method is 'sample_val_set', then the sample_val_keys set is used (created in sampling pipeline)
       # if method is 'cross_validation' or 'repeated_split', the union of sample_train_keys and sample_val_keys
       # is used for splitting in cross-validation or repeated splitting
