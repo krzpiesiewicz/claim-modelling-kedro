@@ -131,10 +131,10 @@ data_engineering:
   reduce_categories:
     enabled: True # whether to reduce the number of categories in a feature
     max_categories: # the maximum number of categories in a feature
-    join_exceeding_max_categories: "other" # (str) if nonempty, join categories exceeding max_categories
+    join_exceeding_max_categories: other # (str) if nonempty, join categories exceeding max_categories
     # into one category with the name given in this parameter
-    min_frequency: 30 # the minimum frequency of a category in a feature
-    join_infrequent: "other" # (str) if nonempty, join categories with frequency lower than min_frequency
+    min_frequency: 20 # the minimum frequency of a category in a feature
+    join_infrequent: other # (str) if nonempty, join categories with frequency lower than min_frequency
       # into one category with the name given in this parameter
       # ATTENTION: if both join_exceeding_max_categories and join_infrequent are provided,
       # the join_exceeding_max_categories is used instead of join_infrequent.
@@ -161,8 +161,8 @@ data_engineering:
         quantile_range: [ 25.0, 75.0 ]
   ohe:
     enabled: True # whether to use the OHE
-    drop_reference_cat: True # whether to drop the reference category
-    drop_first: True # whether to drop the first category if drop_reference_cat is False
+    drop_reference_cat: False # whether to drop the reference category
+    drop_first: False # whether to drop the first category if drop_reference_cat is False
     # or the feature does not have a reference category
     drop_binary: False # whether to drop one of the two categories if the feature is binary
     # and none of the two categories was dropped as a reference category
