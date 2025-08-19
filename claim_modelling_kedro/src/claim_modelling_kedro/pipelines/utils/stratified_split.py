@@ -20,6 +20,11 @@ def _get_stratified_bin_labels_by_proportions(
     This is useful for creating stratified splits based on a continuous target, particularly when observations
     have associated weights (e.g., exposure or policy weight).
 
+    The algorithm works as follows:
+    - Observations with positive weighted_target are assigned greedily to the bin that is currently the most underrepresented (relative to its target sum).
+    - Observations with zero weighted_target are assigned to the bin with the highest current mean, to further balance the weighted mean of non-negative targets.
+    - If any negative weighted_target values are present, an exception is raised.
+
     Args:
         target (pd.Series): A continuous target variable (e.g., average claim severity).
         sample_weight (pd.Series): Observation weights, same index as `target`.
@@ -48,18 +53,58 @@ def _get_stratified_bin_labels_by_proportions(
     # Shuffle observations with identical target values, then sort descending
     df = df.sample(frac=1.0, random_state=random_seed).sort_values(by="target", ascending=False)
 
-    # Initialize containers to track current sums and assignment
-    bin_sums = [0.0 for _ in range(n_bins)]  # current weighted target per bin
-    weighted_target_sum = df["weighted_target"].sum()  # total weighted target sum
-    bin_targets = [p * weighted_target_sum for p in proportions]  # target sum per bin
-    bin_assignments = [[] for _ in range(n_bins)]
+    # Separate positive, zero, and negative weighted_target values
+    positive_mask = df["weighted_target"] > 0
+    zero_mask = df["weighted_target"] == 0
+    negative_mask = df["weighted_target"] < 0
+    if negative_mask.any():
+        raise ValueError("Negative weighted_target values are not supported in stratified split.")
+    elif not positive_mask.any():
+        # Only zero weighted_target values: assign observations to bins according to proportions
+        zero_indices = list(df[zero_mask].index)
+        n_zeros = len(zero_indices)
+        # Calculate exact bin sizes so that their sum is n_zeros and proportions are preserved as closely as possible
+        bin_sizes = [int(p * n_zeros) for p in proportions]
+        # Distribute the remainder (from flooring) to bins with the largest fractional part
+        remainder = n_zeros - sum(bin_sizes)
+        if remainder > 0:
+            # Calculate fractional parts and their indices
+            fractions = [(p * n_zeros) - int(p * n_zeros) for p in proportions]
+            # Get indices of bins sorted by descending fractional part
+            sorted_bins = np.argsort(fractions)[::-1]
+            for i in range(remainder):
+                bin_sizes[sorted_bins[i]] += 1
+        bin_assignments = [[] for _ in range(n_bins)]
+        idx = 0
+        for bin_id, size in enumerate(bin_sizes):
+            for _ in range(size):
+                if idx < n_zeros:
+                    bin_assignments[bin_id].append(zero_indices[idx])
+                    idx += 1
+    elif positive_mask.sum() < n_bins:
+        raise ValueError("Not enough positive weighted_target observations to fill all bins.")
+    else:
+        # Initialize containers to track current sums and assignment (positive only)
+        bin_sums = [0.0 for _ in range(n_bins)]  # current weighted target per bin (positive only)
+        weighted_target_sum = df.loc[positive_mask, "weighted_target"].sum()  # total weighted target sum (positive only)
+        bin_targets = [p * weighted_target_sum for p in proportions]  # target sum per bin (positive only)
+        bin_assignments = [[] for _ in range(n_bins)]
+        # Assign positive weighted_target observations to bins
+        for idx, row in df[positive_mask].iterrows():
+            residuals = [current_sum / target_sum for target_sum, current_sum in zip(bin_targets, bin_sums)]
+            best_bin = int(np.argmin(residuals))
+            bin_assignments[best_bin].append(idx)
+            bin_sums[best_bin] += row["weighted_target"]
 
-    # Assign each observation to the bin currently furthest below its target sum
-    for idx, row in df.iterrows():
-        residuals = [current_sum / target_sum for target_sum, current_sum in zip(bin_targets, bin_sums)]
-        best_bin = int(np.argmin(residuals))
-        bin_assignments[best_bin].append(idx)
-        bin_sums[best_bin] += row["weighted_target"]
+        if zero_mask.any():
+            # Assign zero weighted_target observations to bins, minimizing deviation from the mean bin_targets with added zero values
+            # This is done after positive assignments to ensure zero values do not affect the positive bin sums
+            weighted_target_mean = df.loc[positive_mask | zero_mask, "weighted_target"].mean()  # total weighted target mean (positive only)
+            for idx, row in df[zero_mask].iterrows():
+                current_means = [bin_sum / len(bin_assignment) for bin_sum, bin_assignment in zip(bin_sums, bin_assignments)]
+                best_bin = int(np.argmax(current_means))
+                bin_assignments[best_bin].append(idx)
+                # bin_sums do not change (zero value)
 
     # Create output Series with assigned bin labels
     bin_labels = pd.Series(index=target.index, dtype=int)
@@ -183,7 +228,7 @@ def get_stratified_train_calib_test_split_keys(
     verbose: bool = True,
     calib_size: Union[int, float] = None,
     sample_weight: Optional[pd.Series] = None
-) -> Tuple[pd.Index, Optional[pd.Index], pd.Index]:
+) -> Tuple[pd.Index, pd.Index, pd.Index]:
     return _get_stratified_train_calib_test_split_keys(
         target_df=target_df,
         stratify_target_col=stratify_target_col,

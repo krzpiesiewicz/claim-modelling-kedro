@@ -1,1 +1,2 @@
 from .log_transformer import LogTargetTransformer
+from .power_transformer import PowerTargetTransformer
