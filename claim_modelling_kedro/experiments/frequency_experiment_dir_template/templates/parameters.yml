@@ -2,8 +2,7 @@ experiment:
   name: <MLFLOW_EXPERIMENT_NAME>
   author: Krzysztof Piesiewicz
   description: <DESCRIPTION>
-  target: avg_claim_amount # 'claim_number' – the number of claims,
-  target: frequency # 'claim_number' – the number of claims,
+  target: frequency        # 'claim_number' – the number of claims,
                            # 'total_claims_amount' – the total amount of claims (including zeros),
                            # 'frequency' – the number of claims (including zeros) per unit of exposure (claim_number / exposure),
                            # 'avg_claim_amount' – the average amount of claims (total_claims_amount / claim_number) without zeros,
