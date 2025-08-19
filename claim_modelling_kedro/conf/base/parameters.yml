@@ -190,7 +190,7 @@ data_science:
         y_shift: 1 # (float) the value to which the target is shifted before applying the log transformation, e.g., 1.0;
                  # the target is transformed as log(y + y_shift) and the predictions are transformed back as exp(predictions) - y_shift;
       PowerTargetTransformer:
-        power: 3.0 # (float) the power of the target transformer, e.g., 1.1, 2.0, 3.0, etc.
+        power:     # (float) the power of the target transformer, e.g., 1.1, 2.0, 3.0, etc.
                    # the target is transformed as target ** (1 / power) and the predictions are transformed back as predictions ** power;
                    # that is, the power 2.0 corresponds to the square root transformation, power 3.0 corresponds to the cube root transformation, etc.
   feature_selection:
