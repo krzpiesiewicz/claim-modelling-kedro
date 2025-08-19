@@ -1,4 +1,4 @@
-from typing import Dict, Any, Tuple
+from typing import Dict, Any
 
 import pandas as pd
 
@@ -7,7 +7,7 @@ from claim_modelling_kedro.pipelines.p07_data_science.transform_target import fi
     inverse_transform_predictions_by_mlflow_model
 from claim_modelling_kedro.pipelines.p07_data_science.hypertune import hypertune
 from claim_modelling_kedro.pipelines.p07_data_science.model import fit_transform_predictive_model, \
-    evaluate_predictions, PredictiveModel
+    evaluate_predictions
 from claim_modelling_kedro.pipelines.p07_data_science.select import fit_transform_features_selector
 from claim_modelling_kedro.pipelines.utils.dataframes import save_predictions_and_target_in_mlflow
 
