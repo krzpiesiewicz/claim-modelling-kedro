@@ -117,6 +117,8 @@ class DataScienceConfig:
             self.target_transformer_params = {}
 
         self.trg_trans = TargetTransformerConfig(trans_params=params["target_transformer"])
+        # Feature selection configuration
         self.fs = FeatureSelectionConfig(params["feature_selection"])
+        # Hyperparameter tuning configuration
         self.hp = HypertuneConfig(params["hyperopt"], smpl=smpl, model_name=self.model.value,
                                   model_const_hparams=self.model_const_hparams)
