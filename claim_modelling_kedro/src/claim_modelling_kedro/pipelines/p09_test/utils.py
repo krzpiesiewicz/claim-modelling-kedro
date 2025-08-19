@@ -86,7 +86,7 @@ def run_eval_pipeline(
     pure_predictions = predict_by_mlflow_model(
         config, selected_features, mlflow_run_id=config.ds.mlflow_run_id
     )
-    if config.ds.target_transformer_enabled:
+    if config.ds.trg_trans.enabled:
         pure_predictions = inverse_transform_predictions_by_mlflow_model(config, pure_predictions,
                                                                          mlflow_run_id=config.ds.mlflow_run_id)
     if config.clb.enabled:
