@@ -159,7 +159,15 @@ data_science:
     # downloaded from the MLflow run
   target_transformer:
     enabled: True # whether to use the target transformer
-    model: LogTargetTransformer
+    model: LogTargetTransformer # 'LogTargetTransformer', 'PowerTargetTransformer'
+    params:
+      LogTargetTransformer:
+        y_shift: 1 # (float) the value to which the target is shifted before applying the log transformation, e.g., 1.0;
+        # the target is transformed as log(y + y_shift) and the predictions are transformed back as exp(predictions) - y_shift;
+      PowerTargetTransformer:
+        y_shift:   # (float) the value to which the target is shifted before applying the power transformation, e.g., 1.0;
+        power:     # (float) the power of the target transformer, e.g., 1.1, 2.0, 3.0, etc.
+        # the target is transformed as (target + y_shift) ** (1 / power) and the predictions are transformed back as predictions ** power - y_shift;
   feature_selection:
     enabled: False # whether to use the feature selection
     max_n_features: 100 # the number of features used in the model; if empty, all features that have importance greater than min_importance are used
