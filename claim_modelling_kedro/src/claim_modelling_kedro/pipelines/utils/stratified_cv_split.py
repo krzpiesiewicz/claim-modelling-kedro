@@ -89,6 +89,8 @@ def _get_stratified_train_calib_test_cv(target_df: pd.DataFrame, stratify_target
     Returns:
         Tuple[Dict[str, pd.Index], Dict[str, pd.Index], Dict[str, pd.Index]]: Dictionaries containing train, calib, and test sets for each fold.
     """
+    if cv_type not in ["train_test", "train_calib_test"]:
+        raise ValueError(f"Invalid cv_type: {cv_type}. Must be 'train_test' or 'train_calib_test'.")
 
     train_keys_cv = {}
     calib_keys_cv = {}
