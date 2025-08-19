@@ -47,7 +47,7 @@ data:
     # => train_size = 1 - calib_size - test_size if calib_set enabled and shared_train_calib_set is False,
     # otherwise train_size = 1 - test_size. In both cases train_size has to be greater than 0.
   cross_validation:
-    enabled: False # whether to use cross-validation
+    enabled: True # whether to use cross-validation
     folds: 5 # the number of folds in cross-validation (repetitions of data splitting)
     # minimum number of folds is 3
     # test_size = 1 / folds
@@ -56,7 +56,7 @@ data:
   outliers:
     policy: clip # 'keep', 'drop', 'clip'
     lower_bound:
-    upper_bound: 300000
+    upper_bound:
 
 
 
@@ -70,9 +70,9 @@ sampling:
   allow_lower_ratio: True # allow the ratio of nonzero samples to be lower than target_ratio
   include_zeros: True # include zero values of target in a sample
   outliers:
-    policy: clip # 'keep', 'drop', 'clip'
+    policy: keep # 'keep', 'drop', 'clip'
     lower_bound:
-    upper_bound: 100000
+    upper_bound:
   validation:
     val_set: split_train_val # 'none', 'calib_set' or 'split_train_val'
     # if val_set is 'none', then no validation set is used
