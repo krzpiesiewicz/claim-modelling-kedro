@@ -33,11 +33,11 @@ data:
   policy_id_col: IDpol
   split_random_seed: 1
   stratify_target_col: # the target column used for stratification;
-  # possible values: 'ClaimNb_TRG', 'ClaimFreq_TRG', 'ClaimTotalAmount_TRG', 'ClaimSeverity_TRG', 'ClaimPurePremium_TRG';
-  # if empty, the column corresponding to the model.target is used.
+    # possible values: 'ClaimNb_TRG', 'ClaimFreq_TRG', 'ClaimTotalAmount_TRG', 'ClaimSeverity_TRG', 'ClaimPurePremium_TRG';
+    # if empty, the column corresponding to the model.target is used.
   test_size: 0.2 # (0, 1) the part of policies used for test if cross_validation.enabled is False
-  # if cross_validation.enabled is True, then test_size param is ignored (test_size = data_size / folds).
-  # test_size has to be greater than 0.
+    # if cross_validation.enabled is True, then test_size param is ignored (test_size = data_size / folds).
+    # test_size has to be greater than 0.
   calib_set:
     enabled: <CALIBRATION_ENABLED> # whether to use the calibration set. If False, then calibration.enabled has to be set to False.
     shared_train_calib_set: <SHARED_TRAIN_CALIB_SET> # If True, training and calibration sets will be identical (shared keys) with common size: 1 - test_size.
@@ -56,7 +56,7 @@ data:
   outliers:
     policy: clip # 'keep', 'drop', 'clip'
     lower_bound:
-    upper_bound: 300000
+    upper_bound:
 
 
 
@@ -65,6 +65,7 @@ sampling:
   random_seed: 1
   n_obs: # the number of samples which are used to train a model.
   target_ratio:     # the ratio of nonzero samples, if None, the ratio is not controlled
+  target_ratio: <SMPL_TRG_RATIO> # the ratio of nonzero samples, if None, the ratio is not controlled
                     # if target_ratio is not None and n_obs is None, then get all targets and complete the sample with zeros
                     # If both n_obs and target_ratio are Nones, then all training data is used
   allow_lower_ratio: True # allow the ratio of nonzero samples to be lower than target_ratio
@@ -196,13 +197,12 @@ data_science:
       #           e.g., PoissonGLM.
       # 'pyglmnet' - PyGLMNet GLM is used with the distribution that corresponds to the model from parameter model.model, e.g., PoissonGLM, GammaGLM.
       # 'lasso' - Lasso uses the model from parameter model.model as a base model, e.g., PoissonGLM.
-    random_seed: 0
     params:
       model: # applies when method is 'model'. Put parameters for the model.model used for feature selection
         alpha: 0.001
         random_state: 0 # the random seed for the model
       pyglmnet: # applies when method is 'pyglmnet'
-        distr: gamma # gamma, poisson
+        distr: poisson # gamma, poisson
         alpha: 0.5 # the weighting between L1 penalty and L2 penalty term of the loss function
         reg_lambda: 0.0001 # the regularization parameter
         solver: batch-gradient # optimization method, can be one of the following:
@@ -232,10 +232,10 @@ data_science:
     overfit_penalty: <HYPEROPT_OVERFIT_PENALTY> # the penalty for overfitting (>= 0) added to hyperopt loss; penalty = overfit_penalty * max(0, loss_val - loss_train)
                          # where loss_{set} = -metric_{set} if large is better else metric_{set}
                          # if overfit_penalty == 0, then no penalty is applied
-    max_evals: 100 # the maximum number of evaluations
+    max_evals: 50 # the maximum number of evaluations
     early_stopping:
       enabled: True # whether to use early stopping
-      iteration_stop_count: 50 # the number of trials after which the optimization is stopped if no improvement is observed
+      iteration_stop_count: 30 # the number of trials after which the optimization is stopped if no improvement is observed
       percent_increase: 0.0001 # the percent increase in the metric that is required to continue the optimization
     algo: tpe # 'tpe', 'random'
     show_progressbar: True # whether to show the progress bar
@@ -257,6 +257,36 @@ data_science:
         val_size: 0.25 # the part of data used for validation – used only if cross_validation.enabled is False
         n_repeats: 10 # the number of times the data is split into train and validation sets
         random_seed: 0 # the random seed for stratified splitting the data into train and validation sets
+    params_space: # the space of hyperparameters to optimize
+      PyGLMNetPoissonGLM:
+        alpha:
+          type: uniform
+          low: 0.0
+          high: 1.0
+        reg_lambda:
+          type: loguniform
+          low: 1e-6
+          high: 100
+        eta:
+          type: loguniform
+          low: 1e-5
+          high: 2
+        max_iter:
+          type: quniform
+          low: 50
+          high: 1000
+          q: 10
+        tol:
+          type: loguniform
+          low: 1e-7
+          high: 1e-2
+        fit_intercept:
+          type: choice
+          values: [True, False]
+        learning_rate:
+          type: uniform
+          low: 0.001
+          high: 1
     excluded_params:
       SklearnPoissonGLM:
         - solver
@@ -276,29 +306,18 @@ data_science:
                  # model_class: claim_modelling_kedro.pipelines.p07_data_science.models.SklearnPoissonGLM
                  # if empty, the model class is inferred from the parameter model.model
     const_hparams:
-      StatsmodelsTweedieGLM:
+      StatsmodelsPoissonGLM:
         link: log # 'log' (all families), 'inverse' (Gamma), 'power' (Tweedie)
         power: 1.2
 #        variance: mu_squared # 'mu', 'mu_squared', 'power(p)', where p is a float number, e.g., 'power(1.5)'
         force_min_y_pred: False
         fit_intercept: True
-      StatsmodelsGammaGLM:
-        link: <STATSMODELS_LINK> # 'log' (all families), 'inverse' (Gamma), 'power' (Tweedie)
+      PyGLMNetPoissonGLM:
+        link: log # 'log' (all families)
         force_min_y_pred: True
-        fit_intercept: True
-        intercept_scale: <INTERCEPT_SCALE> # float or 'mean' - the scale of the intercept (intercept := intercept_scale), default is 1.0,
-                         # 'mean': intercept_scale := mean target value in train set
-        trg_divisor: <TRG_DIVISOR> # float or 'mean' - the divisor of the target value in train set (target := target / trg_divisor), default is 1.0,
-                     # 'mean': trg_divisor := mean target value in train set
-      SklearnGammaGLM:
         fit_intercept: True
       SklearnPoissonGLM:
         fit_intercept: True
-      PyGLMNetPoissonGLM:
-        fit_intercept: True
-      PyGLMNetGammaGLM:
-        fit_intercept: True
-        random_state: 1 # the random seed for the model
 
 
 calibration:
@@ -335,7 +354,7 @@ calibration:
     EqualBinsMeans:
       n_bins: 10
     LocalStatsmodelsGLM:
-      model: StatsmodelsGammaGLM # 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM'
+      model: StatsmodelsPoissonGLM # 'StatsmodelsPoissonGLM', 'StatsmodelsGammaGLM', 'StatsmodelsTweedieGLM'
       link: inverse # 'log', 'inverse'
       kernel: gaussian # 'gaussian', 'rectangular', 'triangular'
       frac: # (float) the fraction of the data used for the local polynomial regression
