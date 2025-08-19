@@ -67,6 +67,7 @@ def _get_folds_labels(target: pd.Series, cv_folds: int,
 
 
 def _get_stratified_train_calib_test_cv(target_df: pd.DataFrame, stratify_target_col: str, cv_folds: int,
+                                        calib_set_enabled: bool = False, shared_train_calib_set: bool = False,
                                         sample_weight: pd.Series = None, balance_sample_weights: bool = True,
                                         shuffle: bool = True, random_seed: int = 0,
                                         verbose: bool = False, cv_type: str = 'train_test',
@@ -134,19 +135,31 @@ def _get_stratified_train_calib_test_cv(target_df: pd.DataFrame, stratify_target
         for fold in range(cv_folds):
             # For each fold, use one block for calibration and one for test
             test_fold = fold
-            calib_fold = (fold + 1) % cv_folds  # The calibration fold is the next one (cyclic shift)
-
             # Test set is the current fold
             test_mask = (folds_labels == test_fold)
             test_keys = sorted_target_df[test_mask].index
 
-            # Calibration set is the next fold
-            calib_mask = (folds_labels == calib_fold)
-            calib_keys = sorted_target_df[calib_mask].index
+            if calib_set_enabled:
+                if shared_train_calib_set:
+                    # If shared_train_calib_set is True, use the same train set for both train and calibration
+                    # Train set: all other folds except the test fold
+                    train_mask = ~test_mask
+                    train_keys = sorted_target_df[train_mask].index
+                    calib_keys = train_keys
+                else:
+                    calib_fold = (fold + 1) % cv_folds  # The calibration fold is the next one (cyclic shift)
+                    # Calibration set is the next fold
+                    calib_mask = (folds_labels == calib_fold)
+                    calib_keys = sorted_target_df[calib_mask].index
 
-            # Train set: all the other folds except the test and calibration folds
-            train_mask = ~(test_mask | calib_mask)
-            train_keys = sorted_target_df[train_mask].index
+                    # Train set: all the other folds except the test and calibration folds
+                    train_mask = ~(test_mask | calib_mask)
+                    train_keys = sorted_target_df[train_mask].index
+            else: # calib_set_enabled is False
+                # If calibration set is not enabled, calib set: empty nad train set: all other folds except the test fold
+                train_mask = ~test_mask
+                train_keys = sorted_target_df[train_mask].index
+                calib_keys = pd.Index([])
 
             # Store the indices in dictionaries
             part = cv_parts_names[fold] if cv_parts_names is not None else str(fold)
@@ -183,10 +196,13 @@ def _get_stratified_train_calib_test_cv(target_df: pd.DataFrame, stratify_target
 
 
 def get_stratified_train_calib_test_cv(target_df: pd.DataFrame, stratify_target_col: str, cv_folds: int,
+                                       calib_set_enabled: bool, shared_train_calib_set: bool,
                                        cv_parts_names=None, sample_weight: pd.Series = None,
                                        shuffle: bool = True, random_seed: int = 0, verbose: bool = False) -> Tuple[
     Dict[str, pd.Index], Dict[str, pd.Index], Dict[str, pd.Index]]:
     return _get_stratified_train_calib_test_cv(target_df, stratify_target_col, cv_folds=cv_folds,
+                                               calib_set_enabled=calib_set_enabled,
+                                               shared_train_calib_set=shared_train_calib_set,
                                                sample_weight=sample_weight, shuffle=shuffle, random_seed=random_seed,
                                                verbose=verbose,
                                                cv_parts_names=cv_parts_names, cv_type='train_calib_test')

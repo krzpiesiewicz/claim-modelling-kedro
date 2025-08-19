@@ -1,7 +1,12 @@
 import logging
+import sys
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional, Union
+
+import numpy as np
 import yaml
+
+from claim_modelling_kedro.pipelines.utils.utils import convert_np_to_native
 
 logger = logging.getLogger(__name__)
 
@@ -89,12 +94,16 @@ class HyperOptSpaceConfig:
     """
     space: Dict[str, HyperParamSpaceType] = field(default_factory=dict)
     excluded_params: List[str] = field(default_factory=list)
+    model_const_params: Dict[str, Any] = field(default_factory=dict)
 
-    def __init__(self, params: Dict[str, Any], excluded_params: Optional[List[str]] = None):
+    def __init__(self, params: Dict[str, Any], excluded_params: List[str] = None,
+                 const_params: Dict[str, Any] = None):
         self.space = {}
         self.excluded_params = excluded_params or []
+        self.model_const_params = const_params or {}
+        logger.debug(f"{params=}")
         for param, conf in params.items():
-            if param in self.excluded_params:
+            if param in self.excluded_params or param in self.model_const_params:
                 continue
             if isinstance(conf, dict) and "type" in conf:
                 t = conf["type"]
@@ -104,14 +113,20 @@ class HyperOptSpaceConfig:
                     self.space[param] = QUniformSpace(conf["low"], conf["high"], conf["q"])
                 elif t == "loguniform":
                     self.space[param] = LogUniformSpace(conf["low"], conf["high"])
-                elif t == "choice":
-                    self.space[param] = ChoiceSpace(conf["values"])
+                elif t == "choice" or t == "switch":
+                    values = conf.get("values", None)
+                    if not isinstance(values, list) or len(values) == 0:
+                        # Convert single value to a list
+                        values = [values] if values is not None else []
+                    self.space[param] = ChoiceSpace(values)
                 else:
                     raise HyperOptSpaceConfigError(f"Unknown space type: {t} for parameter {param}")
             else:
                 # Constant value (e.g. early_stopping_rounds: 0)
                 self.space[param] = ConstSpace(conf)
-        logger.debug(f"Hyperparameter search space: {self.space}")
+        logger.debug(f"Const hyperparameters: {self.model_const_params}\n"
+                     f"Excluded parameters: {self.excluded_params}\n"
+                     f"Hyperparameter search space: {self.space}")
 
 
 def build_hyperopt_space(config: HyperOptSpaceConfig) -> Dict[str, Any]:
@@ -133,7 +148,7 @@ def build_hyperopt_space(config: HyperOptSpaceConfig) -> Dict[str, Any]:
         elif isinstance(definition, QUniformSpace):
             space[param] = hp.quniform(param, definition.low, definition.high, definition.q)
         elif isinstance(definition, LogUniformSpace):
-            space[param] = hp.loguniform(param, definition.low, definition.high)
+            space[param] = hp.loguniform(param, convert_np_to_native(np.log(definition.low)), convert_np_to_native(np.log(definition.high)))
         elif isinstance(definition, ChoiceSpace):
             space[param] = hp.choice(param, definition.values)
         elif isinstance(definition, ConstSpace):
@@ -143,7 +158,8 @@ def build_hyperopt_space(config: HyperOptSpaceConfig) -> Dict[str, Any]:
     return space
 
 
-def hyperopt_space_to_config(space: Dict[str, Any]) -> HyperOptSpaceConfig:
+def hyperopt_space_to_config(space: Dict[str, Any],  excluded_params: List[str] = None,
+                             const_params: Dict[str, Any] = None) -> HyperOptSpaceConfig:
     """
     Converts a Hyperopt search space dictionary (e.g., built by build_hyperopt_space) to a HyperOptSpaceConfig object.
 
@@ -165,16 +181,15 @@ def hyperopt_space_to_config(space: Dict[str, Any]) -> HyperOptSpaceConfig:
         if isinstance(node, Apply):
             fn = node.name
             args = node.pos_args
-            logger.info(f"Processing hyperopt space for parameter '{param}': {fn} with args {[repr(_unpack_pyll_tree(a)) for a in args]}")
+            logger.debug(f"Processing hyperopt space for parameter '{param}': {fn} with args {[repr(_unpack_pyll_tree(a)) for a in args]}")
             if fn == "uniform":
                 params[param] = {"type": "uniform", "low": float(args[1]), "high": float(args[2])}
             elif fn == "quniform":
                 params[param] = {"type": "quniform", "low": float(args[1]), "high": float(args[2]), "q": float(args[3])}
             elif fn == "loguniform":
-                params[param] = {"type": "loguniform", "low": float(args[1]), "high": float(args[2])}
-            elif fn == "choice":
-                # args[1] is a list of values
-                params[param] = {"type": "choice", "values": args[1]}
+                params[param] = {"type": "loguniform", "low": float(np.exp(args[1])), "high": float(np.exp(args[2]))}
+            elif fn == "choice" or fn == "switch":
+                params[param] = {"type": fn, "values": args[1]}
             elif fn in ("float", "int", "str"):
                 # This is a constant value (float/int/str) or a hyperopt_param generator
                 value = args[0]
@@ -185,7 +200,8 @@ def hyperopt_space_to_config(space: Dict[str, Any]) -> HyperOptSpaceConfig:
         else:
             # Could be another type, e.g., a constant number
             params[param] = definition
-    return HyperOptSpaceConfig(params)
+    logger.debug(f"{params=}")
+    return HyperOptSpaceConfig(params, excluded_params=excluded_params, const_params=const_params)
 
 
 def hyperopt_space_config_to_yaml(config: HyperOptSpaceConfig) -> str:
@@ -229,11 +245,12 @@ def hyperopt_space_config_to_yaml(config: HyperOptSpaceConfig) -> str:
             const_params[param] = definition.value
         else:
             raise HyperOptSpaceConfigError(f"Unknown hyperparameter space type for parameter '{param}'")
-    out = {
-        "excluded_params": config.excluded_params,
-        "const_params": const_params,
-        "space": space,
-    }
+    logger.debug(f"{const_params=}")
+    const_params.update(config.model_const_params)
+    logger.debug(f"after update {const_params=}")
+    out = {"excluded_params": config.excluded_params} if len(config.excluded_params) > 0 else {}
+    out["const_params"] = const_params
+    out["space"] = space
     return yaml.dump(out, default_flow_style=False, sort_keys=False)
 
 
@@ -302,9 +319,9 @@ def _resolve_hyperopt_constant(param, fn, value):
                 elif gen_fn == "quniform":
                     return {"type": "quniform", "low": float(_extract_literal_value(gen_args[0])), "high": float(_extract_literal_value(gen_args[1])), "q": float(_extract_literal_value(gen_args[2]))}
                 elif gen_fn == "loguniform":
-                    return {"type": "loguniform", "low": float(_extract_literal_value(gen_args[0])), "high": float(_extract_literal_value(gen_args[1]))}
-                elif gen_fn == "choice":
-                    return {"type": "choice", "values": _extract_literal_value(gen_args[1])}
+                    return {"type": "loguniform", "low": float(np.exp(_extract_literal_value(gen_args[0]))), "high": float(np.exp(_extract_literal_value(gen_args[1])))}
+                elif gen_fn == "choice" or gen_fn == "switch":
+                    return {"type": gen_fn, "values": _extract_literal_value(gen_args[1])}
                 else:
                     raise HyperOptSpaceConfigError(f"Unsupported generator type in hyperopt_param for parameter {param}: {gen_fn}")
             else:

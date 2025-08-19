@@ -105,4 +105,5 @@ class DataScienceConfig:
             self.target_transformer_class = None
 
         self.fs = FeatureSelectionConfig(params["feature_selection"])
-        self.hp = HypertuneConfig(params["hyperopt"], smpl=smpl, model_name=self.model.value)
+        self.hp = HypertuneConfig(params["hyperopt"], smpl=smpl, model_name=self.model.value,
+                                  model_const_hparams=self.model_const_hparams)

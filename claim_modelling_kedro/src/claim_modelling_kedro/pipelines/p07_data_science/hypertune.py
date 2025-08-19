@@ -27,7 +27,7 @@ from claim_modelling_kedro.pipelines.utils.metrics import get_metric_from_enum, 
 from claim_modelling_kedro.pipelines.utils.stratified_cv_split import get_stratified_train_test_cv
 from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_test_split_keys
 from claim_modelling_kedro.pipelines.utils.utils import get_class_from_path, \
-    round_decimal
+    round_decimal, convert_np_to_native
 
 logger = logging.getLogger(__name__)
 
@@ -331,20 +331,23 @@ def get_hparam_space(config: Config, log_space_to_mlflow: bool = False) -> Tuple
     else:
         logger.info("Using default hyperparameter space from the model class.")
         hparam_space = model.get_hparams_space()
-    excluded = config.ds.hp.excluded_params + list(config.ds.model_const_hparams.keys())
+    excluded = [k for k in np.unique(config.ds.hp.excluded_params + list(config.ds.model_const_hparams.keys())) if k in hparam_space]
     logger.info(f"Excluded hyperparameters: " + (str(excluded) if excluded else "-"))
-    excluded_values = {k: hparam_space[k] for k in excluded if k in hparam_space}
-    if excluded_values:
-        msg = "Values of excluded hyperparameters:\n" + "\n".join(f"  - {k}: {v}" for k, v in excluded_values.items())
-        logger.info(msg)
     const_hparams = list(config.ds.model_const_hparams.keys())
     logger.info(f"Constant hyperparameters: {const_hparams}")
+    hparams_values = model.get_hparams()
+    constant_hparams_names = convert_np_to_native(np.unique(config.ds.hp.excluded_params + list(config.ds.model_const_hparams.keys())))
+    constant_hparams_values = {k: convert_np_to_native(hparams_values[k]) for k in constant_hparams_names}
+    if len(constant_hparams_values) > 0:
+        msg = "Values of excluded and constant hyperparameters:\n" + "\n".join(f"  - {k}: {v}" for k, v in constant_hparams_values.items())
+        logger.info(msg)
     for hparam in excluded:
         if hparam in hparam_space:
             hparam_space.pop(hparam)
     if hparam_space is None or len(hparam_space) == 0:
         raise Exception(f"No hyperparameter space defined for {config.ds.hp.algo}.")
-    space_config = hyperopt_space_to_config(hparam_space)
+    space_config = hyperopt_space_to_config(hparam_space, excluded_params=None,
+                                            const_params=constant_hparams_values)
     yaml_content = hyperopt_space_config_to_yaml(space_config)
     logger.info(f"Hyperparameter space for {config.ds.model.value}:\n{yaml_content}")
     if log_space_to_mlflow:

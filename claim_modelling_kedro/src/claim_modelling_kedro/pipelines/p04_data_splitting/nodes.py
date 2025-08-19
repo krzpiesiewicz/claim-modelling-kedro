@@ -37,6 +37,8 @@ def split_train_calib_test(
             stratify_target_col=stratify_target_col,
             cv_folds=config.data.cv_folds,
             cv_parts_names=config.data.cv_parts_names,
+            calib_set_enabled=config.data.calib_set_enabled,
+            shared_train_calib_set=config.data.shared_train_calib_set,
             sample_weight=sample_weight,
             shuffle=True,
             random_seed=config.data.split_random_seed,
@@ -56,6 +58,8 @@ def split_train_calib_test(
             stratify_target_col=stratify_target_col,
             test_size=config.data.test_size,
             calib_size=config.data.calib_size,
+            calib_set_enabled=config.data.calib_set_enabled,
+            shared_train_calib_set=config.data.shared_train_calib_set,
             sample_weight=sample_weight,
             shuffle=True,
             random_seed=config.data.split_random_seed,
@@ -76,6 +80,8 @@ def split_train_calib_test(
             ["train", "calib", "test"],
             [train_keys, calib_keys, test_keys]
     ):
+        if not config.data.calib_set_enabled and dataset == "calib":
+            continue
         top_n = 6
         stats_cols = ["n_obs", "mean", "weighted_mean", "min", "q_0.1", "q_0.25", "q_0.5", "q_0.75", "q_0.9", "q_0.95", "q_0.99", "q_0.995",
                 "q_0.999"] + [f"top_{top_n - k}" for k in range(top_n)]
