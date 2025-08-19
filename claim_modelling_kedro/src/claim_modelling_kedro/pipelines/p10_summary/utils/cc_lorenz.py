@@ -174,7 +174,8 @@ def create_concentration_curves_figs_part(
         title=f"Concentration Curve ({dataset.title()}) with Lorenz",
         show_cc=True,
         show_lorenz=True,
-        fill_between_cc_and_lorenz=True
+        fill_between_equity_and_cc=False,
+        fill_between_cc_and_lorenz=False
     )
     logger.info("Generated the concentration curve with the Lorenz curve.")
 
