@@ -70,8 +70,11 @@ def _get_stratified_train_calib_test_cv(target_df: pd.DataFrame, stratify_target
                                         calib_set_enabled: bool = False, shared_train_calib_set: bool = False,
                                         sample_weight: pd.Series = None, balance_sample_weights: bool = True,
                                         shuffle: bool = True, random_seed: int = 0,
-                                        verbose: bool = False, cv_type: str = 'train_test',
-                                        cv_parts_names: list = None):
+                                        verbose: bool = False, cv_type: str = "train_test",
+                                        cv_parts_names: list = None) -> Union[
+        Tuple[Dict[str, pd.Index], Dict[str, pd.Index]],
+        Tuple[Dict[str, pd.Index], Dict[str, pd.Index], Dict[str, pd.Index]]
+    ]:
     """
     Performs stratified cross-validation splits.
 
