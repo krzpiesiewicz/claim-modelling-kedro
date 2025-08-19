@@ -83,8 +83,8 @@ def _get_stratified_train_calib_test_cv(target_df: pd.DataFrame, stratify_target
         random_seed (int): The random seed for reproducibility. Default is 0.
         verbose (bool): Whether to print information about the splits. Default is False.
         cv_type (str): The type of cross-validation to perform.
-                       'train_test' for standard CV (train set: cv_folds-1, test set: 1 fold).
-                       'train_calib_test' for calibration CV (train set: cv_folds-2, calib set: 1 fold, test set: 1 fold).
+                       "train_test" for standard CV (train set: cv_folds-1, test set: 1 fold).
+                       "train_calib_test" for calibration CV (train set: cv_folds-2, calib set: 1 fold, test set: 1 fold).
 
     Returns:
         Tuple[Dict[str, pd.Index], Dict[str, pd.Index], Dict[str, pd.Index]]: Dictionaries containing train, calib, and test sets for each fold.
@@ -117,7 +117,7 @@ def _get_stratified_train_calib_test_cv(target_df: pd.DataFrame, stratify_target
                                          random_seed=random_seed)
 
     # Cross-validation splitting based on cv_type
-    if cv_type == 'train_test':
+    if cv_type == "train_test":
         # Standard cross-validation (cv_folds-1 train blocks, 1 test block)
         for fold in range(cv_folds):
             # Test set is the current fold
@@ -132,7 +132,7 @@ def _get_stratified_train_calib_test_cv(target_df: pd.DataFrame, stratify_target
             train_keys_cv[part] = train_keys
             test_keys_cv[part] = test_keys
 
-    elif cv_type == 'train_calib_test':
+    elif cv_type == "train_calib_test":
         # Calibration cross-validation (cv_folds-2 train blocks, 1 calibration block, 1 test block)
         for fold in range(cv_folds):
             # For each fold, use one block for calibration and one for test
@@ -172,14 +172,14 @@ def _get_stratified_train_calib_test_cv(target_df: pd.DataFrame, stratify_target
     # Step 4: Logging (if verbose mode is enabled)
     if verbose:
         avg_bin_size = n_samples / cv_folds
-        if cv_type == 'train_test':
+        if cv_type == "train_test":
             msg = (f"Stratified CV (Train/Test). Split into {cv_folds} folds. Average bin size: {avg_bin_size:.2f}. "
                    f"The sizes of the folds:")
             for fold in train_keys_cv.keys():
                 msg += (f"\n    - fold {fold}: train: {len(train_keys_cv[fold])} samples, "
                         f"test: {len(test_keys_cv[fold])} samples "
                         f"({len(test_keys_cv[fold]) / len(target_df):.2%})")
-        elif cv_type == 'train_calib_test':
+        elif cv_type == "train_calib_test":
             msg = (
                 f"Stratified CV (Train/Calib/Test). Split into {cv_folds} partitions. Average bin size: {avg_bin_size:.2f}. "
                 f"The sizes of the partitions:")
@@ -191,9 +191,9 @@ def _get_stratified_train_calib_test_cv(target_df: pd.DataFrame, stratify_target
         logger.info(msg)
 
     # Return appropriate dictionaries based on the cross-validation type
-    if cv_type == 'train_test':
+    if cv_type == "train_test":
         return train_keys_cv, test_keys_cv
-    elif cv_type == 'train_calib_test':
+    elif cv_type == "train_calib_test":
         return train_keys_cv, calib_keys_cv, test_keys_cv
 
 
@@ -207,14 +207,15 @@ def get_stratified_train_calib_test_cv(target_df: pd.DataFrame, stratify_target_
                                                shared_train_calib_set=shared_train_calib_set,
                                                sample_weight=sample_weight, shuffle=shuffle, random_seed=random_seed,
                                                verbose=verbose,
-                                               cv_parts_names=cv_parts_names, cv_type='train_calib_test')
+                                               cv_parts_names=cv_parts_names, cv_type="train_calib_test")
 
 
 def get_stratified_train_test_cv(target_df: pd.DataFrame, stratify_target_col: str, cv_folds: int,
                                  cv_parts_names=None, sample_weight: pd.Series = None,
                                  shuffle: bool = True, random_seed: int = 0, verbose: bool = False) -> Tuple[
     Dict[str, pd.Index], Dict[str, pd.Index]]:
-    return _get_stratified_train_calib_test_cv(target_df, stratify_target_col, cv_folds=cv_folds,
+    train_keys_cv, test_keys_cv = _get_stratified_train_calib_test_cv(target_df, stratify_target_col, cv_folds=cv_folds,
                                                sample_weight=sample_weight, shuffle=shuffle, random_seed=random_seed,
                                                verbose=verbose,
-                                               cv_parts_names=cv_parts_names, cv_type='train_test')
+                                               cv_parts_names=cv_parts_names, cv_type="train_test")
+    return train_keys_cv, test_keys_cv
