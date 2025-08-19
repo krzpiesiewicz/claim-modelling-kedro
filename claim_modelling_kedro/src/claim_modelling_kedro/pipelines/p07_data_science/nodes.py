@@ -1,4 +1,4 @@
-from typing import Dict, Any, Tuple
+from typing import Dict, Any
 
 import pandas as pd
 
@@ -7,13 +7,13 @@ from claim_modelling_kedro.pipelines.p07_data_science.transform_target import fi
     inverse_transform_predictions_by_mlflow_model
 from claim_modelling_kedro.pipelines.p07_data_science.hypertune import hypertune
 from claim_modelling_kedro.pipelines.p07_data_science.model import fit_transform_predictive_model, \
-    evaluate_predictions, PredictiveModel
+    evaluate_predictions
 from claim_modelling_kedro.pipelines.p07_data_science.select import fit_transform_features_selector
 from claim_modelling_kedro.pipelines.utils.dataframes import save_predictions_and_target_in_mlflow
 
 
 def fit_target_transformer(config: Config, sample_target_df: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
-    if config.ds.target_transformer_enabled:
+    if config.ds.trg_trans.enabled:
         return fit_transform_target_transformer(config, sample_target_df)
     return sample_target_df
 
@@ -47,7 +47,7 @@ def fit_predictive_model(config: Config, selected_sample_features_df: Dict[str, 
         sample_val_keys,
         best_hparams,
     )
-    if config.ds.target_transformer_enabled:
+    if config.ds.trg_trans.enabled:
         sample_predictions_df = inverse_transform_predictions_by_mlflow_model(config, sample_predictions_df)
     # Save the predictions and the target in MLFlow
     save_predictions_and_target_in_mlflow(sample_predictions_df, sample_target_df, dataset="sample_train",

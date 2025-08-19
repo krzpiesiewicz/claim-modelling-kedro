@@ -3,15 +3,16 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, Any
 
-from claim_modelling_kedro.pipelines.p01_init.exprmnt import ExperimentInfo
 from claim_modelling_kedro.pipelines.p01_init.fs_config import FeatureSelectionConfig
 from claim_modelling_kedro.pipelines.p01_init.hp_config import HypertuneConfig
 from claim_modelling_kedro.pipelines.p01_init.smpl_config import SamplingConfig
+from claim_modelling_kedro.pipelines.p01_init.trg_trans_config import TargetTransformerConfig
 
 logger = logging.getLogger(__name__)
 
 class TargetTransformerEnum(Enum):
     LOG_TARGET_TRANSFORMER: str = "LogTargetTransformer"
+    POWER_TARGET_TRANSFORMER: str = "PowerTargetTransformer"
 
 class ModelEnum(Enum):
     DUMMY_MEAN_REGRESSOR: str = "DummyMeanRegressor"
@@ -36,8 +37,7 @@ class DataScienceConfig:
     model: ModelEnum
     model_class: str
     model_const_hparams: Dict[str, Any]
-    target_transformer_enabled: bool
-    target_transformer_class: str
+    trg_trans: TargetTransformerConfig
     fs: FeatureSelectionConfig
     hp: HypertuneConfig
 
@@ -93,17 +93,10 @@ class DataScienceConfig:
             self.model_const_hparams = {}
         logger.debug(f"model_const_hparams: {self.model_const_hparams}")
 
-        self.target_transformer_enabled = params["target_transformer"]["enabled"]
-        if self.target_transformer_enabled:
-            model = TargetTransformerEnum(params["target_transformer"]["model"])
-            match model:
-                case TargetTransformerEnum.LOG_TARGET_TRANSFORMER:
-                    self.target_transformer_class = "claim_modelling_kedro.pipelines.p07_data_science.target_transformers.LogTargetTransformer"
-                case _:
-                    raise ValueError(f"Target transformer model \"{model}\" not supported.")
-        else:
-            self.target_transformer_class = None
-
+        # Target transformer configuration
+        self.trg_trans = TargetTransformerConfig(trans_params=params["target_transformer"])
+        # Feature selection configuration
         self.fs = FeatureSelectionConfig(params["feature_selection"])
+        # Hyperparameter tuning configuration
         self.hp = HypertuneConfig(params["hyperopt"], smpl=smpl, model_name=self.model.value,
                                   model_const_hparams=self.model_const_hparams)
