@@ -133,14 +133,34 @@ This script runs an experiment for different pipelines.
 It requires the experiment name and the name of the first pipeline to run as positional arguments.
 
 Optionally, you can specify:
-- another pipeline to run for all subsequent runs, and
-- a specific run name.
+- another pipeline to run for all subsequent runs,
+- a specific run name or multiple run names, and
+- a run name from which run_experiment.sh should continue.
 
 The script copies the rendered templates from `experiments/<experiment_name>/templates/` to the Kedro configuration directory.
 
 **Usage:**
-```sh
-./run_experiment.sh <experiment_name> <first_pipeline> [--other-pipeline <other_pipeline>] [--run-name <run_name>]
+
+```bash
+./run_experiment.sh <experiment_name> <first_pipeline> [--other-pipeline OTHER_PIPELINE] [--run-name RUN_NAME [RUN_NAME ...]] [--from-run-name FROM_RUN_NAME]
+```
+
+- `<experiment_name>`: Name of the experiment directory (required)
+- `<first_pipeline>`: Name of the first pipeline to run (required)
+- `--other-pipeline OTHER_PIPELINE`: (optional) Name of the second pipeline to run after the first
+- `--run-name RUN_NAME [RUN_NAME ...]`: (optional) One or more run names to use for the experiment(s)
+- `--from-run-name FROM_RUN_NAME`: (optional) Use this run name as a template for the new run(s)
+
+Example:
+
+```bash
+./run_experiment.sh sev_001_dummy_mean_regressor ds
+```
+
+or with additional options:
+
+```bash
+./run_experiment.sh sev_001_dummy_mean_regressor all_to_test --other-pipeline smpl_to_test --run-name my_run_1 my_run_2
 ```
 
 ### restore_default_config.sh
