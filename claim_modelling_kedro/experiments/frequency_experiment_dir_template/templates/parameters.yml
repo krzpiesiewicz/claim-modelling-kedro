@@ -63,7 +63,7 @@ data:
 sampling:
   included_calib_set_in_train_sample: <SMPL_INCLUDE_CALIB_IN_TRAIN> # whether to use also the calibration data for creating a training sample
   random_seed: 1
-  n_obs: 8000 # the number of samples which are used to train a model.
+  n_obs: <SMPL_N_OBS> # the number of samples which are used to train a model.
   target_ratio: <SMPL_TRG_RATIO> # the ratio of nonzero samples, if None, the ratio is not controlled
                     # if target_ratio is not None and n_obs is None, then get all targets and complete the sample with zeros
                     # If both n_obs and target_ratio are Nones, then all training data is used
