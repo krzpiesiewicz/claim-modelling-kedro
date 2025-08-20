@@ -341,7 +341,7 @@ calibration:
   # If method is 'Pure', then no calibration is applied and the pure predictions are used as calibrated predictions.
   const_hparams:
     IsotonicRegression:
-      force_positive: False
+      force_positive: True
       clip_low_bin:
       clip_high_bin:
     CenteredIsotonicRegression:
