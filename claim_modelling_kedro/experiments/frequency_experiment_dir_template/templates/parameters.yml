@@ -40,7 +40,7 @@ data:
     # test_size has to be greater than 0.
   calib_set:
     enabled: True # whether to use the calibration set. If False, then calibration.enabled has to be set to False.
-    shared_train_calib_set: True # If True, training and calibration sets will be identical (shared keys) with common size: 1 - test_size.
+    shared_train_calib_set: <SHARED_TRAIN_CALIB_SET> # If True, training and calibration sets will be identical (shared keys) with common size: 1 - test_size.
     # If False, training and calibration sets will be split separately with sizes: calib_size and 1 - calib_size - test_size, respectively.
     # shared_train_calib_set = True is useful for disabling calibration or when no cross-validation is used. If False, sets are split separately.
     calib_size: 0.2 # [0,1) - the part of policies used for model calibration (if shared_train_calib_set is False nd cross_validation.enabled is False)
@@ -63,7 +63,7 @@ data:
 sampling:
   included_calib_set_in_train_sample: <SMPL_INCLUDE_CALIB_IN_TRAIN> # whether to use also the calibration data for creating a training sample
   random_seed: 1
-  n_obs: 8000 # the number of samples which are used to train a model.
+  n_obs: <SMPL_N_OBS> # the number of samples which are used to train a model.
   target_ratio: <SMPL_TRG_RATIO> # the ratio of nonzero samples, if None, the ratio is not controlled
                     # if target_ratio is not None and n_obs is None, then get all targets and complete the sample with zeros
                     # If both n_obs and target_ratio are Nones, then all training data is used
@@ -239,10 +239,10 @@ data_science:
     overfit_penalty: <HYPEROPT_OVERFIT_PENALTY> # the penalty for overfitting (>= 0) added to hyperopt loss; penalty = overfit_penalty * max(0, loss_val - loss_train)
                          # where loss_{set} = -metric_{set} if large is better else metric_{set}
                          # if overfit_penalty == 0, then no penalty is applied
-    max_evals: 50 # the maximum number of evaluations
+    max_evals: 30 # the maximum number of evaluations
     early_stopping:
       enabled: True # whether to use early stopping
-      iteration_stop_count: 30 # the number of trials after which the optimization is stopped if no improvement is observed
+      iteration_stop_count: 20 # the number of trials after which the optimization is stopped if no improvement is observed
       percent_increase: 0.0001 # the percent increase in the metric that is required to continue the optimization
     algo: tpe # 'tpe', 'random'
     show_progressbar: True # whether to show the progress bar
@@ -341,7 +341,7 @@ calibration:
   # If method is 'Pure', then no calibration is applied and the pure predictions are used as calibrated predictions.
   const_hparams:
     IsotonicRegression:
-      force_positive: False
+      force_positive: True
       clip_low_bin:
       clip_high_bin:
     CenteredIsotonicRegression:
