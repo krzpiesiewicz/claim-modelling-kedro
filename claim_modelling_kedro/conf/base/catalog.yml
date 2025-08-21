@@ -245,6 +245,12 @@ dummy_load_pred_and_trg_df:
   save_args:
     index: True
 
+dummy_recomp_metrics_df:
+  type: pandas.ParquetDataset
+  filepath: data/06_test/recompute_metrics/dummy_recomp_metrics_df.pq
+  save_args:
+    index: True
+
 dummy_charts_1_df:
   type: pandas.ParquetDataset
   filepath: data/06_test/charts/dummy_charts_1_df.pq
