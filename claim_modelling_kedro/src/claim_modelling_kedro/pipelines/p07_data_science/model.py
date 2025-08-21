@@ -16,7 +16,7 @@ from claim_modelling_kedro.pipelines.utils.dataframes import (
     save_pd_dataframe_as_csv_in_mlflow
 )
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
-from claim_modelling_kedro.pipelines.utils.metrics import Metric
+from claim_modelling_kedro.pipelines.utils.metrics import SklearnLikeMetric
 from claim_modelling_kedro.pipelines.utils.mlflow_model import MLFlowModelLogger, MLFlowModelLoader
 from claim_modelling_kedro.pipelines.utils.utils import get_class_from_path
 from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
@@ -105,7 +105,7 @@ class PredictiveModel(ABC):
         self._features_importance = features_importance.sort_values(ascending=False)
 
     @abstractmethod
-    def metric(self) -> Metric:
+    def metric(self) -> SklearnLikeMetric:
         pass
 
     @abstractmethod

@@ -13,14 +13,14 @@ from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.ds_config import ModelEnum
 from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel
 from claim_modelling_kedro.pipelines.p07_data_science.models.sklearn_model import SklearnModel
-from claim_modelling_kedro.pipelines.utils.metrics.metric import Metric, RootMeanSquaredError, MeanPoissonDeviance, \
+from claim_modelling_kedro.pipelines.utils.metrics import SklearnLikeMetric, RootMeanSquaredError, MeanPoissonDeviance, \
     MeanGammaDeviance, MeanTweedieDeviance
 from claim_modelling_kedro.pipelines.utils.metrics.gini import ConcentrationCurveGiniIndex
 
 logger = logging.getLogger(__name__)
 
 
-def get_statsmodels_metric(config: Config, model_enum: ModelEnum, pred_col: str) -> Metric:
+def get_statsmodels_metric(config: Config, model_enum: ModelEnum, pred_col: str) -> SklearnLikeMetric:
     match model_enum:
         case ModelEnum.STATSMODELS_GAUSSIAN_GLM:
             return RootMeanSquaredError(config, pred_col=pred_col)
@@ -93,7 +93,7 @@ class StatsmodelsGLM(PredictiveModel, ABC):
     def _get_model_enum(self) -> ModelEnum:
         return self._model_enum
 
-    def metric(self) -> Metric:
+    def metric(self) -> SklearnLikeMetric:
         return get_statsmodels_metric(config=self.config, model_enum=self._get_model_enum(), pred_col=self.pred_col)
 
     def _updated_hparams(self):
@@ -342,7 +342,7 @@ class SklearnPoissonGLM(SklearnGLM):
     def __init__(self, config: Config, **kwargs):
         SklearnGLM.__init__(self, config=config, model_class=PoissonRegressor, **kwargs)
 
-    def metric(self) -> Metric:
+    def metric(self) -> SklearnLikeMetric:
         return MeanPoissonDeviance(self.config, pred_col=self.pred_col)
 
     @classmethod
@@ -390,7 +390,7 @@ class SklearnGammaGLM(SklearnGLM):
         logger.debug(f"{kwargs=}")
         SklearnGLM.__init__(self, config=config, model_class=GammaRegressor, **kwargs)
 
-    def metric(self) -> Metric:
+    def metric(self) -> SklearnLikeMetric:
         return MeanGammaDeviance(self.config, pred_col=self.pred_col)
 
     @classmethod
@@ -437,7 +437,7 @@ class SklearnTweedieGLM(SklearnGLM):
     def __init__(self, config: Config, **kwargs):
         SklearnGLM.__init__(self, config=config, model_class=TweedieRegressor, **kwargs)
 
-    def metric(self) -> Metric:
+    def metric(self) -> SklearnLikeMetric:
         hparams = self.get_hparams()
         if "power" in hparams:
             return MeanTweedieDeviance(self.config, pred_col=self.pred_col, power=hparams["power"])
@@ -495,7 +495,7 @@ class PyGLMNetGLM(PredictiveModel):
     def _get_model_enum(self) -> ModelEnum:
         return self._model_enum
 
-    def metric(self) -> Metric:
+    def metric(self) -> SklearnLikeMetric:
         match self._get_model_enum():
             case ModelEnum.PYGLMNET_GAMMA_GLM:
                 return MeanGammaDeviance(self.config, pred_col=self.pred_col)

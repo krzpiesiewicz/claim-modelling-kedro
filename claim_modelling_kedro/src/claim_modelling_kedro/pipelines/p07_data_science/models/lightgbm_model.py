@@ -8,7 +8,7 @@ from lightgbm import LGBMRegressor
 
 from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel
 from claim_modelling_kedro.pipelines.utils.metrics import NormalizedConcentrationCurveGiniIndex
-from claim_modelling_kedro.pipelines.utils.metrics.metric import MeanPoissonDeviance, MeanGammaDeviance, \
+from claim_modelling_kedro.pipelines.utils.metrics import MeanPoissonDeviance, MeanGammaDeviance, \
     MeanTweedieDeviance
 from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_test_split_keys
 
