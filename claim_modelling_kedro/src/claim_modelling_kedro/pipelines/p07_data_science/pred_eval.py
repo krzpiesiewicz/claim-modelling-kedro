@@ -42,11 +42,11 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
             - scores: Dictionary of scores for each metric.
             - stats_df_per_n_bins: DataFrame containing the statistics for the predictions and targets grouped into bins.
     """
-    joined_prefix = f"{dataset}_{prefix}"
-    logger.info(f"Evaluating the predictions for partition '{part}' of {joined_prefix} dataset...")
+    joined_dataset = f"{dataset}_{prefix}"
+    logger.info(f"Evaluating the predictions for partition '{part}' of {joined_dataset} dataset...")
     scores = {}
     if compute_group_stats:
-        logger.info(f"Computing group statistics for partition '{part}' of {joined_prefix} dataset...")
+        logger.info(f"Computing group statistics for partition '{part}' of {joined_dataset} dataset...")
         stats_df_per_n_bins = {}
         for n_bins in N_BINS_LIST:
             stats_df = create_prediction_group_statistics_strict_bins(
@@ -55,17 +55,16 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
                 target_df=target_df,
                 prediction_col=config.mdl_task.prediction_col,
                 target_col=config.mdl_task.target_col,
-                dataset=dataset,
-                prefix=prefix,
+                joined_dataset=joined_dataset,
                 n_bins=n_bins,
             )
             stats_df_per_n_bins[n_bins] = stats_df
             logger.info(
-                f"Table of statistics for {n_bins} groups from partition: {part} in dataset: {joined_prefix} has been generated and logged.")
+                f"Table of statistics for {n_bins} groups from partition: {part} in dataset: {joined_dataset} has been generated and logged.")
     else:
         stats_df_per_n_bins = None
 
-    logger.info(f"Computing the metrics for partition '{part}' in {joined_prefix} dataset...")
+    logger.info(f"Computing the metrics for partition '{part}' in {joined_dataset} dataset...")
     for metric_enum in config.mdl_task.evaluation_metrics:
         metric = get_metric_from_enum(config, metric_enum, pred_col=config.mdl_task.prediction_col)
         try:
@@ -82,13 +81,13 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
             metric_name = f"{prefix}_{metric_name}"
         scores[(metric_enum, metric_name)] = score
     if log_metrics_to_console:
-        logger.info(f"Evaluated the predictions for partition '{part}' in {joined_prefix} dataset:\n" +
+        logger.info(f"Evaluated the predictions for partition '{part}' in {joined_dataset} dataset:\n" +
                     "\n".join(f"    - {name}: {score}" for (_, name), score in scores.items()))
     if log_metrics_to_mlflow:
-        logger.info(f"Logging the metrics for partition '{part}' in {joined_prefix} dataset to MLFlow...")
+        logger.info(f"Logging the metrics for partition '{part}' in {joined_dataset} dataset to MLFlow...")
         for (_, metric_name), score in scores.items():
             mlflow.log_metric(metric_name, score)
-        logger.info(f"Logged the metrics for partition '{part}' in {joined_prefix} dataset to MLFlow.")
+        logger.info(f"Logged the metrics for partition '{part}' in {joined_dataset} dataset to MLFlow.")
     return scores, stats_df_per_n_bins
 
 
@@ -121,8 +120,8 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
     scores_by_part = {}
     scores_by_names = {}
     stats_df_by_n_bins = {}
-    joined_prefix = f"{dataset}_{prefix}" if prefix is not None else dataset
-    logger.info(f"Evaluating the predictions for {joined_prefix} dataset...")
+    joined_dataset = f"{dataset}_{prefix}" if prefix is not None else dataset
+    logger.info(f"Evaluating the predictions for {joined_dataset} dataset...")
     for part in predictions_df.keys():
         predictions_part_df = get_partition(predictions_df, part)
         target_part_df = get_partition(target_df, part)
@@ -168,26 +167,25 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
             # metric_name = f"{prefix}_{metric_name}" if prefix is not None else metric_name
             mlflow.log_metric(metric_name, score)
     scores_table = scores_df.T.sort_index()
-    scores_table.index.name = joined_prefix
-    scores_table.columns = [name.replace(f"{joined_prefix}_", "") for name in scores_table.columns]
+    scores_table.index.name = joined_dataset
+    scores_table.columns = [name.replace(f"{joined_dataset}_", "") for name in scores_table.columns]
     mean_and_std_table = pd.DataFrame.from_records([scores_table.mean(), scores_table.std()],
-                                                   index=pd.Index(["mean", "std"], name=joined_prefix))
+                                                   index=pd.Index(["mean", "std"], name=joined_dataset))
     scores_table = scores_table.map(partial(round, ndigits=4))
     mean_and_std_table = mean_and_std_table.map(partial(round, ndigits=4))
-    logger.info(f"Scores of {joined_prefix} predictions:\n" +
+    logger.info(f"Scores of {joined_dataset} predictions:\n" +
                 tabulate(scores_table, headers="keys", tablefmt="psql", showindex=True) + "\n" +
                 tabulate(mean_and_std_table, headers="keys", tablefmt="psql", showindex=True))
     # Create a DataFrame of averaged group statistics
     if compute_group_stats:
-        logger.info(f"Computing group statistics for all partitions in {joined_prefix} dataset...")
+        logger.info(f"Computing group statistics for all partitions in {joined_dataset} dataset...")
         for n_bins, stats_dfs in stats_df_by_n_bins.items():
-            logger.info(f"Computing group statistics for {n_bins} bins ({joined_prefix} dataset)...")
+            logger.info(f"Computing group statistics for {n_bins} bins ({joined_dataset} dataset)...")
             create_average_prediction_group_statistics(
                 config=config,
                 stats_dfs=stats_dfs,
-                dataset=dataset,
+                joined_dataset=joined_dataset,
                 n_bins=n_bins,
-                prefix=prefix
             )
-            logger.info(f"Table of statistics for {n_bins} groups ({joined_prefix} dataset) has been generated and logged.")
+            logger.info(f"Table of statistics for {n_bins} groups ({joined_dataset} dataset) has been generated and logged.")
     return scores_by_part, scores_df
