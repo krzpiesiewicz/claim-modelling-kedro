@@ -155,7 +155,7 @@ def create_curves_plots(
     return dummy_summary_1_df
 
 
-def create_prediction_groups_stats_tables_and_charts(
+def create_lift_charts(
         config: Config,
         calib_predictions_df: Dict[str, pd.DataFrame],
         calib_target_df: Dict[str, pd.DataFrame],
