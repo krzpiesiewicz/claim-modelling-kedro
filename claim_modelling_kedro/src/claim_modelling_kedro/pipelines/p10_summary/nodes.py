@@ -18,8 +18,7 @@ from claim_modelling_kedro.pipelines.p10_summary.utils.cumul_calib_plot import \
 from claim_modelling_kedro.pipelines.p10_summary.utils.simple_lift_chart import create_simple_lift_cv_mean_chart_fig, \
     create_simple_lift_chart_fig
 from claim_modelling_kedro.pipelines.p07_data_science.tabular_stats import (
-    load_averaged_prediction_group_stats_from_mlflow,
-    N_BINS_LIST, create_prediction_group_statistics_strict_bins
+    N_BINS_LIST, create_prediction_group_statistics_strict_bins, load_prediction_and_targets_group_stats_from_mlflow
 )
 from claim_modelling_kedro.pipelines.utils.dataframes import load_predictions_and_target_from_mlflow
 from claim_modelling_kedro.pipelines.utils.datasets import get_mlflow_run_id_for_partition, get_partition
@@ -241,7 +240,7 @@ def create_lift_charts(
 
                     # Start a nested MLflow run and generate individual concentration curves
                     with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-                        stats_df = load_averaged_prediction_group_stats_from_mlflow(
+                        stats_df = load_prediction_and_targets_group_stats_from_mlflow(
                             joined_dataset=joined_dataset,
                             n_bins=n_bins,
                             mlflow_run_id=mlflow_subrun_id,
