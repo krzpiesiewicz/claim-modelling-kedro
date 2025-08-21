@@ -2,7 +2,7 @@ from sklearn.dummy import DummyRegressor
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p07_data_science.models.sklearn_model import SklearnModel
-from claim_modelling_kedro.pipelines.utils.metrics.metric import Metric, RootMeanSquaredError
+from claim_modelling_kedro.pipelines.utils.metrics.sklearn_like_metric import SklearnLikeMetric, RootMeanSquaredError
 from typing import Collection, Dict, Any
 
 
@@ -21,12 +21,12 @@ class DummyMeanRegressor(SklearnModel):
         # Hardcode the DummyRegressor with the "mean" strategy
         SklearnModel.__init__(self, config=config, model_class=DummyRegressor, **kwargs)
 
-    def metric(self) -> Metric:
+    def metric(self) -> SklearnLikeMetric:
         """
         Returns the evaluation metric for the model.
 
         Returns:
-            Metric: Root Mean Squared Error (RMSE) metric.
+            SklearnLikeMetric: Root Mean Squared Error (RMSE) metric.
         """
         return RootMeanSquaredError(self.config, pred_col=self.pred_col)
 

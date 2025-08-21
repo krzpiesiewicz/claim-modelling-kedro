@@ -6,7 +6,7 @@ import pandas as pd
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum, MetricType
 from claim_modelling_kedro.pipelines.utils.concentration_curve import calculate_concentration_curve_parts
-from claim_modelling_kedro.pipelines.utils.metrics.metric import Metric
+from claim_modelling_kedro.pipelines.utils.metrics.sklearn_like_metric import SklearnLikeMetric
 
 
 def calculate_area_under_cc_parts(curve_parts: List[Tuple[np.ndarray[float], np.ndarray[float]]]) -> float:
@@ -41,7 +41,7 @@ def calculate_area_under_cc(y_true: pd.Series, y_pred: pd.Series, sample_weight:
     return calculate_area_under_cc_parts(curve_parts)
 
 
-class LorenzGiniIndex(Metric):
+class LorenzGiniIndex(SklearnLikeMetric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=self._gini_index, **kwargs)
 
@@ -77,7 +77,7 @@ class LorenzGiniIndex(Metric):
         return True
 
 
-class ConcentrationCurveGiniIndex(Metric):
+class ConcentrationCurveGiniIndex(SklearnLikeMetric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=self._cc_gini_index, **kwargs)
 
@@ -113,7 +113,7 @@ class ConcentrationCurveGiniIndex(Metric):
         return True
 
 
-class NormalizedConcentrationCurveGiniIndex(Metric):
+class NormalizedConcentrationCurveGiniIndex(SklearnLikeMetric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=self._normalized_cc_gini_index, **kwargs)
 

@@ -4,13 +4,13 @@ from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum, T
 from claim_modelling_kedro.pipelines.utils.metrics.cumulative_calibration_index import CumulativeCalibrationIndex, \
     CumulativeOverpricingIndex, CumulativeUnderpricingIndex
 from claim_modelling_kedro.pipelines.utils.metrics.area_between_cc_and_lc import AreaBetweenCCAndLC
-from claim_modelling_kedro.pipelines.utils.metrics.metric import MeanAbsoluteError, RootMeanSquaredError, R2, \
-    MeanBiasDeviation, MeanPoissonDeviance, MeanGammaDeviance, SpearmanCorrelation, MeanTweedieDeviance, Metric
+from claim_modelling_kedro.pipelines.utils.metrics.sklearn_like_metric import MeanAbsoluteError, RootMeanSquaredError, R2, \
+    MeanBiasDeviation, MeanPoissonDeviance, MeanGammaDeviance, SpearmanCorrelation, MeanTweedieDeviance, SklearnLikeMetric
 from claim_modelling_kedro.pipelines.utils.metrics.gini import LorenzGiniIndex, ConcentrationCurveGiniIndex, NormalizedConcentrationCurveGiniIndex
 from claim_modelling_kedro.pipelines.utils.metrics.sup_diff_cc_and_lc import SupremumDiffBetweenCCAndLC
 
 
-def get_metric_from_enum(config: Config, enum: MetricEnum, pred_col: str) -> Metric:
+def get_metric_from_enum(config: Config, enum: MetricEnum, pred_col: str) -> SklearnLikeMetric:
     match enum:
         case MetricEnum.MAE:
             return MeanAbsoluteError(config, pred_col=pred_col)

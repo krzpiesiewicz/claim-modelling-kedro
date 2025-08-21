@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from functools import partial
 from typing import Callable, Union, Optional
 
@@ -10,53 +10,18 @@ import wcorr
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.metric_config import TWEEDIE_DEV, EXP_WEIGHTED_TWEEDIE_DEV, \
     CLNB_WEIGHTED_TWEEDIE_DEV, MetricEnum
+from claim_modelling_kedro.pipelines.utils.metrics.metric import Metric
 from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
 from claim_modelling_kedro.pipelines.utils.dataframes import ordered_by_pred_and_hashed_index
 
 
-class Metric(ABC):
+class SklearnLikeMetric(Metric, ABC):
     def __init__(self, config: Config, pred_col: str, sklearn_like_metric: Callable = None,
                  exposure_weighted=False, claim_nb_weighted=False):
-        self.config = config
-        self.target_col = config.mdl_task.target_col
+        super().__init__(config=config, exposure_weighted=exposure_weighted, claim_nb_weighted=claim_nb_weighted)
         self.pred_col = pred_col
+        self.target_col = config.mdl_task.target_col
         self.sklearn_like_metric = sklearn_like_metric
-        if exposure_weighted and claim_nb_weighted:
-            raise ValueError("Only one of exposure_weighted and claim_nb_weighted can be True.")
-        self.exposure_weighted = exposure_weighted
-        self.claim_nb_weighted = claim_nb_weighted
-
-    def get_name(self) -> str:
-        name = self._get_name()
-        if self.exposure_weighted:
-            name = "Exposure-Weighted " + name
-        if self.claim_nb_weighted:
-            name = "Claim-Number-Weighted " + name
-        return name
-
-    def get_short_name(self) -> str:
-        name = self._get_short_name()
-        if self.exposure_weighted:
-            name = "ew" + name
-        if self.claim_nb_weighted:
-            name = "nw" + name
-        return name
-
-    @abstractmethod
-    def _get_name(self) -> str:
-        pass
-
-    @abstractmethod
-    def _get_short_name(self) -> str:
-        pass
-
-    @abstractmethod
-    def get_enum(self) -> MetricEnum:
-        pass
-
-    @abstractmethod
-    def is_larger_better(self) -> bool:
-        pass
 
     def eval(self, target_df: Union[pd.DataFrame, np.ndarray], prediction_df: Union[pd.DataFrame, np.ndarray],
              sample_weight: Optional[Union[pd.Series, np.ndarray]] = None) -> float:
@@ -74,7 +39,7 @@ class Metric(ABC):
         return self.sklearn_like_metric(y_true, y_pred, sample_weight=sample_weight)
 
 
-class MeanAbsoluteError(Metric):
+class MeanAbsoluteError(SklearnLikeMetric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=self.mae, **kwargs)
 
@@ -100,7 +65,7 @@ class MeanAbsoluteError(Metric):
         return False
 
 
-class RootMeanSquaredError(Metric):
+class RootMeanSquaredError(SklearnLikeMetric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=self.rmse, **kwargs)
 
@@ -126,7 +91,7 @@ class RootMeanSquaredError(Metric):
         return False
 
 
-class R2(Metric):
+class R2(SklearnLikeMetric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=sklearn.metrics.r2_score, **kwargs)
 
@@ -147,7 +112,7 @@ class R2(Metric):
         return True
 
 
-class MeanBiasDeviation(Metric):
+class MeanBiasDeviation(SklearnLikeMetric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=self.mbd, **kwargs)
 
@@ -191,7 +156,7 @@ class MeanBiasDeviation(Metric):
             f"{self.get_name()} is not a maximization nor minimization metric - cannot be used as a loss function.")
 
 
-class MeanPoissonDeviance(Metric):
+class MeanPoissonDeviance(SklearnLikeMetric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=sklearn.metrics.mean_poisson_deviance, **kwargs)
 
@@ -212,7 +177,7 @@ class MeanPoissonDeviance(Metric):
         return False
 
 
-class MeanGammaDeviance(Metric):
+class MeanGammaDeviance(SklearnLikeMetric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=sklearn.metrics.mean_gamma_deviance, **kwargs)
 
@@ -233,7 +198,7 @@ class MeanGammaDeviance(Metric):
         return False
 
 
-class MeanTweedieDeviance(Metric):
+class MeanTweedieDeviance(SklearnLikeMetric):
     def __init__(self, config: Config, power: float, **kwargs):
         super().__init__(config, **kwargs)
         self.power = power
@@ -256,7 +221,7 @@ class MeanTweedieDeviance(Metric):
         return False
 
 
-class SpearmanCorrelation(Metric):
+class SpearmanCorrelation(SklearnLikeMetric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=self._weighted_spearman, **kwargs)
 

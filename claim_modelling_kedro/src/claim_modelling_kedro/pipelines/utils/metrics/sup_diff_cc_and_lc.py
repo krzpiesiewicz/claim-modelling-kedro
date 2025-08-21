@@ -5,10 +5,10 @@ from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum, MetricType
 from claim_modelling_kedro.pipelines.utils.concentration_curve import calculate_concentration_curve, \
     interpolate_to_points
-from claim_modelling_kedro.pipelines.utils.metrics.metric import Metric
+from claim_modelling_kedro.pipelines.utils.metrics.sklearn_like_metric import SklearnLikeMetric
 
 
-class SupremumDiffBetweenCCAndLC(Metric):
+class SupremumDiffBetweenCCAndLC(SklearnLikeMetric):
     """
     Class to compute the supremum of the absolute difference between the Concentration Curve (CC) and the Lorenz Curve (LC).
     """
