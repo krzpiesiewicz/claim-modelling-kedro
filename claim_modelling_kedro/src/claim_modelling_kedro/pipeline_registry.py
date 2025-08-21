@@ -52,11 +52,15 @@ def register_pipelines() -> Dict[str, Pipeline]:
     pipelines["clb_test"] = init_pipeline + calibration_pipeline + test_pipeline
     pipelines["ds_clb_test"] = init_pipeline + data_science_pipeline + calibration_pipeline + test_pipeline
     pipelines[
-        "de_ds_clb_test"] = init_pipeline + data_engineering_pipeline + data_science_pipeline + calibration_pipeline + test_pipeline
+        "de_ds_clb_test"] = (init_pipeline + data_engineering_pipeline + data_science_pipeline + calibration_pipeline +
+                             test_pipeline)
     pipelines[
-        "smpl_de_ds_clb_test"] = init_pipeline + def_modeling_task_pipeline + sampling_pipeline + data_engineering_pipeline + data_science_pipeline + calibration_pipeline + test_pipeline
+        "smpl_de_ds_clb_test"] = (init_pipeline + def_modeling_task_pipeline + sampling_pipeline +
+                                  data_engineering_pipeline + data_science_pipeline + calibration_pipeline +
+                                  test_pipeline)
     pipelines["smpl_to_test"] = pipelines["smpl_de_ds_clb_test"]
-    pipelines["split_to_test"] = pipelines["split_smpl"] + data_engineering_pipeline + data_science_pipeline + calibration_pipeline + test_pipeline
+    pipelines["split_to_test"] = (pipelines["split_smpl"] + data_engineering_pipeline + data_science_pipeline +
+                                  calibration_pipeline + test_pipeline)
     pipelines["de_to_test"] = pipelines["de_ds_clb_test"]
     pipelines["ds_to_test"] = pipelines["ds_clb_test"]
     pipelines["charts"] = init_pipeline + load_pred_and_trg_pipeline + charts_pipeline
