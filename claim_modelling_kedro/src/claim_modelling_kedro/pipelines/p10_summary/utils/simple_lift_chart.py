@@ -6,6 +6,10 @@ import numpy as np
 import pandas as pd
 from typing import List
 import logging
+
+import matplotlib
+matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
