@@ -18,6 +18,43 @@ from claim_modelling_kedro.pipelines.utils.metrics import get_metric_from_enum
 logger = logging.getLogger(__name__)
 
 
+def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
+                              target_df: pd.DataFrame, prefix: str, part: str, log_metrics_to_mlflow: bool,
+                              log_metrics_to_console: bool = True, keys: pd.Index = None) -> List[
+    Tuple[MetricEnum, str, float]]:
+    """
+    prefix: str - default None, but can by any string like train, test, pure, cal etc.
+    If prefix is not None, it will be added to the metric name separated by underscore.
+    E.g., train_RMSE
+    """
+    logger.info(f"Evaluating the predictions for partition '{part}' of {prefix} dataset...")
+    scores = {}
+    for metric_enum in config.mdl_task.evaluation_metrics:
+        metric = get_metric_from_enum(config, metric_enum, pred_col=config.mdl_task.prediction_col)
+        try:
+            if keys is not None:
+                predictions_df = predictions_df.loc[keys, :]
+                target_df = target_df.loc[keys, :]
+            score = metric.eval(target_df, predictions_df)
+        except Exception as e:
+            logger.error(f"Error while evaluating the metric {metric.get_short_name()} for partition '{part}': {e}")
+            logger.warning(f"Setting the score to NaN for partition '{part}'.")
+            score = np.nan
+        metric_name = metric.get_short_name()
+        if prefix is not None:
+            metric_name = f"{prefix}_{metric_name}"
+        scores[(metric_enum, metric_name)] = score
+    if log_metrics_to_console:
+        logger.info(f"Evaluated the predictions for partition '{part}':\n" +
+                    "\n".join(f"    - {name}: {score}" for (_, name), score in scores.items()))
+    if log_metrics_to_mlflow:
+        logger.info(f"Logging the metrics for partition '{part}' to MLFlow...")
+        for (_, metric_name), score in scores.items():
+            mlflow.log_metric(metric_name, score)
+        logger.info(f"Logged the metrics for partition '{part}' to MLFlow.")
+    return scores
+
+
 def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame],
                          target_df: Dict[str, pd.DataFrame], dataset: str,
                          prefix: str = None,
@@ -76,40 +113,3 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
                 tabulate(scores_table, headers="keys", tablefmt="psql", showindex=True) + "\n" +
                 tabulate(mean_and_std_table, headers="keys", tablefmt="psql", showindex=True))
     return scores_by_part, scores_df
-
-
-def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
-                              target_df: pd.DataFrame, prefix: str, part: str, log_metrics_to_mlflow: bool,
-                              log_metrics_to_console: bool = True, keys: pd.Index = None) -> List[
-    Tuple[MetricEnum, str, float]]:
-    """
-    prefix: str - default None, but can by any string like train, test, pure, cal etc.
-    If prefix is not None, it will be added to the metric name separated by underscore.
-    E.g., train_RMSE
-    """
-    logger.info(f"Evaluating the predictions for partition '{part}' of {prefix} dataset...")
-    scores = {}
-    for metric_enum in config.mdl_task.evaluation_metrics:
-        metric = get_metric_from_enum(config, metric_enum, pred_col=config.mdl_task.prediction_col)
-        try:
-            if keys is not None:
-                predictions_df = predictions_df.loc[keys, :]
-                target_df = target_df.loc[keys, :]
-            score = metric.eval(target_df, predictions_df)
-        except Exception as e:
-            logger.error(f"Error while evaluating the metric {metric.get_short_name()} for partition '{part}': {e}")
-            logger.warning(f"Setting the score to NaN for partition '{part}'.")
-            score = np.nan
-        metric_name = metric.get_short_name()
-        if prefix is not None:
-            metric_name = f"{prefix}_{metric_name}"
-        scores[(metric_enum, metric_name)] = score
-    if log_metrics_to_console:
-        logger.info(f"Evaluated the predictions for partition '{part}':\n" +
-                    "\n".join(f"    - {name}: {score}" for (_, name), score in scores.items()))
-    if log_metrics_to_mlflow:
-        logger.info(f"Logging the metrics for partition '{part}' to MLFlow...")
-        for (_, metric_name), score in scores.items():
-            mlflow.log_metric(metric_name, score)
-        logger.info(f"Logged the metrics for partition '{part}' to MLFlow.")
-    return scores
