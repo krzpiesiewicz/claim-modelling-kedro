@@ -34,6 +34,7 @@ class MetricEnum(MetricType, Enum):
     SPEARMAN: str = "spearman_correlation"
     EXP_WEIGHTED_SPEARMAN: str = "exposure_weighted_spearman_correlation"
     CLNB_WEIGHTED_SPEARMAN: str = "claim_nb_weighted_spearman_correlation"
+    # Calibration metrics
     ABC: str = "area_between_cc_and_lc"
     EXP_WEIGHTED_ABC: str = "exposure_weighted_area_between_cc_and_lc"
     CLNB_WEIGHTED_ABC: str = "claim_nb_weighted_area_between_cc_and_lc"
