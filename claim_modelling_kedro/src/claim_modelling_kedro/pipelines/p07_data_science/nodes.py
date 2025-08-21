@@ -6,8 +6,8 @@ from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p07_data_science.transform_target import fit_transform_target_transformer, \
     inverse_transform_predictions_by_mlflow_model
 from claim_modelling_kedro.pipelines.p07_data_science.hypertune import hypertune
-from claim_modelling_kedro.pipelines.p07_data_science.model import fit_transform_predictive_model, \
-    evaluate_predictions
+from claim_modelling_kedro.pipelines.p07_data_science.model import fit_transform_predictive_model
+from claim_modelling_kedro.pipelines.p07_data_science.pred_eval import evaluate_predictions
 from claim_modelling_kedro.pipelines.p07_data_science.select import fit_transform_features_selector
 from claim_modelling_kedro.pipelines.utils.dataframes import save_predictions_and_target_in_mlflow
 
