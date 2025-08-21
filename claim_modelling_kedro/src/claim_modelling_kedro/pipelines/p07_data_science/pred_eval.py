@@ -21,9 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
-                              target_df: pd.DataFrame, dataset: str, prefix: str, part: str, log_metrics_to_mlflow: bool,
-                              log_metrics_to_console: bool = True, compute_group_stats: bool = True,
-                              keys: pd.Index = None) -> Tuple[
+                              target_df: pd.DataFrame, pred_col: str, dataset: str, prefix: str, part: str,
+                              log_metrics_to_mlflow: bool, log_metrics_to_console: bool = True,
+                              compute_group_stats: bool = True, keys: pd.Index = None) -> Tuple[
     Dict[Tuple[MetricEnum, str], float], Dict[int, pd.DataFrame]]:
     """
     Evaluates the predictions for a specific partition of the dataset.
@@ -53,7 +53,7 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
                 config=config,
                 predictions_df=predictions_df,
                 target_df=target_df,
-                prediction_col=config.mdl_task.prediction_col,
+                prediction_col=pred_col,
                 target_col=config.mdl_task.target_col,
                 joined_dataset=joined_dataset,
                 n_bins=n_bins,
@@ -66,7 +66,7 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
 
     logger.info(f"Computing the metrics for partition '{part}' in {joined_dataset} dataset...")
     for metric_enum in config.mdl_task.evaluation_metrics:
-        metric = get_metric_from_enum(config, metric_enum, pred_col=config.mdl_task.prediction_col)
+        metric = get_metric_from_enum(config, metric_enum, pred_col=pred_col)
         try:
             if keys is not None:
                 predictions_df = predictions_df.loc[keys, :]
@@ -94,6 +94,7 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
 def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame],
                          target_df: Dict[str, pd.DataFrame], dataset: str,
                          prefix: str = None,
+                         pred_col: str = None,
                          log_metrics_to_mlflow: bool = True,
                          save_metrics_table: bool = True,
                          compute_group_stats: bool = True,
@@ -120,6 +121,7 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
     scores_by_part = {}
     scores_by_names = {}
     stats_df_by_n_bins = {}
+    pred_col = pred_col or config.mdl_task.prediction_col
     joined_dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
     logger.info(f"Evaluating the predictions for {joined_dataset} dataset...")
     for part in predictions_df.keys():
@@ -129,7 +131,7 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
         mlflow_subrun_id = get_mlflow_run_id_for_partition(part, config)
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
             scores, stats_df_per_n_bins = evaluate_predictions_part(config, predictions_part_df, target_part_df,
-                                                                    dataset, prefix, part, log_metrics_to_mlflow,
+                                                                    pred_col, dataset, prefix, part, log_metrics_to_mlflow,
                                                                     compute_group_stats=compute_group_stats,
                                                                     keys=keys_part, log_metrics_to_console=False)
             scores_by_part[part] = scores
