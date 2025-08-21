@@ -6,6 +6,7 @@ import logging
 import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
+from claim_modelling_kedro.pipelines.p01_init.exprmnt import Target
 from claim_modelling_kedro.pipelines.p10_summary.utils.auto_calib_chart import create_auto_calib_chart_fig
 from claim_modelling_kedro.pipelines.p10_summary.utils.lift_chart import create_lift_chart_fig, \
     create_lift_cv_mean_chart_fig
@@ -177,6 +178,84 @@ def create_curves_plots(
     return dummy_summary_1_df
 
 
+_MIN_AND_MAX_VALS_LIFT_CHART = {
+    Target.FREQUENCY: dict(
+        part = dict(
+            sample = {
+                10: dict(min=0, max=0.5),
+                20: dict(min=0, max=0.7),
+                30: dict(min=0, max=0.8),
+                50: dict(min=0, max=0.9),
+                100: dict(min=0, max=1.4),
+            },
+            full = {
+                10: dict(min=0, max=0.4),
+                20: dict(min=0, max=0.5),
+                30: dict(min=0, max=0.55),
+                50: dict(min=0, max=0.6),
+                100: dict(min=0, max=0.8),
+            }
+        ),
+        mean = dict(
+            sample = {
+                10: dict(min=0, max=0.4),
+                20: dict(min=0, max=0.6),
+                30: dict(min=0, max=0.7),
+                50: dict(min=0, max=0.8),
+                100: dict(min=0, max=1.1),
+            },
+            full = {
+                10: dict(min=0, max=0.35),
+                20: dict(min=0, max=0.4),
+                30: dict(min=0, max=0.5),
+                50: dict(min=0, max=0.5),
+                100: dict(min=0, max=0.6),
+            }
+        )
+    ),
+    Target.AVG_CLAIM_AMOUNT: dict(
+        part = dict(
+            sample = {
+                10: dict(min=None, max=None),
+                20: dict(min=None, max=None),
+                30: dict(min=None, max=None),
+                50: dict(min=None, max=None),
+                100: dict(min=None, max=None),
+            },
+            full = {
+                10: dict(min=None, max=None),
+                20: dict(min=None, max=None),
+                30: dict(min=None, max=None),
+                50: dict(min=None, max=None),
+                100: dict(min=None, max=None),
+            }
+        ),
+        mean = dict(
+            sample = {
+                10: dict(min=None, max=None),
+                20: dict(min=None, max=None),
+                30: dict(min=None, max=None),
+                50: dict(min=None, max=None),
+                100: dict(min=None, max=None),
+            },
+            full = {
+                10: dict(min=None, max=None),
+                20: dict(min=None, max=None),
+                30: dict(min=None, max=None),
+                50: dict(min=None, max=None),
+                100: dict(min=None, max=None),
+            }
+        )
+    )
+}
+
+def _get_min_max_val_lift_chart(config: Config, n_bins: int, is_sample: bool, is_part: bool) -> Tuple[float, float]:
+    dct = _MIN_AND_MAX_VALS_LIFT_CHART[config.exprmnt.target]["part" if is_part else "mean"]["sample" if is_sample else "full"]
+    if n_bins not in dct:
+        return None, None
+    return dct[n_bins]["min"], dct[n_bins]["max"]
+
+
 def create_lift_charts(
         config: Config,
         sample_train_predictions_df: Dict[str, pd.DataFrame],
@@ -224,6 +303,7 @@ def create_lift_charts(
         for prefix, prediction_col in prefixes_and_columns:
             joined_dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
             for n_bins in N_BINS_LIST:
+                min_val, max_val = _get_min_max_val_lift_chart(config, n_bins=n_bins, is_sample=dataset.startswith("sample"), is_part=True)
                 # Collect stats for each partition
                 stats_dfs = {}
                 # Iterate over each partition in the dataset
@@ -265,6 +345,8 @@ def create_lift_charts(
                             n_bins=n_bins,
                             dataset=dataset,
                             prefix=prefix,
+                            max_val=max_val,
+                            min_val=min_val,
                         )
                         create_simple_lift_chart_fig(
                             config=config,
@@ -272,6 +354,8 @@ def create_lift_charts(
                             n_bins=n_bins,
                             dataset=dataset,
                             prefix=prefix,
+                            max_val=max_val,
+                            min_val=min_val,
                         )
                         create_auto_calib_chart_fig(
                             config=config,
@@ -281,17 +365,25 @@ def create_lift_charts(
                             target_col=target_col,
                             dataset=dataset,
                             n_bins=n_bins,
-                            prefix=prefix
+                            prefix=prefix,
+                            min_x_val = min_val,
+                            max_x_val = max_val,
+                            min_y_val = min_val,
+                            max_y_val = max_val,
                         )
 
                 # Average the statistics across partitions
                 stats_dfs = list(stats_dfs.values())
+                min_val, max_val = _get_min_max_val_lift_chart(config, n_bins=n_bins,
+                                                               is_sample=dataset.startswith("sample"), is_part=False)
                 create_lift_cv_mean_chart_fig(
                     config=config,
                     stats_dfs=stats_dfs,
                     n_bins=n_bins,
                     dataset=dataset,
                     prefix=prefix,
+                    max_val=max_val,
+                    min_val=min_val,
                 )
                 create_simple_lift_cv_mean_chart_fig(
                     config=config,
@@ -299,6 +391,8 @@ def create_lift_charts(
                     n_bins=n_bins,
                     dataset=dataset,
                     prefix=prefix,
+                    max_val=max_val,
+                    min_val=min_val,
                 )
 
     dummy_summary_2_df = pd.DataFrame({})
