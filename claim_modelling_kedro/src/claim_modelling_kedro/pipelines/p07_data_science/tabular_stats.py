@@ -138,6 +138,11 @@ def prediction_group_statistics_strict_bins(
     stats_df.sort_values("group", inplace=True)
     stats_df.reset_index(drop=True, inplace=True)
 
+    stats_df["bias_deviation"] = stats_df["mean_target"] - stats_df["mean_pred"]
+    stats_df["mean_overpricing"] = np.max([stats_df["mean_target"], stats_df["mean_pred"]], axis=0) - stats_df["mean_target"]
+    stats_df["mean_underpricing"] = stats_df["mean_target"] - np.min([stats_df["mean_target"], stats_df["mean_pred"]], axis=0)
+    stats_df["abs_bias_deviation"] = np.abs(stats_df["bias_deviation"])
+
     return stats_df
 
 
@@ -218,11 +223,6 @@ def create_average_prediction_group_statistics(
     logger.info(f"Averaging prediction group statistics for dataset: {joined_dataset} with {n_bins} bins over partitions...")
     if isinstance(stats_dfs, Dict):
         stats_dfs = stats_dfs.values()
-    for df in stats_dfs:
-        df["bias_deviation"] = df["mean_target"] - df["mean_pred"]
-        df["mean_overpricing"] = np.max([df["mean_target"], df["mean_pred"]], axis=0) - df["mean_target"]
-        df["mean_underpricing"] = df["mean_target"] - np.min([df["mean_target"], df["mean_pred"]], axis=0)
-        df["abs_bias_deviation"] = np.abs(df["bias_deviation"])
     avg_stats_df = pd.concat(stats_dfs).groupby(level=0).mean()
     avg_stats_df["std_of_mean_pred"] = pd.concat(stats_dfs).mean_pred.groupby(level=0).std()
     avg_stats_df["std_of_mean_target"] = pd.concat(stats_dfs).mean_target.groupby(level=0).std()
