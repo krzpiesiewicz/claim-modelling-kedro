@@ -95,7 +95,7 @@ def sample(
         train_keys_part = train_keys[part]()
         calib_keys_part = calib_keys[part]()
         logger.debug(f"type(train_keys_part): {type(train_keys_part)}")
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(part, config)
         logger.debug(f"mlflow_subrun_id: {mlflow_subrun_id}")
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
             sample_keys_part, sample_features_part_df, sample_target_part_df, actual_target_ratio = sample_part(
@@ -138,7 +138,7 @@ def train_val_split(
             for part in partitions_keys:
                 sample_keys_part = get_partition(sample_keys, part)
                 sample_target_df_part = get_partition(sample_target_df, part)
-                mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
+                mlflow_subrun_id = get_mlflow_run_id_for_partition(part, config)
                 with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
                     sample_weight = get_sample_weight(config=config, target_df=sample_target_df_part.loc[sample_keys_part,:])
                     sample_train_keys_part, sample_val_keys_part = get_stratified_train_test_split_keys(

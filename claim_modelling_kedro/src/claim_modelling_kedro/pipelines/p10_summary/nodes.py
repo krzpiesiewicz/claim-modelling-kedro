@@ -131,7 +131,7 @@ def create_curves_plots(
                 part_target_df = get_partition(target_df, part)
 
                 # Get the MLflow run ID for the current partition
-                mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
+                mlflow_subrun_id = get_mlflow_run_id_for_partition(part, config)
                 logger.info(f"Starting MLflow nested run for partition: {part} with run ID: {mlflow_subrun_id}...")
 
                 # Start a nested MLflow run and generate individual curves
@@ -202,7 +202,7 @@ def create_lift_charts(
                     part_target_df = get_partition(target_df, part)
 
                     # Get the MLflow run ID for the current partition
-                    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
+                    mlflow_subrun_id = get_mlflow_run_id_for_partition(part, config)
                     logger.info(f"Starting MLflow nested run for partition: {part} with run ID: {mlflow_subrun_id}...")
 
                     # Start a nested MLflow run and generate individual concentration curves

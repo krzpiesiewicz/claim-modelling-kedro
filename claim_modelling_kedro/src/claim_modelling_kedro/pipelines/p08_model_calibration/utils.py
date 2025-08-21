@@ -105,7 +105,7 @@ def handle_outliers(
 def process_calibrate_partition(config: Config, part: str, pure_predictions_df: Dict[str, pd.DataFrame],
                                 mlflow_run_id: str) -> Tuple[str, pd.DataFrame]:
     pure_predictions_part_df = get_partition(pure_predictions_df, part)
-    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mlflow_run_id=mlflow_run_id)
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(part, config, parent_mlflow_run_id=mlflow_run_id)
     logger.info(f"Calibrating the pure predictions on partition '{part}' of the dataset by the MLFlow model...")
     calibrated_part_df = calibrate_predictions_by_mlflow_model_part(config, pure_predictions_part_df, mlflow_subrun_id)
     return part, calibrated_part_df
@@ -134,7 +134,7 @@ def process_fit_transform_partition(config: Config, part: str, pure_calib_predic
                                     target_calib_df: Dict[str, pd.DataFrame]) -> Tuple[str, pd.DataFrame]:
     pure_calib_predictions_part_df = get_partition(pure_calib_predictions_df, part)
     target_calib_part_df = get_partition(target_calib_df, part)
-    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(part, config)
     logger.info(f"Fitting and transforming the calibration model on partition '{part}' of the calibration dataset...")
     with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
         calibrated_part_df = fit_transform_calibration_model_part(config, pure_calib_predictions_part_df, target_calib_part_df)

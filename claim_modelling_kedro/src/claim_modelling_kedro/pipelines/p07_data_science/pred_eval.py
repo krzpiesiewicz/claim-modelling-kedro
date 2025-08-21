@@ -126,7 +126,7 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
         predictions_part_df = get_partition(predictions_df, part)
         target_part_df = get_partition(target_df, part)
         keys_part = get_partition(keys, part) if keys is not None else None
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(part, config)
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
             scores, stats_df_per_n_bins = evaluate_predictions_part(config, predictions_part_df, target_part_df,
                                                                     dataset, prefix, part, log_metrics_to_mlflow,
