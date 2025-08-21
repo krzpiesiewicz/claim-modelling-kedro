@@ -5,7 +5,6 @@ from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum, MetricType
 from claim_modelling_kedro.pipelines.utils.concentration_curve import calculate_concentration_curve, \
     interpolate_to_points
-from claim_modelling_kedro.pipelines.utils.dataframes import ordered_by_pred_and_hashed_index
 from claim_modelling_kedro.pipelines.utils.metrics.metric import Metric
 
 
