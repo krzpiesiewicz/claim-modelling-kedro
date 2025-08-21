@@ -1,5 +1,9 @@
 from typing import Dict, Tuple, Optional, List
-from matplotlib import pyplot as plt
+
+import matplotlib
+matplotlib.use("Agg")
+
+import matplotlib.pyplot as plt
 
 import pandas as pd
 import numpy as np

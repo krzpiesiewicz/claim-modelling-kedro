@@ -42,7 +42,7 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
             - scores: Dictionary of scores for each metric.
             - stats_df_per_n_bins: DataFrame containing the statistics for the predictions and targets grouped into bins.
     """
-    joined_dataset = f"{dataset}_{prefix}"
+    joined_dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
     logger.info(f"Evaluating the predictions for partition '{part}' of {joined_dataset} dataset...")
     scores = {}
     if compute_group_stats:
@@ -120,7 +120,7 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
     scores_by_part = {}
     scores_by_names = {}
     stats_df_by_n_bins = {}
-    joined_dataset = f"{dataset}_{prefix}" if prefix is not None else dataset
+    joined_dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
     logger.info(f"Evaluating the predictions for {joined_dataset} dataset...")
     for part in predictions_df.keys():
         predictions_part_df = get_partition(predictions_df, part)
