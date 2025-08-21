@@ -32,7 +32,7 @@ def get_file_name(file_template: str, dataset: str, n_bins: int) -> str:
 
 
 def plot_cv_mean_lift_chart(
-        summary_dfs: List[pd.DataFrame],
+        stats_dfs: List[pd.DataFrame],
         min_val: float = None,
         max_val: float = None,
         interpolate_pred_mean: bool = True
@@ -41,12 +41,12 @@ def plot_cv_mean_lift_chart(
     Plots a lift chart with mean prediction and target lines,
     optionally showing standard deviation bands and over/under bars.
     Args:
-        summary_dfs (List[pd.DataFrame]): List of summary DataFrames with "group", "mean_pred", and "mean_target" columns.
+        stats_dfs (List[pd.DataFrame]): List of statistcs DataFrames with "group", "mean_pred", and "mean_target" columns.
         min_val (float, optional): Minimum value for the y-axis. Defaults to None.
         max_val (float, optional): Maximum value for the y-axis. Defaults to None.
         interpolate_pred_mean (bool, optional): Whether to interpolate the mean prediction line. Defaults to True.
     """
-    all_groups = sorted(set(summary_dfs[0]["group"]))
+    all_groups = sorted(set(stats_dfs[0]["group"]))
     mean_pred = []
     mean_target = []
     std_pred = []
@@ -57,7 +57,7 @@ def plot_cv_mean_lift_chart(
 
     for group in all_groups:
         pred_vals, target_vals, red_parts, blue_parts = [], [], [], []
-        for df in summary_dfs:
+        for df in stats_dfs:
             row = df[df["group"] == group]
             pred = row["mean_pred"].values[0]
             target = row["mean_target"].values[0]
@@ -86,7 +86,7 @@ def plot_cv_mean_lift_chart(
             ax.hlines(y=mean_pred[i], xmin=group - 0.4, xmax=group + 0.4, color="black", linewidth=4, label=None)
 
     # Standard deviation band
-    if len(summary_dfs) > 1:
+    if len(stats_dfs) > 1:
         ax.fill_between(all_groups, np.array(mean_pred) - std_pred, np.array(mean_pred) + std_pred,
                         color="black", alpha=0.1)
 
@@ -131,13 +131,13 @@ def plot_cv_mean_lift_chart(
             xlabel = "Group"
     ax.set_xlabel(xlabel)
     title = "Extended Lift Chart"
-    if len(summary_dfs) > 1:
+    if len(stats_dfs) > 1:
         title = f"{title} (CV Average)"
     ax.set_title(title)
     ax.grid(True, linestyle='--', alpha=0.5)
 
     label_dev_template = "Mean Bias Deviation of Target Mean ({kind} Part)" if len(
-        summary_dfs) > 1 else "Bias Deviation of Target Mean (When {kind})"
+        stats_dfs) > 1 else "Bias Deviation of Target Mean (When {kind})"
     # Legend
     legend_handles = []
     if not interpolate_pred_mean:
@@ -146,7 +146,7 @@ def plot_cv_mean_lift_chart(
                    label="Mean Prediction"))
     else:
         legend_handles.append(Line2D([0], [0], color="black", linewidth=4, label="Mean Prediction"))
-    if len(summary_dfs) > 1:
+    if len(stats_dfs) > 1:
         legend_handles.append(Line2D([0], [0], color="black", linewidth=min(vline_width, 10), alpha=0.1,
                                      label="Standard Deviation of Mean Prediction")),
 
@@ -168,7 +168,7 @@ def plot_cv_mean_lift_chart(
 
 def create_lift_chart_fig(
     config: Config,
-    summary_df: pd.DataFrame,
+    stats_df: pd.DataFrame,
     n_bins: int,
     dataset: str,
     prefix: str = None,
@@ -178,8 +178,8 @@ def create_lift_chart_fig(
     Creates a chart showing the mean deviation lines between predictions and targets.
 
     Args:
-        summary_df (pd.DataFrame): DataFrame containing summary statistics.
-        n_bins (int): Number of bins used in the summary.
+        stats_df (pd.DataFrame): DataFrame containing group statistics.
+        n_bins (int): Number of bins used in the statistcs.
         dataset (str): Name of the dataset (e.g., "train" or "test").
         prefix (str, optional): Prefix for the dataset ('pure' or None). Defaults to None.
         min_val (float, optional): Minimum value for y-axis. Defaults to None.
@@ -193,7 +193,7 @@ def create_lift_chart_fig(
         params["max_val"] = max_val
     if min_val is not None:
         params["min_val"] = min_val
-    fig = plot_cv_mean_lift_chart([summary_df], interpolate_pred_mean=False, **params)
+    fig = plot_cv_mean_lift_chart([stats_df], interpolate_pred_mean=False, **params)
     logger.info("Generated the lift chart.")
 
     # Save and log the concentration curve with the Lorenz curve to MLflow
@@ -210,7 +210,7 @@ def create_lift_chart_fig(
 
 def create_lift_cv_mean_chart_fig(
     config: Config,
-    summary_dfs: List[pd.DataFrame],
+    stats_dfs: List[pd.DataFrame],
     n_bins: int,
     dataset: str,
     prefix: str = None,
@@ -220,8 +220,8 @@ def create_lift_cv_mean_chart_fig(
     Creates a chart showing the mean deviation lines between predictions and targets.
 
     Args:
-        summary_dfs (List[pd.DataFrame]): DataFrame containing summary statistics.
-        n_bins (int): Number of bins used in the summary.
+        stats_dfs (List[pd.DataFrame]): DataFrame containing group statistics.
+        n_bins (int): Number of bins used in the statistcs.
         dataset (str): Name of the dataset (e.g., "train" or "test").
         prefix (str, optional): Prefix for the dataset ('pure' or None). Defaults to None.
         min_val (float, optional): Minimum value for y-axis. Defaults to None.
@@ -235,7 +235,7 @@ def create_lift_cv_mean_chart_fig(
         params["max_val"] = max_val
     if min_val is not None:
         params["min_val"] = min_val
-    fig = plot_cv_mean_lift_chart(summary_dfs, interpolate_pred_mean=False, **params)
+    fig = plot_cv_mean_lift_chart(stats_dfs, interpolate_pred_mean=False, **params)
     logger.info("Generated the CV-mean lift chart.")
 
     # Save and log the concentration curve with the Lorenz curve to MLflow

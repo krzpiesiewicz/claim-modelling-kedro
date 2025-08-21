@@ -12,10 +12,10 @@ from claim_modelling_kedro.pipelines.utils.dataframes import ordered_by_pred_and
 
 logger = logging.getLogger(__name__)
 
-FILE_NAME_PRED_GROUPS_SUMMARY = "{dataset}_prediction_{n_bins}_group_summary.csv"
-FILE_NAME_AVERAGE_PRED_GROUPS_SUMMARY = "{dataset}_prediction_{n_bins}_group_summary_means.csv"
+FILE_NAME_PRED_GROUPS_STATS = "{dataset}_prediction_{n_bins}_group.csv"
+FILE_NAME_AVERAGE_PRED_GROUPS_STATS = "{dataset}_prediction_{n_bins}_group_means.csv"
 
-ARTIFACT_PATH_PRED_GROUPS_SUMMARY = "summary/prediction_group_summary"
+ARTIFACT_PATH_PRED_GROUPS_STATS = "prediction_group_statistics"
 
 
 def get_file_name(file_template: str, dataset: str, n_bins: int) -> str:
@@ -24,12 +24,12 @@ def get_file_name(file_template: str, dataset: str, n_bins: int) -> str:
     Args:
         file_template (str): Template for the file name.
         dataset (str): Name of the dataset (e.g., "train" or "test").
-        n_bins (int): Number of bins used in the summary.
+        n_bins (int): Number of bins used in the table.
     """
     return file_template.format(dataset=dataset, n_bins=n_bins)
 
 
-def prediction_group_summary_strict_bins(
+def prediction_group_statistics_strict_bins(
     y_true: Union[pd.Series, np.ndarray],
     y_pred: Union[pd.Series, np.ndarray],
     sample_weight: Union[pd.Series, np.ndarray],
@@ -80,7 +80,7 @@ def prediction_group_summary_strict_bins(
             arr = arr.astype(int)
         return arr
 
-    summary_rows = []
+    table_rows = []
     for group, group_df in df.groupby(bin_label_name):
         w = group_df["weight"].values
         yt = group_df["y_true"].values
@@ -100,16 +100,16 @@ def prediction_group_summary_strict_bins(
         for q, val in zip(q_vals, quantiles):
             stats[f"q_{int(q * 100):02d}"] = round_arr(val)
 
-        summary_rows.append(stats)
+        table_rows.append(stats)
 
-    summary_df = pd.DataFrame(summary_rows)
-    summary_df.sort_values("group", inplace=True)
-    summary_df.reset_index(drop=True, inplace=True)
+    stats_df = pd.DataFrame(table_rows)
+    stats_df.sort_values("group", inplace=True)
+    stats_df.reset_index(drop=True, inplace=True)
 
-    return summary_df
+    return stats_df
 
 
-def create_prediction_group_summary_strict_bins(
+def create_prediction_group_statistics_strict_bins(
     config: Config,
     predictions_df: pd.DataFrame,
     target_df: pd.DataFrame,
@@ -123,7 +123,7 @@ def create_prediction_group_summary_strict_bins(
     as_int: bool = False
 ) -> pd.DataFrame:
     """
-    Generates a summary of predictions and targets grouped into bins.
+    Generates statistics of predictions and targets grouped into bins.
 
     Args:
         config (Config): Configuration object containing settings and parameters.
@@ -134,21 +134,21 @@ def create_prediction_group_summary_strict_bins(
         dataset (str): Name of the dataset (e.g., "train" or "test").
         n_bins (int): Number of bins to divide the data into.
         prefix (str, optional): Prefix for the dataset ('pure' or None). Defaults to None.
-        groups (List[int], optional): Specific groups to include in the summary. Defaults to None.
+        groups (List[int], optional): Specific groups to include in the table. Defaults to None.
         round_precision (int, optional): Precision for rounding numerical values. Defaults to None.
         as_int (bool, optional): Whether to convert rounded values to integers. Defaults to False.
 
     Returns:
-        pd.DataFrame: DataFrame containing the summary statistics for each bin.
+        pd.DataFrame: DataFrame containing the statistics for each bin.
     """
     dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
-    logger.info(f"Generating prediction group summary for dataset: {dataset} with {n_bins} bins...")
+    logger.info(f"Generating prediction group statistics for dataset: {dataset} with {n_bins} bins...")
 
     y_true = target_df[target_col]
     y_pred = predictions_df[prediction_col]
     sample_weight = get_sample_weight(config, target_df)
 
-    summary_df = prediction_group_summary_strict_bins(
+    stats_df = prediction_group_statistics_strict_bins(
         y_true=y_true,
         y_pred=y_pred,
         sample_weight=sample_weight,
@@ -158,62 +158,62 @@ def create_prediction_group_summary_strict_bins(
         as_int=as_int
     )
 
-    # Save and log the summary DataFrame as a CSV file to MLflow
-    logger.info(f"Saving and logging the prediction group summary for dataset: {dataset} as a CSV file to MLflow...")
+    # Save and log the statistics DataFrame as a CSV file to MLflow
+    logger.info(f"Saving and logging the prediction group statistics for dataset: {dataset} as a CSV file to MLflow...")
     with tempfile.TemporaryDirectory() as temp_dir:
-        filename = get_file_name(FILE_NAME_PRED_GROUPS_SUMMARY, dataset, n_bins)
-        artifact_path = ARTIFACT_PATH_PRED_GROUPS_SUMMARY
+        filename = get_file_name(FILE_NAME_PRED_GROUPS_STATS, dataset, n_bins)
+        artifact_path = ARTIFACT_PATH_PRED_GROUPS_STATS
         csv_path = os.path.join(temp_dir, filename)
-        summary_df.to_csv(csv_path, index=False)
+        stats_df.to_csv(csv_path, index=False)
         mlflow.log_artifact(csv_path, artifact_path=artifact_path)
-        logger.info(f"Prediction group summary for dataset: {dataset} logged to MLflow as {os.path.join(artifact_path, filename)}.")
+        logger.info(f"Prediction group statistics for dataset: {dataset} logged to MLflow as {os.path.join(artifact_path, filename)}.")
 
-    return summary_df
+    return stats_df
 
 
-def create_average_prediction_group_summary(
+def create_average_prediction_group_statistics(
     config: Config,
-    summary_df: Dict[str, pd.DataFrame],
+    stats_dfs: Dict[str, pd.DataFrame],
     dataset: str,
     n_bins: int,
     prefix: str = None
 ) -> None:
     """
-    Averages the prediction group summary statistics across partitions and logs the result to MLflow.
+    Averages the prediction group statistics across partitions and logs the result to MLflow.
 
     Args:
         config (Config): Configuration object containing settings and parameters.
-        stats_df (pd.DataFrame): DataFrame containing the prediction group summary statistics.
+        stats_dfs (Dict[str, pd.DataFrame]): DataFrame containing the prediction group statistics.
         dataset (str): Name of the dataset (e.g., "train" or "test").
-        n_bins (int): Number of bins used in the summary.
+        n_bins (int): Number of bins used in the table.
         prefix (str, optional): Prefix for the dataset ('pure' or None). Defaults to None.
     """
     dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
-    logger.info(f"Averaging prediction group summary for dataset: {dataset} with {n_bins} bins over partitions...")
-    if isinstance(summary_df, Dict):
-        summary_df = summary_df.values()
-    for df in summary_df:
+    logger.info(f"Averaging prediction group statistics for dataset: {dataset} with {n_bins} bins over partitions...")
+    if isinstance(stats_dfs, Dict):
+        stats_dfs = stats_dfs.values()
+    for df in stats_dfs:
         df["bias_deviation"] = df["mean_target"] - df["mean_pred"]
         df["mean_overpricing"] = np.max([df["mean_target"], df["mean_pred"]], axis=0) - df["mean_target"]
         df["mean_underpricing"] = df["mean_target"] - np.min([df["mean_target"], df["mean_pred"]], axis=0)
         df["abs_bias_deviation"] = np.abs(df["bias_deviation"])
-    avg_stats_df = pd.concat(summary_df).groupby(level=0).mean()
-    avg_stats_df["std_of_mean_pred"] = pd.concat(summary_df).mean_pred.groupby(level=0).std()
-    avg_stats_df["std_of_mean_target"] = pd.concat(summary_df).mean_target.groupby(level=0).std()
-    avg_stats_df["std_of_bias_deviation"] = pd.concat(summary_df).bias_deviation.groupby(level=0).std()
-    avg_stats_df["std_of_mean_overpricing"] = pd.concat(summary_df).mean_overpricing.groupby(level=0).std()
-    avg_stats_df["std_of_mean_underpricing"] = pd.concat(summary_df).mean_underpricing.groupby(level=0).std()
-    avg_stats_df["std_of_abs_bias_deviation"] = pd.concat(summary_df).abs_bias_deviation.groupby(level=0).std()
+    avg_stats_df = pd.concat(stats_dfs).groupby(level=0).mean()
+    avg_stats_df["std_of_mean_pred"] = pd.concat(stats_dfs).mean_pred.groupby(level=0).std()
+    avg_stats_df["std_of_mean_target"] = pd.concat(stats_dfs).mean_target.groupby(level=0).std()
+    avg_stats_df["std_of_bias_deviation"] = pd.concat(stats_dfs).bias_deviation.groupby(level=0).std()
+    avg_stats_df["std_of_mean_overpricing"] = pd.concat(stats_dfs).mean_overpricing.groupby(level=0).std()
+    avg_stats_df["std_of_mean_underpricing"] = pd.concat(stats_dfs).mean_underpricing.groupby(level=0).std()
+    avg_stats_df["std_of_abs_bias_deviation"] = pd.concat(stats_dfs).abs_bias_deviation.groupby(level=0).std()
     avg_stats_df["rel_bias_deviation"] = df["bias_deviation"] / df["mean_target"]
     avg_stats_df["rel_mean_overpricing"] = df["mean_overpricing"] / df["mean_target"]
     avg_stats_df["rel_mean_underpricing"] = df["mean_underpricing"] / df["mean_target"]
     avg_stats_df["rel_abs_bias_deviation"] = df["abs_bias_deviation"] / df["mean_target"]
 
-    # Save and log the averaged summary DataFrame as a CSV file to MLflow
+    # Save and log the averaged statistics DataFrame as a CSV file to MLflow
     with tempfile.TemporaryDirectory() as temp_dir:
-        filename = get_file_name(FILE_NAME_AVERAGE_PRED_GROUPS_SUMMARY, dataset, n_bins)
-        artifact_path = ARTIFACT_PATH_PRED_GROUPS_SUMMARY
+        filename = get_file_name(FILE_NAME_AVERAGE_PRED_GROUPS_STATS, dataset, n_bins)
+        artifact_path = ARTIFACT_PATH_PRED_GROUPS_STATS
         csv_path = os.path.join(temp_dir, filename)
         avg_stats_df.to_csv(csv_path, index=False)
         mlflow.log_artifact(csv_path, artifact_path=artifact_path)
-        logger.info(f"Averaged prediction group summary for dataset: {dataset} over partitions logged to MLflow as {os.path.join(artifact_path, filename)}.")
+        logger.info(f"Averaged prediction group statistics for dataset: {dataset} over partitions logged to MLflow as {os.path.join(artifact_path, filename)}.")
