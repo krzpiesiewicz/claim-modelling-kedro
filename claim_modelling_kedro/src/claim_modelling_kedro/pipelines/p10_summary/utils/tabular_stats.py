@@ -4,7 +4,7 @@ import mlflow
 import logging
 import pandas as pd
 import numpy as np
-from typing import List, Optional, Dict, Union
+from typing import List, Dict, Union
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
