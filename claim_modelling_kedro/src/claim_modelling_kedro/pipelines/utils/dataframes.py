@@ -2,7 +2,6 @@ import logging
 import os
 import tempfile
 import threading
-import time
 from typing import Union, Dict, Tuple, Optional
 
 import mlflow
@@ -32,7 +31,7 @@ def stable_str_hash(x: int, seed: str = "") -> str:
 
 
 def indices_ordered_values_and_hashed_index(
-        s: Union[pd.Series, np.ndarray],
+    s: Union[pd.Series, np.ndarray],
 ) -> np.ndarray:
     # Sort inputs stably by y_pred, then by hashed index
     s = pd.Series(s)
@@ -64,8 +63,8 @@ def ordered_by_pred_and_hashed_index(
 
 
 def index_ordered_by_col(
-        df: pd.DataFrame,
-        order_col: str,
+    df: pd.DataFrame,
+    order_col: str,
 ) -> pd.Index:
     sorted_idx = indices_ordered_values_and_hashed_index(df[order_col])
     return df.index[sorted_idx]
@@ -217,11 +216,11 @@ def save_metrics_table_in_mlflow(metrics_df: pd.DataFrame, dataset: str, prefix:
 
 
 def load_metrics_table_from_mlflow(
-        dataset: str,
-        prefix: str = None,
-        mlflow_run_id: str = None,
-        time_limit: float = None,
-        raise_on_failure: bool = True
+    dataset: str,
+    prefix: str = None,
+    mlflow_run_id: str = None,
+    time_limit: float = None,
+    raise_on_failure: bool = True
 ) -> pd.DataFrame:
     filename, artifact_path = get_metrics_table_filname_and_artifact_path(dataset, prefix)
     metrics_df = load_pd_dataframe_csv_from_mlflow(artifact_path, filename, mlflow_run_id, index_col="metric",
@@ -242,11 +241,11 @@ def save_metrics_cv_stats_in_mlflow(metrics_cv_stats_df: pd.DataFrame, dataset: 
 
 
 def load_metrics_cv_stats_from_mlflow(
-        dataset: str,
-        prefix: str = None,
-        mlflow_run_id: str = None,
-        time_limit: float = None,
-        raise_on_failure: bool = True
+    dataset: str,
+    prefix: str = None,
+    mlflow_run_id: str = None,
+    time_limit: float = None,
+    raise_on_failure: bool = True
 ) -> pd.DataFrame:
     filename, artifact_path = get_metrics_cv_stats_filname_and_artifact_path(dataset, prefix)
     metrics_cv_stats_df = load_pd_dataframe_csv_from_mlflow(artifact_path, filename, mlflow_run_id, index_col="metric",

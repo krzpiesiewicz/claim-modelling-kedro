@@ -82,7 +82,7 @@ class TargetTransformer(ABC):
 def process_fit_target_transformer_partition(config: Config, part: str, target_df: Dict[str, pd.DataFrame]) -> Tuple[str, pd.DataFrame]:
     logger.info(f"Fitting target transformer on partition '{part}'...")
     target_df = get_partition(target_df, part)
-    run_id = get_mlflow_run_id_for_partition(config, part)
+    run_id = get_mlflow_run_id_for_partition(part, config)
 
     transformer_class = get_class_from_path(config.ds.trg_trans.model_class)
     transformer = transformer_class(config=config, target_col=config.mdl_task.target_col, pred_col=config.mdl_task.prediction_col)
@@ -112,7 +112,7 @@ def fit_transform_target_transformer(config: Config, target_df: Dict[str, pd.Dat
 def process_inverse_transform_predictions_partition_by_mlflow_model(config: Config, part: str, prediction_df: Dict[str, pd.DataFrame], mlflow_run_id: str) -> Tuple[str, pd.DataFrame]:
     logger.info(f"Inverse transforming predictions on partition '{part}'...")
     preds_df = get_partition(prediction_df, part)
-    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mlflow_run_id=mlflow_run_id)
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(part, config, parent_mlflow_run_id=mlflow_run_id)
     transformer = MLFlowModelLoader("target transformer").load_model(path=_target_transformer_artifact_path, run_id=mlflow_subrun_id)
     preds_inv_df = transformer.inverse_transform(preds_df)
     return part, preds_inv_df

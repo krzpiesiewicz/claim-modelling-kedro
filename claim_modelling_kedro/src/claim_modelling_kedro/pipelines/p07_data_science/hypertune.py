@@ -450,7 +450,7 @@ def process_hypertune_part(config: Config, part: str, selected_sample_features_d
         sample_target_part_df = get_partition(sample_target_df, part)
         sample_train_keys_part = get_partition(sample_train_keys, part)
         sample_val_keys_part = get_partition(sample_val_keys, part)
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mlflow_run_id=parent_mlflow_run_id)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(part, config, parent_mlflow_run_id=parent_mlflow_run_id)
         logger.info(f"Tuning the hyper parameters of the predictive model on partition '{part}' of the sample dataset...")
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
             log_space_to_mlflow = mlflow_subrun_id != parent_mlflow_run_id

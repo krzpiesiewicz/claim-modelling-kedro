@@ -220,7 +220,7 @@ def fit_transform_predictive_model_part(config: Config, selected_sample_features
 def process_predict_partition(config: Config, part: str, selected_features_df: Dict[str, pd.DataFrame],
                               mlflow_run_id: str) -> Tuple[str, pd.DataFrame]:
     selected_features_part_df = get_partition(selected_features_df, part)
-    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mlflow_run_id=mlflow_run_id)
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(part, config, parent_mlflow_run_id=mlflow_run_id)
     predictions_part_df = predict_by_mlflow_model_part(config, selected_features_part_df, part, mlflow_subrun_id)
     return part, predictions_part_df
 
@@ -255,7 +255,7 @@ def process_part(config: Config, part: str, selected_sample_features_df: Dict[st
     sample_train_keys_part = get_partition(sample_train_keys, part)
     sample_val_keys_part = get_partition(sample_val_keys, part)
     best_hparams_part = best_hparams[part] if best_hparams is not None else None
-    mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part)
+    mlflow_subrun_id = get_mlflow_run_id_for_partition(part, config)
     logger.info(f"Fitting and transforming the predictive model on partition '{part}' of the sample dataset...")
     with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
         return part, fit_transform_predictive_model_part(config, selected_sample_features_part_df,

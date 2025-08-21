@@ -20,15 +20,43 @@ ARTIFACT_PATH_PRED_GROUPS_STATS = "prediction_group_statistics"
 N_BINS_LIST = [10, 20, 30, 50, 100]
 
 
-def get_file_name(file_template: str, dataset: str, n_bins: int) -> str:
+def _get_file_name(file_template: str, joined_dataset: str, n_bins: int) -> str:
     """
     Returns the file name based on the template and dataset name.
     Args:
         file_template (str): Template for the file name.
-        dataset (str): Name of the dataset (e.g., "train" or "test").
+        joined_dataset (str): Name of the dataset (e.g., "train" or "test").
         n_bins (int): Number of bins used in the table.
     """
-    return file_template.format(dataset=dataset, n_bins=n_bins)
+    return file_template.format(dataset=joined_dataset, n_bins=n_bins)
+
+
+def get_prediction_group_statistics_file_name(joined_dataset: str, n_bins: int) -> str:
+    """
+    Returns the file name for the prediction group statistics based on the dataset and number of bins.
+
+    Args:
+        joined_dataset (str): Name of the dataset (e.g., "train" or "test").
+        n_bins (int): Number of bins used in the table.
+
+    Returns:
+        str: Formatted file name for the prediction group statistics.
+    """
+    return _get_file_name(FILE_NAME_PRED_GROUPS_STATS, joined_dataset, n_bins)
+
+
+def get_average_prediction_group_statistics_file_name(joined_dataset: str, n_bins: int) -> str:
+    """
+    Returns the file name for the average prediction group statistics based on the dataset and number of bins.
+
+    Args:
+        joined_dataset (str): Name of the dataset (e.g., "train" or "test").
+        n_bins (int): Number of bins used in the table.
+
+    Returns:
+        str: Formatted file name for the average prediction group statistics.
+    """
+    return _get_file_name(FILE_NAME_AVERAGE_PRED_GROUPS_STATS, joined_dataset, n_bins)
 
 
 def prediction_group_statistics_strict_bins(
@@ -117,9 +145,8 @@ def create_prediction_group_statistics_strict_bins(
     target_df: pd.DataFrame,
     prediction_col: str,
     target_col: str,
-    dataset: str,
+    joined_dataset: str,
     n_bins: int,
-    prefix: str = None,
     groups: List[int] = None,
     round_precision: int = None,
     as_int: bool = False
@@ -133,9 +160,8 @@ def create_prediction_group_statistics_strict_bins(
         target_df (Dict[str, pd.DataFrame]): Dictionary of targets for each partition.
         prediction_col (str): Name of the column containing the predictions.
         target_col (str): Name of the column containing the target values.
-        dataset (str): Name of the dataset (e.g., "train" or "test").
+        joined_dataset (str): Name of the dataset (e.g., "train" or "pure_test").
         n_bins (int): Number of bins to divide the data into.
-        prefix (str, optional): Prefix for the dataset ('pure' or None). Defaults to None.
         groups (List[int], optional): Specific groups to include in the table. Defaults to None.
         round_precision (int, optional): Precision for rounding numerical values. Defaults to None.
         as_int (bool, optional): Whether to convert rounded values to integers. Defaults to False.
@@ -143,8 +169,7 @@ def create_prediction_group_statistics_strict_bins(
     Returns:
         pd.DataFrame: DataFrame containing the statistics for each bin.
     """
-    dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
-    logger.info(f"Generating prediction group statistics for dataset: {dataset} with {n_bins} bins...")
+    logger.info(f"Generating prediction group statistics for dataset: {joined_dataset} with {n_bins} bins...")
 
     y_true = target_df[target_col]
     y_pred = predictions_df[prediction_col]
@@ -161,14 +186,14 @@ def create_prediction_group_statistics_strict_bins(
     )
 
     # Save and log the statistics DataFrame as a CSV file to MLflow
-    logger.info(f"Saving and logging the prediction group statistics for dataset: {dataset} as a CSV file to MLflow...")
+    logger.info(f"Saving and logging the prediction group statistics for dataset: {joined_dataset} as a CSV file to MLflow...")
     with tempfile.TemporaryDirectory() as temp_dir:
-        filename = get_file_name(FILE_NAME_PRED_GROUPS_STATS, dataset, n_bins)
+        filename = get_prediction_group_statistics_file_name(joined_dataset, n_bins)
         artifact_path = ARTIFACT_PATH_PRED_GROUPS_STATS
         csv_path = os.path.join(temp_dir, filename)
         stats_df.to_csv(csv_path, index=False)
         mlflow.log_artifact(csv_path, artifact_path=artifact_path)
-        logger.info(f"Prediction group statistics for dataset: {dataset} logged to MLflow as {os.path.join(artifact_path, filename)}.")
+        logger.info(f"Prediction group statistics for dataset: {joined_dataset} logged to MLflow as {os.path.join(artifact_path, filename)}.")
 
     return stats_df
 
@@ -176,9 +201,8 @@ def create_prediction_group_statistics_strict_bins(
 def create_average_prediction_group_statistics(
     config: Config,
     stats_dfs: Dict[str, pd.DataFrame],
-    dataset: str,
+    joined_dataset: str,
     n_bins: int,
-    prefix: str = None
 ) -> None:
     """
     Averages the prediction group statistics across partitions and logs the result to MLflow.
@@ -186,12 +210,10 @@ def create_average_prediction_group_statistics(
     Args:
         config (Config): Configuration object containing settings and parameters.
         stats_dfs (Dict[str, pd.DataFrame]): DataFrame containing the prediction group statistics.
-        dataset (str): Name of the dataset (e.g., "train" or "test").
+        joined_dataset (str): Name of the dataset (e.g., "train" or "pure_test").
         n_bins (int): Number of bins used in the table.
-        prefix (str, optional): Prefix for the dataset ('pure' or None). Defaults to None.
     """
-    dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
-    logger.info(f"Averaging prediction group statistics for dataset: {dataset} with {n_bins} bins over partitions...")
+    logger.info(f"Averaging prediction group statistics for dataset: {joined_dataset} with {n_bins} bins over partitions...")
     if isinstance(stats_dfs, Dict):
         stats_dfs = stats_dfs.values()
     for df in stats_dfs:
@@ -213,9 +235,9 @@ def create_average_prediction_group_statistics(
 
     # Save and log the averaged statistics DataFrame as a CSV file to MLflow
     with tempfile.TemporaryDirectory() as temp_dir:
-        filename = get_file_name(FILE_NAME_AVERAGE_PRED_GROUPS_STATS, dataset, n_bins)
+        filename = get_average_prediction_group_statistics_file_name(joined_dataset, n_bins)
         artifact_path = ARTIFACT_PATH_PRED_GROUPS_STATS
         csv_path = os.path.join(temp_dir, filename)
         avg_stats_df.to_csv(csv_path, index=False)
         mlflow.log_artifact(csv_path, artifact_path=artifact_path)
-        logger.info(f"Averaged prediction group statistics for dataset: {dataset} over partitions logged to MLflow as {os.path.join(artifact_path, filename)}.")
+        logger.info(f"Averaged prediction group statistics for dataset: {joined_dataset} over partitions logged to MLflow as {os.path.join(artifact_path, filename)}.")
