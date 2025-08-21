@@ -17,8 +17,9 @@ from claim_modelling_kedro.pipelines.p10_summary.utils.cumul_calib_plot import \
     create_mean_cumulative_calibration_curves_figs, create_cumulative_calibration_curves_figs_part
 from claim_modelling_kedro.pipelines.p10_summary.utils.simple_lift_chart import create_simple_lift_cv_mean_chart_fig, \
     create_simple_lift_chart_fig
-from claim_modelling_kedro.pipelines.p10_summary.utils.tabular_stats import create_prediction_group_statistics_strict_bins, \
-    create_average_prediction_group_statistics
+from claim_modelling_kedro.pipelines.p10_summary.utils.tabular_stats import \
+    create_prediction_group_statistics_strict_bins, \
+    create_average_prediction_group_statistics, N_BINS_LIST
 from claim_modelling_kedro.pipelines.utils.dataframes import load_predictions_and_target_from_mlflow
 from claim_modelling_kedro.pipelines.utils.datasets import get_mlflow_run_id_for_partition, get_partition
 
@@ -187,7 +188,7 @@ def create_lift_charts(
             prefixes_and_columns.append(("pure", config.clb.pure_prediction_col))
         for prefix, prediction_col in prefixes_and_columns:
             dataset_name = f"{prefix}_{dataset}" if prefix is not None else dataset
-            for n_bins in [10, 20, 30, 50, 100]:
+            for n_bins in N_BINS_LIST:
                 # Collect stats for each partition
                 stats_dfs = {}
                 # Iterate over each partition in the dataset

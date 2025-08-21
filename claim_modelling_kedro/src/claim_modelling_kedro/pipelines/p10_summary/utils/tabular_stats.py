@@ -17,6 +17,8 @@ FILE_NAME_AVERAGE_PRED_GROUPS_STATS = "{dataset}_prediction_{n_bins}_group_means
 
 ARTIFACT_PATH_PRED_GROUPS_STATS = "prediction_group_statistics"
 
+N_BINS_LIST = [10, 20, 30, 50, 100]
+
 
 def get_file_name(file_template: str, dataset: str, n_bins: int) -> str:
     """
