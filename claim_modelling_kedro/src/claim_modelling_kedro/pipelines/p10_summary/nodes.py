@@ -17,9 +17,11 @@ from claim_modelling_kedro.pipelines.p10_summary.utils.cumul_calib_plot import \
     create_mean_cumulative_calibration_curves_figs, create_cumulative_calibration_curves_figs_part
 from claim_modelling_kedro.pipelines.p10_summary.utils.simple_lift_chart import create_simple_lift_cv_mean_chart_fig, \
     create_simple_lift_chart_fig
-from claim_modelling_kedro.pipelines.p10_summary.utils.tabular_stats import \
-    create_prediction_group_statistics_strict_bins, \
-    create_average_prediction_group_statistics, N_BINS_LIST
+from claim_modelling_kedro.pipelines.p07_data_science.tabular_stats import (
+    create_prediction_group_statistics_strict_bins,
+    create_average_prediction_group_statistics,
+    N_BINS_LIST
+)
 from claim_modelling_kedro.pipelines.utils.dataframes import load_predictions_and_target_from_mlflow
 from claim_modelling_kedro.pipelines.utils.datasets import get_mlflow_run_id_for_partition, get_partition
 
