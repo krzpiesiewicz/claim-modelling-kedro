@@ -56,7 +56,9 @@ def fit_predictive_model(config: Config, selected_sample_features_df: Dict[str, 
                                           keys=sample_val_keys)
     # Evaluate the predictions
     evaluate_predictions(config, sample_predictions_df, sample_target_df, dataset="sample_train_pure",
-                         log_metrics_to_mlflow=True, keys=sample_train_keys)
+                         log_metrics_to_mlflow=True, save_metrics_table=True, compute_group_stats=True,
+                         keys=sample_train_keys)
     evaluate_predictions(config, sample_predictions_df, sample_target_df, dataset="sample_valid_pure",
-                         log_metrics_to_mlflow=True, keys=sample_val_keys)
+                         log_metrics_to_mlflow=True, save_metrics_table=True, compute_group_stats=True,
+                         keys=sample_val_keys)
     return sample_predictions_df
