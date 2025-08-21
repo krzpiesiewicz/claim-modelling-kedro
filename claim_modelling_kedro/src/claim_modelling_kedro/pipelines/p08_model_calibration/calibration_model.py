@@ -42,20 +42,24 @@ class CalibrationModel(PredictiveModel, ABC):
                 pure_predictions_df = pure_predictions_df.loc[index, :]
                 target_df = target_df.loc[index, :]
             preds = super().predict(pure_predictions_df)
+            sample_weight = kwargs.get("sample_weight")
+            if sample_weight is None:
+                logger.debug("sample_weight is not provided, using unweighted averages")
+                weighted_avg_target = np.average(target_df[self.target_col])
+                weighted_avg_pred = np.average(preds[self.pred_col])
+            else:
+                logger.debug("sample_weight is provided, using it for weighted averages")
+                weighted_avg_target = np.average(target_df[self.target_col], weights=sample_weight)
+                weighted_avg_pred = np.average(preds[self.pred_col], weights=sample_weight)
             logger.debug(f"{self.config.clb.post_clb_rebalance_method=}")
             match self.config.clb.post_clb_rebalance_method:
                 case RebalanceInTotalsMethod.SCALE:
-                    sample_weight = kwargs.get("sample_weight")
-                    if sample_weight is None:
-                        logger.debug("sample_weight is not provided, using unweighted averages")
-                        weighted_avg_target = np.average(target_df[self.target_col])
-                        weighted_avg_pred = np.average(preds[self.pred_col])
-                    else:
-                        logger.debug("sample_weight is provided, using it for weighted averages")
-                        weighted_avg_target = np.average(target_df[self.target_col], weights=sample_weight)
-                        weighted_avg_pred = np.average(preds[self.pred_col], weights=sample_weight)
                     self._post_clb_scale_factor = weighted_avg_target / weighted_avg_pred
                     logger.debug(f"Post calibration scale factor: {self._post_clb_scale_factor}")
+                case RebalanceInTotalsMethod.SHIFT:
+                    self._post_clb_shift_factor = weighted_avg_target - weighted_avg_pred
+                    logger.debug(f"Post calibration shift factor: {self._post_clb_shift_factor}")
+
 
     def predict(self, pure_predictions_df: Union[pd.DataFrame, np.ndarray]) -> pd.DataFrame:
         logger.debug("CalibrationModel predict called")
@@ -67,6 +71,9 @@ class CalibrationModel(PredictiveModel, ABC):
                 case RebalanceInTotalsMethod.SCALE:
                     logger.debug(f"Applying post calibration scale factor: {self._post_clb_scale_factor}")
                     preds[self.calib_pred_col] = preds[self.calib_pred_col] * self._post_clb_scale_factor
+                case RebalanceInTotalsMethod.SHIFT:
+                    logger.debug(f"Applying post calibration shift factor: {self._post_clb_shift_factor}")
+                    preds[self.calib_pred_col] = preds[self.calib_pred_col] + self._post_clb_shift_factor
         return preds
 
     def transform(self, pure_predictions_df: Union[pd.DataFrame, np.ndarray]) -> pd.DataFrame:
