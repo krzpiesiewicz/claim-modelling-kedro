@@ -1,73 +1,33 @@
 from typing import Dict, Tuple
 
 import mlflow
-from mlflow import active_run
 import logging
 import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.exprmnt import Target
-from claim_modelling_kedro.pipelines.p10_summary.utils.auto_calib_chart import create_auto_calib_chart_fig
-from claim_modelling_kedro.pipelines.p10_summary.utils.lift_chart import create_lift_chart_fig, \
+from claim_modelling_kedro.pipelines.p11_charts.utils.auto_calib_chart import create_auto_calib_chart_fig
+from claim_modelling_kedro.pipelines.p11_charts.utils.lift_chart import create_lift_chart_fig, \
     create_lift_cv_mean_chart_fig
-from claim_modelling_kedro.pipelines.p10_summary.utils.cc_lorenz import (
+from claim_modelling_kedro.pipelines.p11_charts.utils.cc_lorenz import (
     create_mean_concentration_curves_figs,
     create_concentration_curves_figs_part
 )
-from claim_modelling_kedro.pipelines.p10_summary.utils.cumul_calib_plot import \
+from claim_modelling_kedro.pipelines.p11_charts.utils.cumul_calib_plot import \
     create_mean_cumulative_calibration_curves_figs, create_cumulative_calibration_curves_figs_part
-from claim_modelling_kedro.pipelines.p10_summary.utils.simple_lift_chart import create_simple_lift_cv_mean_chart_fig, \
+from claim_modelling_kedro.pipelines.p11_charts.utils.simple_lift_chart import create_simple_lift_cv_mean_chart_fig, \
     create_simple_lift_chart_fig
 from claim_modelling_kedro.pipelines.p07_data_science.tabular_stats import (
     N_BINS_LIST, create_prediction_group_statistics_strict_bins, load_prediction_and_targets_group_stats_from_mlflow
 )
-from claim_modelling_kedro.pipelines.utils.dataframes import load_predictions_and_target_from_mlflow
 from claim_modelling_kedro.pipelines.utils.datasets import get_mlflow_run_id_for_partition, get_partition
 
 
 logger = logging.getLogger(__name__)
 
 
-def load_target_and_predictions(
-    dummy_test_1_df: pd.DataFrame,
-    dummy_test_2_df: pd.DataFrame,
-) -> Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame], Dict[str, pd.DataFrame], Dict[str, pd.DataFrame],
-           Dict[str, pd.DataFrame], Dict[str, pd.DataFrame], Dict[str, pd.DataFrame], Dict[str, pd.DataFrame],
-           Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
-    """
-    Loads calib, train and test predictions and targets from MLflow for the current active run.
-
-    Args:
-        dummy_test_1_df (pd.DataFrame): Placeholder DataFrame for test dataset 1.
-        dummy_test_2_df (pd.DataFrame): Placeholder DataFrame for test dataset 2.
-
-    Returns:
-        Tuple[Dict[str, pd.DataFrame], Dict[str, pd.DataFrame]]:
-            - Calibrated predictions and targets as a dictionary of DataFrames.
-            - Train predictions and targets as a dictionary of DataFrames.
-            - Test predictions and targets as a dictionary of DataFrames.
-    """
-    # Get the current MLflow run ID
-    mlflow_run_id = active_run().info.run_id
-
-    # Load sample train/valid predictions and targets
-    sample_train_predictions_df, sample_train_target_df = load_predictions_and_target_from_mlflow(dataset="sample_train", mlflow_run_id=mlflow_run_id)
-    sample_valid_predictions_df, sample_valid_target_df = load_predictions_and_target_from_mlflow(dataset="sample_valid", mlflow_run_id=mlflow_run_id)
-
-    # Load calibrated predictions and targets
-    calib_predictions_df, calib_target_df = load_predictions_and_target_from_mlflow(dataset="calib", mlflow_run_id=mlflow_run_id)
-
-    # Load train predictions and targets
-    train_predictions_df, train_target_df = load_predictions_and_target_from_mlflow(dataset="train", mlflow_run_id=mlflow_run_id)
-
-    # Load test predictions and targets
-    test_predictions_df, test_target_df = load_predictions_and_target_from_mlflow(dataset="test", mlflow_run_id=mlflow_run_id)
-
-    return (sample_train_predictions_df, sample_train_target_df, sample_valid_predictions_df, sample_valid_target_df,
-            calib_predictions_df, calib_target_df, train_predictions_df, train_target_df, test_predictions_df, test_target_df)
-
-
 def create_curves_plots(
+        dummy_load_pred_and_trg_df: pd.DataFrame,
         config: Config,
         sample_train_predictions_df: Dict[str, pd.DataFrame],
         sample_train_target_df: Dict[str, pd.DataFrame],
@@ -79,7 +39,7 @@ def create_curves_plots(
         train_target_df: Dict[str, pd.DataFrame],
         test_predictions_df: Dict[str, pd.DataFrame],
         test_target_df: Dict[str, pd.DataFrame],
-) -> None:
+) -> pd.DataFrame:
     """
     Generates and logs concentration curve plots to MLflow.
 
@@ -174,8 +134,8 @@ def create_curves_plots(
                         dataset=dataset,
                         prefix=prefix
                     )
-    dummy_summary_1_df = pd.DataFrame({})
-    return dummy_summary_1_df
+    dummy_charts_1_df = pd.DataFrame({})
+    return dummy_charts_1_df
 
 
 _MIN_AND_MAX_VALS_LIFT_CHART = {
@@ -257,6 +217,7 @@ def _get_min_max_val_lift_chart(config: Config, n_bins: int, is_sample: bool, is
 
 
 def create_lift_charts(
+        dummy_load_pred_and_trg_df: pd.DataFrame,
         config: Config,
         sample_train_predictions_df: Dict[str, pd.DataFrame],
         sample_train_target_df: Dict[str, pd.DataFrame],
@@ -268,7 +229,7 @@ def create_lift_charts(
         train_target_df: Dict[str, pd.DataFrame],
         test_predictions_df: Dict[str, pd.DataFrame],
         test_target_df: Dict[str, pd.DataFrame],
-) -> None:
+) -> pd.DataFrame:
     """
     ...
 
@@ -395,5 +356,5 @@ def create_lift_charts(
                     min_val=min_val,
                 )
 
-    dummy_summary_2_df = pd.DataFrame({})
-    return dummy_summary_2_df
+    dummy_charts_2_df = pd.DataFrame({})
+    return dummy_charts_2_df
