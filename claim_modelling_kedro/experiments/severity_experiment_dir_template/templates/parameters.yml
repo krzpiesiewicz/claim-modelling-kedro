@@ -353,6 +353,7 @@ calibration:
   post_calibration_rebalancing:
     enabled: True # whether to use the post-calibration
     method: scale # 'scale' - scale the calibrated predictions to match the total target in the calibration set
+                  # 'shift' - shift the calibrated predictions to match the total target in the calibration set
 
 
 test:
