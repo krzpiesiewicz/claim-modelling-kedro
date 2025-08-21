@@ -18,6 +18,7 @@ from claim_modelling_kedro.pipelines.p10_summary.utils.cumul_calib_plot import \
 from claim_modelling_kedro.pipelines.p10_summary.utils.simple_lift_chart import create_simple_lift_cv_mean_chart_fig, \
     create_simple_lift_chart_fig
 from claim_modelling_kedro.pipelines.p07_data_science.tabular_stats import (
+    load_averaged_prediction_group_stats_from_mlflow,
     N_BINS_LIST, create_prediction_group_statistics_strict_bins
 )
 from claim_modelling_kedro.pipelines.utils.dataframes import load_predictions_and_target_from_mlflow
@@ -234,15 +235,22 @@ def create_lift_charts(
 
                     # Start a nested MLflow run and generate individual concentration curves
                     with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-                        stats_df = create_prediction_group_statistics_strict_bins(
-                            config=config,
-                            predictions_df=part_predictions_df,
-                            target_df=part_target_df,
-                            prediction_col=prediction_col,
-                            target_col=target_col,
+                        stats_df = load_averaged_prediction_group_stats_from_mlflow(
                             joined_dataset=joined_dataset,
                             n_bins=n_bins,
+                            mlflow_run_id=mlflow_subrun_id,
+                            raise_on_failure=False,
                         )
+                        if stats_df is None:
+                            stats_df = create_prediction_group_statistics_strict_bins(
+                                config=config,
+                                predictions_df=part_predictions_df,
+                                target_df=part_target_df,
+                                prediction_col=prediction_col,
+                                target_col=target_col,
+                                joined_dataset=joined_dataset,
+                                n_bins=n_bins,
+                            )
                         logger.info(
                             f"Table of statistics for {n_bins} groups from partition: {part} in dataset: {joined_dataset} has been loaded.")
                         stats_dfs[part] = stats_df

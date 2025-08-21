@@ -4,11 +4,13 @@ import mlflow
 import logging
 import pandas as pd
 import numpy as np
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Tuple
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
+from claim_modelling_kedro.pipelines.utils.datasets import get_mlflow_run_id_for_partition
 from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
-from claim_modelling_kedro.pipelines.utils.dataframes import ordered_by_pred_and_hashed_index
+from claim_modelling_kedro.pipelines.utils.dataframes import ordered_by_pred_and_hashed_index, \
+    load_pd_dataframe_csv_from_mlflow
 
 logger = logging.getLogger(__name__)
 
@@ -241,3 +243,34 @@ def create_average_prediction_group_statistics(
         avg_stats_df.to_csv(csv_path, index=False)
         mlflow.log_artifact(csv_path, artifact_path=artifact_path)
         logger.info(f"Averaged prediction group statistics for dataset: {joined_dataset} over partitions logged to MLflow as {os.path.join(artifact_path, filename)}.")
+
+
+def load_prediction_and_targets_group_stats_from_mlflow(
+    joined_dataset: str,
+    n_bins: int,
+    part: str = None,
+    mlflow_run_id: str = None,
+    time_limit: float = None,
+    raise_on_failure: bool = True
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    filename = get_prediction_group_statistics_file_name(joined_dataset, n_bins)
+    artifact_path = ARTIFACT_PATH_PRED_GROUPS_STATS
+    if part is not None:
+        mlflow_run_id = get_mlflow_run_id_for_partition(partition=part, parent_mlflow_run_id=mlflow_run_id)
+    stats_df = load_pd_dataframe_csv_from_mlflow(artifact_path, filename, mlflow_run_id,
+                                                 time_limit=time_limit, raise_on_failure=raise_on_failure)
+    return stats_df
+
+
+def load_averaged_prediction_group_stats_from_mlflow(
+    joined_dataset: str,
+    n_bins: int,
+    mlflow_run_id: str = None,
+    time_limit: float = None,
+    raise_on_failure: bool = True
+) -> pd.DataFrame:
+    filename = get_average_prediction_group_statistics_file_name(joined_dataset, n_bins)
+    artifact_path = ARTIFACT_PATH_PRED_GROUPS_STATS
+    stats_df = load_pd_dataframe_csv_from_mlflow(artifact_path, filename, mlflow_run_id,
+                                                 time_limit=time_limit, raise_on_failure=raise_on_failure)
+    return stats_df
