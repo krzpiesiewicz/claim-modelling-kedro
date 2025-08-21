@@ -111,9 +111,12 @@ def create_curves_plots(
             logger.warning(f"Dataset {dataset} is empty. Skipping...")
             continue
         target_col = config.mdl_task.target_col
-        prefixes_and_columns = [(None, config.mdl_task.prediction_col)]
-        if config.clb.enabled and not dataset.startswith("sample"):
-            prefixes_and_columns.append(("pure", config.clb.pure_prediction_col))
+        if dataset.startswith("sample"):
+            prefixes_and_columns = [("pure", config.mdl_task.prediction_col)]
+        else:
+            prefixes_and_columns = [(None, config.mdl_task.prediction_col)]
+            if config.clb.enabled and not dataset.startswith("sample"):
+                prefixes_and_columns.append(("pure", config.clb.pure_prediction_col))
         for prefix, prediction_col in prefixes_and_columns:
             joined_dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
 
@@ -213,9 +216,12 @@ def create_lift_charts(
             logger.warning(f"Dataset {dataset} is empty. Skipping...")
             continue
         target_col = config.mdl_task.target_col
-        prefixes_and_columns = [(None, config.mdl_task.prediction_col)]
-        if config.clb.enabled and not dataset.startswith("sample"):
-            prefixes_and_columns.append(("pure", config.clb.pure_prediction_col))
+        if dataset.startswith("sample"):
+            prefixes_and_columns = [("pure", config.mdl_task.prediction_col)]
+        else:
+            prefixes_and_columns = [(None, config.mdl_task.prediction_col)]
+            if config.clb.enabled and not dataset.startswith("sample"):
+                prefixes_and_columns.append(("pure", config.clb.pure_prediction_col))
         for prefix, prediction_col in prefixes_and_columns:
             joined_dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
             for n_bins in N_BINS_LIST:
