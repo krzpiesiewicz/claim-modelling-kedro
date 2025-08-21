@@ -4,3 +4,6 @@ from .metric import (
     MeanTweedieDeviance, SpearmanCorrelation
 )
 from .gini import LorenzGiniIndex, ConcentrationCurveGiniIndex, NormalizedConcentrationCurveGiniIndex
+from .area_between_cc_and_lc import AreaBetweenCCAndLC
+from .sup_diff_cc_and_lc import SupremumDiffBetweenCCAndLC
+from .cumulative_calibration_index import CumulativeCalibrationIndex, CumulativeOverpricingIndex, CumulativeUnderpricingIndex

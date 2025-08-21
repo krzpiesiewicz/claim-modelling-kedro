@@ -6,8 +6,8 @@ from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p07_data_science.transform_target import fit_transform_target_transformer, \
     inverse_transform_predictions_by_mlflow_model
 from claim_modelling_kedro.pipelines.p07_data_science.hypertune import hypertune
-from claim_modelling_kedro.pipelines.p07_data_science.model import fit_transform_predictive_model, \
-    evaluate_predictions
+from claim_modelling_kedro.pipelines.p07_data_science.model import fit_transform_predictive_model
+from claim_modelling_kedro.pipelines.p07_data_science.pred_eval import evaluate_predictions
 from claim_modelling_kedro.pipelines.p07_data_science.select import fit_transform_features_selector
 from claim_modelling_kedro.pipelines.utils.dataframes import save_predictions_and_target_in_mlflow
 
@@ -56,7 +56,9 @@ def fit_predictive_model(config: Config, selected_sample_features_df: Dict[str, 
                                           keys=sample_val_keys)
     # Evaluate the predictions
     evaluate_predictions(config, sample_predictions_df, sample_target_df, dataset="sample_train_pure",
-                         log_metrics_to_mlflow=True, keys=sample_train_keys)
+                         log_metrics_to_mlflow=True, save_metrics_table=True, compute_group_stats=True,
+                         keys=sample_train_keys)
     evaluate_predictions(config, sample_predictions_df, sample_target_df, dataset="sample_valid_pure",
-                         log_metrics_to_mlflow=True, keys=sample_val_keys)
+                         log_metrics_to_mlflow=True, save_metrics_table=True, compute_group_stats=True,
+                         keys=sample_val_keys)
     return sample_predictions_df

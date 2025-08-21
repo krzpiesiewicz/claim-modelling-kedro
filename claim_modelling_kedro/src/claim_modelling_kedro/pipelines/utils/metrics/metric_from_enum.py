@@ -7,6 +7,7 @@ from claim_modelling_kedro.pipelines.utils.metrics.area_between_cc_and_lc import
 from claim_modelling_kedro.pipelines.utils.metrics.metric import MeanAbsoluteError, RootMeanSquaredError, R2, \
     MeanBiasDeviation, MeanPoissonDeviance, MeanGammaDeviance, SpearmanCorrelation, MeanTweedieDeviance, Metric
 from claim_modelling_kedro.pipelines.utils.metrics.gini import LorenzGiniIndex, ConcentrationCurveGiniIndex, NormalizedConcentrationCurveGiniIndex
+from claim_modelling_kedro.pipelines.utils.metrics.sup_diff_cc_and_lc import SupremumDiffBetweenCCAndLC
 
 
 def get_metric_from_enum(config: Config, enum: MetricEnum, pred_col: str) -> Metric:
@@ -59,6 +60,12 @@ def get_metric_from_enum(config: Config, enum: MetricEnum, pred_col: str) -> Met
             return AreaBetweenCCAndLC(config, pred_col=pred_col, exposure_weighted=True)
         case MetricEnum.CLNB_WEIGHTED_ABC:
             return AreaBetweenCCAndLC(config, pred_col=pred_col, claim_nb_weighted=True)
+        case MetricEnum.SUP_CL_DIFF:
+            return SupremumDiffBetweenCCAndLC(config, pred_col=pred_col)
+        case MetricEnum.EXP_WEIGHTED_SUP_CL_DIFF:
+            return SupremumDiffBetweenCCAndLC(config, pred_col=pred_col, exposure_weighted=True)
+        case MetricEnum.CLNB_WEIGHTED_SUP_CL_DIFF:
+            return SupremumDiffBetweenCCAndLC(config, pred_col=pred_col, claim_nb_weighted=True)
         case MetricEnum.CCI:
             return CumulativeCalibrationIndex(config, pred_col=pred_col)
         case MetricEnum.EXP_WEIGHTED_CCI:

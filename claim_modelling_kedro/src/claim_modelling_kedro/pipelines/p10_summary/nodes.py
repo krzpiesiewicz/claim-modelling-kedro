@@ -17,8 +17,11 @@ from claim_modelling_kedro.pipelines.p10_summary.utils.cumul_calib_plot import \
     create_mean_cumulative_calibration_curves_figs, create_cumulative_calibration_curves_figs_part
 from claim_modelling_kedro.pipelines.p10_summary.utils.simple_lift_chart import create_simple_lift_cv_mean_chart_fig, \
     create_simple_lift_chart_fig
-from claim_modelling_kedro.pipelines.p10_summary.utils.tabular_stats import create_prediction_group_summary_strict_bins, \
-    create_average_prediction_group_summary
+from claim_modelling_kedro.pipelines.p07_data_science.tabular_stats import (
+    create_prediction_group_statistics_strict_bins,
+    create_average_prediction_group_statistics,
+    N_BINS_LIST
+)
 from claim_modelling_kedro.pipelines.utils.dataframes import load_predictions_and_target_from_mlflow
 from claim_modelling_kedro.pipelines.utils.datasets import get_mlflow_run_id_for_partition, get_partition
 
@@ -155,7 +158,7 @@ def create_curves_plots(
     return dummy_summary_1_df
 
 
-def create_prediction_groups_stats_tables_and_charts(
+def create_lift_charts(
         config: Config,
         calib_predictions_df: Dict[str, pd.DataFrame],
         calib_target_df: Dict[str, pd.DataFrame],
@@ -187,9 +190,9 @@ def create_prediction_groups_stats_tables_and_charts(
             prefixes_and_columns.append(("pure", config.clb.pure_prediction_col))
         for prefix, prediction_col in prefixes_and_columns:
             dataset_name = f"{prefix}_{dataset}" if prefix is not None else dataset
-            for n_bins in [10, 20, 30, 50, 100]:
+            for n_bins in N_BINS_LIST:
                 # Collect stats for each partition
-                summary_df = {}
+                stats_dfs = {}
                 # Iterate over each partition in the dataset
                 for part in predictions_df.keys():
                     logger.info(f"Processing partition: {part} for dataset: {dataset_name}...")
@@ -204,7 +207,7 @@ def create_prediction_groups_stats_tables_and_charts(
 
                     # Start a nested MLflow run and generate individual concentration curves
                     with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
-                        stats_df = create_prediction_group_summary_strict_bins(
+                        stats_df = create_prediction_group_statistics_strict_bins(
                             config=config,
                             predictions_df=part_predictions_df,
                             target_df=part_target_df,
@@ -216,17 +219,17 @@ def create_prediction_groups_stats_tables_and_charts(
                         )
                         logger.info(
                             f"Table of statistics for {n_bins} groups from partition: {part} in dataset: {dataset_name} has been generated and logged.")
-                        summary_df[part] = stats_df
+                        stats_dfs[part] = stats_df
                         create_lift_chart_fig(
                             config=config,
-                            summary_df=stats_df,
+                            stats_df=stats_df,
                             n_bins=n_bins,
                             dataset=dataset,
                             prefix=prefix,
                         )
                         create_simple_lift_chart_fig(
                             config=config,
-                            summary_df=stats_df,
+                            stats_df=stats_df,
                             n_bins=n_bins,
                             dataset=dataset,
                             prefix=prefix,
@@ -243,23 +246,24 @@ def create_prediction_groups_stats_tables_and_charts(
                         )
 
                 # Average the statistics across partitions
-                create_average_prediction_group_summary(
+                stats_dfs = list(stats_dfs.values())
+                create_average_prediction_group_statistics(
                     config=config,
-                    summary_df=summary_df,
+                    stats_dfs=stats_dfs,
                     dataset=dataset,
                     n_bins=n_bins,
                     prefix=prefix
                 )
                 create_lift_cv_mean_chart_fig(
                     config=config,
-                    summary_dfs=list(summary_df.values()),
+                    stats_dfs=stats_dfs,
                     n_bins=n_bins,
                     dataset=dataset,
                     prefix=prefix,
                 )
                 create_simple_lift_cv_mean_chart_fig(
                     config=config,
-                    summary_dfs=list(summary_df.values()),
+                    stats_dfs=stats_dfs,
                     n_bins=n_bins,
                     dataset=dataset,
                     prefix=prefix,

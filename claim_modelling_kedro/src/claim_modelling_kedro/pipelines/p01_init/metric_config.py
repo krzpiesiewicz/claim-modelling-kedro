@@ -34,9 +34,13 @@ class MetricEnum(MetricType, Enum):
     SPEARMAN: str = "spearman_correlation"
     EXP_WEIGHTED_SPEARMAN: str = "exposure_weighted_spearman_correlation"
     CLNB_WEIGHTED_SPEARMAN: str = "claim_nb_weighted_spearman_correlation"
+    # Calibration metrics
     ABC: str = "area_between_cc_and_lc"
     EXP_WEIGHTED_ABC: str = "exposure_weighted_area_between_cc_and_lc"
     CLNB_WEIGHTED_ABC: str = "claim_nb_weighted_area_between_cc_and_lc"
+    SUP_CL_DIFF: str = "supremum_diff_between_cc_and_lc"
+    EXP_WEIGHTED_SUP_CL_DIFF: str = "exposure_weighted_supremum_diff_between_cc_and_lc"
+    CLNB_WEIGHTED_SUP_CL_DIFF: str = "claim_nb_weighted_supremum_diff_between_cc_and_lc"
     CCI: str = "cumulative_calibration_index"
     EXP_WEIGHTED_CCI: str = "exposure_weighted_cumulative_calibration_index"
     CLNB_WEIGHTED_CCI: str = "claim_nb_weighted_cumulative_calibration_index"

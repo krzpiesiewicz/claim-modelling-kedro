@@ -24,6 +24,7 @@ class ModelTask:
             MetricEnum.MBD,
             MetricEnum.SPEARMAN,
             MetricEnum.ABC,
+            MetricEnum.SUP_CL_DIFF,
             MetricEnum.CCI,
             MetricEnum.COI,
             MetricEnum.CUI,
