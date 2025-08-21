@@ -230,10 +230,10 @@ def create_average_prediction_group_statistics(
     avg_stats_df["std_of_mean_overpricing"] = pd.concat(stats_dfs).mean_overpricing.groupby(level=0).std()
     avg_stats_df["std_of_mean_underpricing"] = pd.concat(stats_dfs).mean_underpricing.groupby(level=0).std()
     avg_stats_df["std_of_abs_bias_deviation"] = pd.concat(stats_dfs).abs_bias_deviation.groupby(level=0).std()
-    avg_stats_df["rel_bias_deviation"] = df["bias_deviation"] / df["mean_target"]
-    avg_stats_df["rel_mean_overpricing"] = df["mean_overpricing"] / df["mean_target"]
-    avg_stats_df["rel_mean_underpricing"] = df["mean_underpricing"] / df["mean_target"]
-    avg_stats_df["rel_abs_bias_deviation"] = df["abs_bias_deviation"] / df["mean_target"]
+    avg_stats_df["rel_bias_deviation"] = avg_stats_df["bias_deviation"] / avg_stats_df["mean_target"]
+    avg_stats_df["rel_mean_overpricing"] = avg_stats_df["mean_overpricing"] / avg_stats_df["mean_target"]
+    avg_stats_df["rel_mean_underpricing"] = avg_stats_df["mean_underpricing"] / avg_stats_df["mean_target"]
+    avg_stats_df["rel_abs_bias_deviation"] = avg_stats_df["abs_bias_deviation"] / avg_stats_df["mean_target"]
 
     # Save and log the averaged statistics DataFrame as a CSV file to MLflow
     with tempfile.TemporaryDirectory() as temp_dir:
