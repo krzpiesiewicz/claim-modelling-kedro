@@ -8,7 +8,7 @@ import pandas as pd
 from tabulate import tabulate
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum
+from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum, BinsMetricType
 from claim_modelling_kedro.pipelines.p07_data_science.tabular_stats import \
     create_prediction_group_statistics_strict_bins, create_average_prediction_group_statistics
 from claim_modelling_kedro.pipelines.p01_init.mdl_task_config import N_BINS_LIST
@@ -67,16 +67,31 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
 
     logger.info(f"Computing the metrics for partition '{part}' in {joined_dataset} dataset...")
     for metric_enum in config.mdl_task.evaluation_metrics:
-        metric = get_metric_from_enum(config, metric_enum, pred_col=pred_col)
-        try:
-            if keys is not None:
-                predictions_df = predictions_df.loc[keys, :]
-                target_df = target_df.loc[keys, :]
-            score = metric.eval(target_df, predictions_df)
-        except Exception as e:
-            logger.error(f"Error while evaluating the metric {metric.get_short_name()} for partition '{part}': {e}")
-            logger.warning(f"Setting the score to NaN for partition '{part}'.")
-            score = np.nan
+        if issubclass(type(metric_enum), BinsMetricType):
+            n_bins = metric_enum.n_bins
+            if n_bins not in stats_df_per_n_bins:
+                raise ValueError(
+                    f"Not found stats_df for {n_bins} bins in partition '{part}' of {joined_dataset} dataset.")
+            stats_df = stats_df_per_n_bins[n_bins]
+            metric = get_metric_from_enum(config, metric_enum)
+            try:
+                score = metric.eval(stats_df)
+            except Exception as e:
+                logger.error(
+                    f"Error while evaluating the bins metric {metric.get_short_name()} for partition '{part}': {e}")
+                logger.warning(f"Setting the score to NaN for partition '{part}'.")
+                score = np.nan
+        else:
+            metric = get_metric_from_enum(config, metric_enum, pred_col=pred_col)
+            try:
+                if keys is not None:
+                    predictions_df = predictions_df.loc[keys, :]
+                    target_df = target_df.loc[keys, :]
+                score = metric.eval(target_df, predictions_df)
+            except Exception as e:
+                logger.error(f"Error while evaluating the metric {metric.get_short_name()} for partition '{part}': {e}")
+                logger.warning(f"Setting the score to NaN for partition '{part}'.")
+                score = np.nan
         metric_name = metric.get_short_name()
         if prefix is not None:
             metric_name = f"{prefix}_{metric_name}"

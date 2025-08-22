@@ -1,4 +1,5 @@
 import re
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 
@@ -130,15 +131,55 @@ class CLNB_WEIGHTED_TWEEDIE_DEV(MetricType):
         return hash(self.serialize())
 
 
+@dataclass
+class BinsMetricType(MetricType, ABC):
+    n_bins: int  # Parameter `n_bins` for the number of groups that the predictions will be divided into
+
+    @abstractmethod
+    def serialize(self) -> str:
+        ...
+
+    @classmethod
+    @abstractmethod
+    def deserialize(cls, serialized_str: str):
+        ...
+
+
+@dataclass
+class MAX_ABS_BIAS_BINS(BinsMetricType):
+
+    def serialize(self) -> str:
+        """
+        Serializes the MAX_ABS_BIAS_BINS instance to the format 'MAX_ABS_BIAS_{n_bins}_BINS'.
+        """
+        return f"MAX_ABS_BIAS_{self.n_bins}_BINS"
+
+    @classmethod
+    def deserialize(cls, serialized_str: str):
+        """
+        Deserializes a string in the format 'MAX_ABS_BIAS_{n_bins}_BINS' back into a MAX_ABS_BIAS_BINS instance.
+        """
+        # Use regular expression to extract the n_bins value from the string
+        for regex_temp in [r"max_abs_bias_\((\d+(\.\d+)?)\)_bins", r"MAX_ABS_BIAS_(\d+(\.\d+)?)_BINS"]:
+            match = re.match(regex_temp, serialized_str)
+            if match:
+                n_bins = int(match.group(1))  # Convert matched n_bins value to int
+                return cls(n_bins=n_bins)
+        raise ValueError(f"Invalid format for MAX_ABS_BIAS_BINS: {serialized_str}")
+
+    def __hash__(self):
+        return hash(self.serialize())
+
+
 def get_weighted_metric_enum(enum: MetricType, weight: TargetWeight) -> MetricType:
     """
     Returns the corresponding weighted metric (exposure or claims number) for the given base metric.
-    If no weight is specified, the original metric is returned.
+    If the metric does not support weighting or if no weight is specified, the original metric is returned.
     Args:
         enum (MetricType): The base metric to be weighted.
         weight (TargetWeight): The type of weight to apply (exposure or claims number).
     """
-    if weight is None:
+    if issubclass(type(enum), BinsMetricType) or weight is None:
         return enum
     if weight == TargetWeight.EXPOSURE:
         if isinstance(enum, TWEEDIE_DEV):

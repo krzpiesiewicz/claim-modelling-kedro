@@ -1,16 +1,17 @@
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum, TWEEDIE_DEV, EXP_WEIGHTED_TWEEDIE_DEV, \
-    CLNB_WEIGHTED_TWEEDIE_DEV
+    CLNB_WEIGHTED_TWEEDIE_DEV, MAX_ABS_BIAS_BINS
 from claim_modelling_kedro.pipelines.utils.metrics.cumulative_calibration_index import CumulativeCalibrationIndex, \
     CumulativeOverpricingIndex, CumulativeUnderpricingIndex
 from claim_modelling_kedro.pipelines.utils.metrics.area_between_cc_and_lc import AreaBetweenCCAndLC
+from claim_modelling_kedro.pipelines.utils.metrics.bins_metrics import MaxAbsBiasBinsMetric
 from claim_modelling_kedro.pipelines.utils.metrics.sklearn_like_metric import MeanAbsoluteError, RootMeanSquaredError, R2, \
     MeanBiasDeviation, MeanPoissonDeviance, MeanGammaDeviance, SpearmanCorrelation, MeanTweedieDeviance, SklearnLikeMetric
 from claim_modelling_kedro.pipelines.utils.metrics.gini import LorenzGiniIndex, ConcentrationCurveGiniIndex, NormalizedConcentrationCurveGiniIndex
 from claim_modelling_kedro.pipelines.utils.metrics.sup_diff_cc_and_lc import SupremumDiffBetweenCCAndLC
 
 
-def get_metric_from_enum(config: Config, enum: MetricEnum, pred_col: str) -> SklearnLikeMetric:
+def get_metric_from_enum(config: Config, enum: MetricEnum, pred_col: str = None) -> SklearnLikeMetric:
     match enum:
         case MetricEnum.MAE:
             return MeanAbsoluteError(config, pred_col=pred_col)
@@ -108,5 +109,7 @@ def get_metric_from_enum(config: Config, enum: MetricEnum, pred_col: str) -> Skl
             return MeanTweedieDeviance(config, pred_col=pred_col, exposure_weighted=True, power=p)
         case CLNB_WEIGHTED_TWEEDIE_DEV(p):
             return MeanTweedieDeviance(config, pred_col=pred_col, claim_nb_weighted=True, power=p)
+        case MAX_ABS_BIAS_BINS(n_bins):
+            return MaxAbsBiasBinsMetric(config, n_bins=n_bins)
         case _:
             raise ValueError(f"The metric enum: {enum} is not supported by the Metric class.")
