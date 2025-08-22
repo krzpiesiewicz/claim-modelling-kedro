@@ -9,8 +9,9 @@ from tabulate import tabulate
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum
-from claim_modelling_kedro.pipelines.p07_data_science.tabular_stats import N_BINS_LIST, \
+from claim_modelling_kedro.pipelines.p07_data_science.tabular_stats import \
     create_prediction_group_statistics_strict_bins, create_average_prediction_group_statistics
+from claim_modelling_kedro.pipelines.p01_init.mdl_task_config import N_BINS_LIST
 from claim_modelling_kedro.pipelines.utils.dataframes import save_metrics_table_in_mlflow, \
     save_metrics_cv_stats_in_mlflow
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
