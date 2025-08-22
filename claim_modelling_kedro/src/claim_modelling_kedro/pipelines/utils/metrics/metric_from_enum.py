@@ -13,6 +13,8 @@ from claim_modelling_kedro.pipelines.utils.metrics.sup_diff_cc_and_lc import Sup
 
 
 def get_metric_from_enum(config: Config, enum: MetricType, pred_col: str = None) -> Metric:
+    if issubclass(type(enum), SklearnMetricEnum) and pred_col is None:
+        raise ValueError("pred_col must be provided for SklearnMetricEnum metrics.")
     match enum:
         case SklearnMetricEnum.MAE:
             return MeanAbsoluteError(config, pred_col=pred_col)
