@@ -132,7 +132,11 @@ class CLNB_WEIGHTED_TWEEDIE_DEV(MetricType):
 
 def get_weighted_metric_enum(enum: MetricType, weight: TargetWeight) -> MetricType:
     """
-    Zwraca odpowiadającą metrykę ważoną (ekspozycją lub liczbą szkód) dla podanej metryki bazowej.
+    Returns the corresponding weighted metric (exposure or claims number) for the given base metric.
+    If no weight is specified, the original metric is returned.
+    Args:
+        enum (MetricType): The base metric to be weighted.
+        weight (TargetWeight): The type of weight to apply (exposure or claims number).
     """
     if weight is None:
         return enum
