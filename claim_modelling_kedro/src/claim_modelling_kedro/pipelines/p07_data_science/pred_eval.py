@@ -8,7 +8,7 @@ import pandas as pd
 from tabulate import tabulate
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum, BinsMetricType
+from claim_modelling_kedro.pipelines.p01_init.metric_config import SklearnMetricEnum, BinsMetricType, MetricType
 from claim_modelling_kedro.pipelines.p07_data_science.tabular_stats import \
     create_prediction_group_statistics_strict_bins, create_average_prediction_group_statistics
 from claim_modelling_kedro.pipelines.p01_init.mdl_task_config import N_BINS_LIST
@@ -25,7 +25,7 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
                               target_df: pd.DataFrame, pred_col: str, dataset: str, prefix: str, part: str,
                               log_metrics_to_mlflow: bool, log_metrics_to_console: bool = True,
                               compute_group_stats: bool = True, keys: pd.Index = None) -> Tuple[
-    Dict[Tuple[MetricEnum, str], float], Dict[int, pd.DataFrame]]:
+    Dict[Tuple[MetricType, str], float], Dict[int, pd.DataFrame]]:
     """
     Evaluates the predictions for a specific partition of the dataset.
     Args:
@@ -39,7 +39,7 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
         log_metrics_to_console (bool): Whether to log metrics to console. Defaults to True.
         keys (pd.Index, optional): Index of keys to filter the predictions and target DataFrames.
     Returns:
-        Tuple[Dict[Tuple[MetricEnum, str], float], pd.DataFrame]: A tuple containing:
+        Tuple[Dict[Tuple[MetricType, str], float], pd.DataFrame]: A tuple containing:
             - scores: Dictionary of scores for each metric.
             - stats_df_per_n_bins: DataFrame containing the statistics for the predictions and targets grouped into bins.
     """
@@ -115,7 +115,7 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
                          save_metrics_table: bool = True,
                          compute_group_stats: bool = True,
                          keys: Dict[str, pd.Index] = None) -> Tuple[
-    Dict[str, List[Tuple[MetricEnum, str, float]]], pd.DataFrame]:
+    Dict[str, List[Tuple[MetricType, str, float]]], pd.DataFrame]:
     """
     Evaluates the predictions for all partitions of the dataset.
     Args:
@@ -130,7 +130,7 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
         keys (Dict[str, pd.Index], optional): Dictionary of keys for each partition. Defaults to None.
 
     Returns:
-        Tuple[Dict[str, List[Tuple[MetricEnum, str, float]]], pd.DataFrame]: A tuple containing:
+        Tuple[Dict[str, List[Tuple[MetricType, str, float]]], pd.DataFrame]: A tuple containing:
             - scores_by_part: Dictionary of scores for each partition.
             - scores_df: DataFrame containing the scores for each metric and partition.
     """

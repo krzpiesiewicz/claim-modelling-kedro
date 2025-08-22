@@ -7,11 +7,15 @@ from claim_modelling_kedro.pipelines.p01_init.exprmnt import TargetWeight
 
 
 # Common trait for all metric types
-class MetricType:
+class MetricType():
+    pass
+
+# Metric type for sklearn metrics (metrics that requires pred_col)
+class SklearnMetricType(MetricType):
     pass
 
 
-class MetricEnum(MetricType, Enum):
+class SklearnMetricEnum(SklearnMetricType, Enum):
     POISSON_DEV: str = "poisson_deviance"
     EXP_WEIGHTED_POISSON_DEV: str = "exposure_weighted_poisson_deviance"
     CLNB_WEIGHTED_POISSON_DEV: str = "claim_nb_weighted_poisson_deviance"
@@ -63,7 +67,7 @@ class MetricEnum(MetricType, Enum):
 
 
 @dataclass
-class TWEEDIE_DEV(MetricType):
+class TWEEDIE_DEV(SklearnMetricType):
     p: float  # Parameter `p` for the Tweedie distribution
 
     def serialize(self) -> str:
@@ -90,7 +94,7 @@ class TWEEDIE_DEV(MetricType):
 
 
 @dataclass
-class EXP_WEIGHTED_TWEEDIE_DEV(MetricType):
+class EXP_WEIGHTED_TWEEDIE_DEV(SklearnMetricType):
     p: float  # Parameter `p` for weighted Tweedie distribution
 
     def serialize(self) -> str:
@@ -111,7 +115,7 @@ class EXP_WEIGHTED_TWEEDIE_DEV(MetricType):
 
 
 @dataclass
-class CLNB_WEIGHTED_TWEEDIE_DEV(MetricType):
+class CLNB_WEIGHTED_TWEEDIE_DEV(SklearnMetricType):
     p: float  # Parameter `p` for weighted Tweedie distribution
 
     def serialize(self) -> str:
@@ -185,20 +189,20 @@ def get_weighted_metric_enum(enum: MetricType, weight: TargetWeight) -> MetricTy
         if isinstance(enum, TWEEDIE_DEV):
             return EXP_WEIGHTED_TWEEDIE_DEV(enum.p)
         exposure_map = {
-            MetricEnum.POISSON_DEV: MetricEnum.EXP_WEIGHTED_POISSON_DEV,
-            MetricEnum.GAMMA_DEV: MetricEnum.EXP_WEIGHTED_GAMMA_DEV,
-            MetricEnum.MAE: MetricEnum.EXP_WEIGHTED_MAE,
-            MetricEnum.RMSE: MetricEnum.EXP_WEIGHTED_RMSE,
-            MetricEnum.R2: MetricEnum.EXP_WEIGHTED_R2,
-            MetricEnum.MBD: MetricEnum.EXP_WEIGHTED_MBD,
-            MetricEnum.SPEARMAN: MetricEnum.EXP_WEIGHTED_SPEARMAN,
-            MetricEnum.ABC: MetricEnum.EXP_WEIGHTED_ABC,
-            MetricEnum.CCI: MetricEnum.EXP_WEIGHTED_CCI,
-            MetricEnum.COI: MetricEnum.EXP_WEIGHTED_COI,
-            MetricEnum.CUI: MetricEnum.EXP_WEIGHTED_CUI,
-            MetricEnum.LC_GINI: MetricEnum.EXP_WEIGHTED_LC_GINI,
-            MetricEnum.CC_GINI: MetricEnum.EXP_WEIGHTED_CC_GINI,
-            MetricEnum.NORMALIZED_CC_GINI: MetricEnum.EXP_WEIGHTED_NORMALIZED_CC_GINI,
+            SklearnMetricEnum.POISSON_DEV: SklearnMetricEnum.EXP_WEIGHTED_POISSON_DEV,
+            SklearnMetricEnum.GAMMA_DEV: SklearnMetricEnum.EXP_WEIGHTED_GAMMA_DEV,
+            SklearnMetricEnum.MAE: SklearnMetricEnum.EXP_WEIGHTED_MAE,
+            SklearnMetricEnum.RMSE: SklearnMetricEnum.EXP_WEIGHTED_RMSE,
+            SklearnMetricEnum.R2: SklearnMetricEnum.EXP_WEIGHTED_R2,
+            SklearnMetricEnum.MBD: SklearnMetricEnum.EXP_WEIGHTED_MBD,
+            SklearnMetricEnum.SPEARMAN: SklearnMetricEnum.EXP_WEIGHTED_SPEARMAN,
+            SklearnMetricEnum.ABC: SklearnMetricEnum.EXP_WEIGHTED_ABC,
+            SklearnMetricEnum.CCI: SklearnMetricEnum.EXP_WEIGHTED_CCI,
+            SklearnMetricEnum.COI: SklearnMetricEnum.EXP_WEIGHTED_COI,
+            SklearnMetricEnum.CUI: SklearnMetricEnum.EXP_WEIGHTED_CUI,
+            SklearnMetricEnum.LC_GINI: SklearnMetricEnum.EXP_WEIGHTED_LC_GINI,
+            SklearnMetricEnum.CC_GINI: SklearnMetricEnum.EXP_WEIGHTED_CC_GINI,
+            SklearnMetricEnum.NORMALIZED_CC_GINI: SklearnMetricEnum.EXP_WEIGHTED_NORMALIZED_CC_GINI,
         }
         if enum in exposure_map:
             return exposure_map[enum]
@@ -207,20 +211,20 @@ def get_weighted_metric_enum(enum: MetricType, weight: TargetWeight) -> MetricTy
         if isinstance(enum, TWEEDIE_DEV):
             return CLNB_WEIGHTED_TWEEDIE_DEV(enum.p)
         claims_map = {
-            MetricEnum.POISSON_DEV: MetricEnum.CLNB_WEIGHTED_POISSON_DEV,
-            MetricEnum.GAMMA_DEV: MetricEnum.CLNB_WEIGHTED_GAMMA_DEV,
-            MetricEnum.MAE: MetricEnum.CLNB_WEIGHTED_MAE,
-            MetricEnum.RMSE: MetricEnum.CLNB_WEIGHTED_RMSE,
-            MetricEnum.R2: MetricEnum.CLNB_WEIGHTED_R2,
-            MetricEnum.MBD: MetricEnum.CLNB_WEIGHTED_MBD,
-            MetricEnum.SPEARMAN: MetricEnum.CLNB_WEIGHTED_SPEARMAN,
-            MetricEnum.ABC: MetricEnum.CLNB_WEIGHTED_ABC,
-            MetricEnum.CCI: MetricEnum.CLNB_WEIGHTED_CCI,
-            MetricEnum.COI: MetricEnum.CLNB_WEIGHTED_COI,
-            MetricEnum.CUI: MetricEnum.CLNB_WEIGHTED_CUI,
-            MetricEnum.LC_GINI: MetricEnum.CLNB_WEIGHTED_LC_GINI,
-            MetricEnum.CC_GINI: MetricEnum.CLNB_WEIGHTED_CC_GINI,
-            MetricEnum.NORMALIZED_CC_GINI: MetricEnum.CLNB_WEIGHTED_NORMALIZED_CC_GINI,
+            SklearnMetricEnum.POISSON_DEV: SklearnMetricEnum.CLNB_WEIGHTED_POISSON_DEV,
+            SklearnMetricEnum.GAMMA_DEV: SklearnMetricEnum.CLNB_WEIGHTED_GAMMA_DEV,
+            SklearnMetricEnum.MAE: SklearnMetricEnum.CLNB_WEIGHTED_MAE,
+            SklearnMetricEnum.RMSE: SklearnMetricEnum.CLNB_WEIGHTED_RMSE,
+            SklearnMetricEnum.R2: SklearnMetricEnum.CLNB_WEIGHTED_R2,
+            SklearnMetricEnum.MBD: SklearnMetricEnum.CLNB_WEIGHTED_MBD,
+            SklearnMetricEnum.SPEARMAN: SklearnMetricEnum.CLNB_WEIGHTED_SPEARMAN,
+            SklearnMetricEnum.ABC: SklearnMetricEnum.CLNB_WEIGHTED_ABC,
+            SklearnMetricEnum.CCI: SklearnMetricEnum.CLNB_WEIGHTED_CCI,
+            SklearnMetricEnum.COI: SklearnMetricEnum.CLNB_WEIGHTED_COI,
+            SklearnMetricEnum.CUI: SklearnMetricEnum.CLNB_WEIGHTED_CUI,
+            SklearnMetricEnum.LC_GINI: SklearnMetricEnum.CLNB_WEIGHTED_LC_GINI,
+            SklearnMetricEnum.CC_GINI: SklearnMetricEnum.CLNB_WEIGHTED_CC_GINI,
+            SklearnMetricEnum.NORMALIZED_CC_GINI: SklearnMetricEnum.CLNB_WEIGHTED_NORMALIZED_CC_GINI,
         }
         if enum in claims_map:
             return claims_map[enum]

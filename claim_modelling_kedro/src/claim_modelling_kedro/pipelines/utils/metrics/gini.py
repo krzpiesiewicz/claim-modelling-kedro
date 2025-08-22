@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum, MetricType
+from claim_modelling_kedro.pipelines.p01_init.metric_config import SklearnMetricEnum
 from claim_modelling_kedro.pipelines.utils.concentration_curve import calculate_concentration_curve_parts
 from claim_modelling_kedro.pipelines.utils.metrics.sklearn_like_metric import SklearnLikeMetric
 
@@ -66,12 +66,12 @@ class LorenzGiniIndex(SklearnLikeMetric):
     def _get_short_name(self) -> str:
         return "LCGI"
 
-    def get_enum(self) -> MetricType:
+    def get_enum(self) -> SklearnMetricEnum:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_LC_GINI
+            return SklearnMetricEnum.EXP_WEIGHTED_LC_GINI
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_LC_GINI
-        return MetricEnum.LC_GINI
+            return SklearnMetricEnum.CLNB_WEIGHTED_LC_GINI
+        return SklearnMetricEnum.LC_GINI
 
     def is_larger_better(self) -> bool:
         return True
@@ -102,12 +102,12 @@ class ConcentrationCurveGiniIndex(SklearnLikeMetric):
     def _get_short_name(self) -> str:
         return "CCGI"
 
-    def get_enum(self) -> MetricType:
+    def get_enum(self) -> SklearnMetricEnum:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_CC_GINI
+            return SklearnMetricEnum.EXP_WEIGHTED_CC_GINI
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_CC_GINI
-        return MetricEnum.CC_GINI
+            return SklearnMetricEnum.CLNB_WEIGHTED_CC_GINI
+        return SklearnMetricEnum.CC_GINI
 
     def is_larger_better(self) -> bool:
         return True
@@ -145,12 +145,12 @@ class NormalizedConcentrationCurveGiniIndex(SklearnLikeMetric):
     def _get_short_name(self) -> str:
         return "NCCGI"
 
-    def get_enum(self) -> MetricType:
+    def get_enum(self) -> SklearnMetricEnum:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_NORMALIZED_CC_GINI
+            return SklearnMetricEnum.EXP_WEIGHTED_NORMALIZED_CC_GINI
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_NORMALIZED_CC_GINI
-        return MetricEnum.NORMALIZED_CC_GINI
+            return SklearnMetricEnum.CLNB_WEIGHTED_NORMALIZED_CC_GINI
+        return SklearnMetricEnum.NORMALIZED_CC_GINI
 
     def is_larger_better(self) -> bool:
         return True

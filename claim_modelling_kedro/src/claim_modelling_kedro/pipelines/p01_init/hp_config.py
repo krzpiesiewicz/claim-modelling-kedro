@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Dict, List, Any
 
 from claim_modelling_kedro.pipelines.p01_init.hp_space_config import HyperOptSpaceConfig
-from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum
+from claim_modelling_kedro.pipelines.p01_init.metric_config import SklearnMetricEnum
 from claim_modelling_kedro.pipelines.p01_init.smpl_config import SamplingConfig, SampleValidationSet
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ class HypertuneValidationEnum(Enum):
 @dataclass
 class HypertuneConfig:
     enabled: bool
-    metric: MetricEnum
+    metric: SklearnMetricEnum
     max_evals: int
     overfit_penalty: float
     early_stop_enabled: bool
@@ -43,7 +43,7 @@ class HypertuneConfig:
     def __init__(self, params: Dict, smpl: SamplingConfig, model_name: str, model_const_hparams: Dict[str, Any]):
         self.enabled = params["enabled"]
         if self.enabled:
-            self.metric = MetricEnum(params["metric"]) if params["metric"] is None or params["metric"] != "auto" else None
+            self.metric = SklearnMetricEnum(params["metric"]) if params["metric"] is None or params["metric"] != "auto" else None
             self.overfit_penalty = params["overfit_penalty"]
             self.max_evals = params["max_evals"]
             self.early_stop_enabled = params["early_stopping"]["enabled"]

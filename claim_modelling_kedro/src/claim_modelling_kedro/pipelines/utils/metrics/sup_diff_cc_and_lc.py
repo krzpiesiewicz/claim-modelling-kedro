@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum, MetricType
+from claim_modelling_kedro.pipelines.p01_init.metric_config import SklearnMetricEnum, MetricType
 from claim_modelling_kedro.pipelines.utils.concentration_curve import calculate_concentration_curve, \
     interpolate_to_points
 from claim_modelling_kedro.pipelines.utils.metrics.sklearn_like_metric import SklearnLikeMetric
@@ -50,10 +50,10 @@ class SupremumDiffBetweenCCAndLC(SklearnLikeMetric):
 
     def get_enum(self) -> MetricType:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_SUP_CL_DIFF
+            return SklearnMetricEnum.EXP_WEIGHTED_SUP_CL_DIFF
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_SUP_CL_DIFF
-        return MetricEnum.SUP_CL_DIFF
+            return SklearnMetricEnum.CLNB_WEIGHTED_SUP_CL_DIFF
+        return SklearnMetricEnum.SUP_CL_DIFF
 
     def is_larger_better(self) -> bool:
         return False

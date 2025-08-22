@@ -9,7 +9,7 @@ import wcorr
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.metric_config import TWEEDIE_DEV, EXP_WEIGHTED_TWEEDIE_DEV, \
-    CLNB_WEIGHTED_TWEEDIE_DEV, MetricEnum
+    CLNB_WEIGHTED_TWEEDIE_DEV, SklearnMetricEnum
 from claim_modelling_kedro.pipelines.utils.metrics.metric import Metric
 from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
 from claim_modelling_kedro.pipelines.utils.dataframes import ordered_by_pred_and_hashed_index
@@ -54,12 +54,12 @@ class MeanAbsoluteError(SklearnLikeMetric):
     def _get_short_name(self) -> str:
         return "MAE"
 
-    def get_enum(self) -> MetricEnum:
+    def get_enum(self) -> SklearnMetricEnum:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_MAE
+            return SklearnMetricEnum.EXP_WEIGHTED_MAE
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_MAE
-        return MetricEnum.MAE
+            return SklearnMetricEnum.CLNB_WEIGHTED_MAE
+        return SklearnMetricEnum.MAE
 
     def is_larger_better(self) -> bool:
         return False
@@ -80,12 +80,12 @@ class RootMeanSquaredError(SklearnLikeMetric):
     def _get_short_name(self) -> str:
         return "RMSE"
 
-    def get_enum(self) -> MetricEnum:
+    def get_enum(self) -> SklearnMetricEnum:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_RMSE
+            return SklearnMetricEnum.EXP_WEIGHTED_RMSE
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_RMSE
-        return MetricEnum.RMSE
+            return SklearnMetricEnum.CLNB_WEIGHTED_RMSE
+        return SklearnMetricEnum.RMSE
 
     def is_larger_better(self) -> bool:
         return False
@@ -101,12 +101,12 @@ class R2(SklearnLikeMetric):
     def _get_short_name(self) -> str:
         return "R2"
 
-    def get_enum(self) -> MetricEnum:
+    def get_enum(self) -> SklearnMetricEnum:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_R2
+            return SklearnMetricEnum.EXP_WEIGHTED_R2
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_R2
-        return MetricEnum.R2
+            return SklearnMetricEnum.CLNB_WEIGHTED_R2
+        return SklearnMetricEnum.R2
 
     def is_larger_better(self) -> bool:
         return True
@@ -144,12 +144,12 @@ class MeanBiasDeviation(SklearnLikeMetric):
     def _get_short_name(self) -> str:
         return "MBD"
 
-    def get_enum(self) -> MetricEnum:
+    def get_enum(self) -> SklearnMetricEnum:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_MBD
+            return SklearnMetricEnum.EXP_WEIGHTED_MBD
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_MBD
-        return MetricEnum.MBD
+            return SklearnMetricEnum.CLNB_WEIGHTED_MBD
+        return SklearnMetricEnum.MBD
 
     def is_larger_better(self) -> bool:
         raise Exception(
@@ -166,12 +166,12 @@ class MeanPoissonDeviance(SklearnLikeMetric):
     def _get_short_name(self) -> str:
         return "MPD"
 
-    def get_enum(self) -> MetricEnum:
+    def get_enum(self) -> SklearnMetricEnum:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_POISSON_DEV
+            return SklearnMetricEnum.EXP_WEIGHTED_POISSON_DEV
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_POISSON_DEV
-        return MetricEnum.POISSON_DEV
+            return SklearnMetricEnum.CLNB_WEIGHTED_POISSON_DEV
+        return SklearnMetricEnum.POISSON_DEV
 
     def is_larger_better(self) -> bool:
         return False
@@ -187,12 +187,12 @@ class MeanGammaDeviance(SklearnLikeMetric):
     def _get_short_name(self) -> str:
         return "MGD"
 
-    def get_enum(self) -> MetricEnum:
+    def get_enum(self) -> SklearnMetricEnum:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_GAMMA_DEV
+            return SklearnMetricEnum.EXP_WEIGHTED_GAMMA_DEV
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_GAMMA_DEV
-        return MetricEnum.GAMMA_DEV
+            return SklearnMetricEnum.CLNB_WEIGHTED_GAMMA_DEV
+        return SklearnMetricEnum.GAMMA_DEV
 
     def is_larger_better(self) -> bool:
         return False
@@ -210,7 +210,7 @@ class MeanTweedieDeviance(SklearnLikeMetric):
     def _get_short_name(self) -> str:
         return f"MTD_{self.power}"
 
-    def get_enum(self) -> MetricEnum:
+    def get_enum(self) -> SklearnMetricEnum:
         if self.exposure_weighted:
             return EXP_WEIGHTED_TWEEDIE_DEV(self.power)
         if self.claim_nb_weighted:
@@ -231,12 +231,12 @@ class SpearmanCorrelation(SklearnLikeMetric):
     def _get_short_name(self) -> str:
         return "SC"
 
-    def get_enum(self) -> MetricEnum:
+    def get_enum(self) -> SklearnMetricEnum:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_SPEARMAN
+            return SklearnMetricEnum.EXP_WEIGHTED_SPEARMAN
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_SPEARMAN
-        return MetricEnum.SPEARMAN
+            return SklearnMetricEnum.CLNB_WEIGHTED_SPEARMAN
+        return SklearnMetricEnum.SPEARMAN
 
     @staticmethod
     def _weighted_spearman(y_true: np.ndarray, y_pred: np.ndarray, sample_weight: np.ndarray = None) -> float:
