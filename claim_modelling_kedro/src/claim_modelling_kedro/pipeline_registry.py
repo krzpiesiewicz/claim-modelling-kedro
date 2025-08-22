@@ -92,4 +92,5 @@ def register_pipelines() -> Dict[str, Pipeline]:
             sampling_pipeline + data_engineering_pipeline + data_science_pipeline + calibration_pipeline +
             test_pipeline + load_pred_and_trg_pipeline + charts_pipeline)
     pipelines["recompute_metrics"] = init_pipeline + load_pred_and_trg_pipeline + recompute_metrics_pipeline
+    pipelines["recompute_metrics_and_charts"] = init_pipeline + load_pred_and_trg_pipeline + recompute_metrics_pipeline + charts_pipeline
     return pipelines
