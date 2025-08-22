@@ -17,6 +17,7 @@ class ModelTask:
     def __init__(self, exprmnt: ExperimentInfo, data: DataConfig):
         self.exposure_weighted = (exprmnt.target_weight == TargetWeight.EXPOSURE)
         self.claim_nb_weighted = (exprmnt.target_weight == TargetWeight.CLAIMS_NUMBER)
+        # Add common metrics
         self.evaluation_metrics = [
             MetricEnum.MAE,
             MetricEnum.RMSE,
@@ -32,6 +33,7 @@ class ModelTask:
             MetricEnum.CC_GINI,
             MetricEnum.NORMALIZED_CC_GINI,
         ]
+        # Add metrics depending on the target
         match exprmnt.target:
             case Target.CLAIMS_NUMBER:
                 self.target_col = data.claims_number_target_col
@@ -53,6 +55,7 @@ class ModelTask:
                 self.target_col = data.claims_pure_premium_target_col
                 self.prediction_col = data.claims_pure_premium_pred_col
                 self.evaluation_metrics += [TWEEDIE_DEV(p) for p in [1.2, 1.5, 1.7, 1.9]]
+        # Convert to weighted metrics if needed
         self.evaluation_metrics = [
             get_weighted_metric_enum(metric_enum, exprmnt.target_weight) for metric_enum in self.evaluation_metrics
         ]
