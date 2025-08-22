@@ -184,11 +184,11 @@ _MIN_AND_MAX_VALS_LIFT_CHART = {
                 100: dict(min=None, max=None),
             },
             full = {
-                10: dict(min=None, max=None),
-                20: dict(min=None, max=None),
-                30: dict(min=None, max=None),
-                50: dict(min=None, max=None),
-                100: dict(min=None, max=None),
+                10: dict(min=None, max=5000),
+                20: dict(min=None, max=5000),
+                30: dict(min=None, max=5000),
+                50: dict(min=None, max=5000),
+                100: dict(min=None, max=9500),
             }
         ),
         mean = dict(
@@ -200,11 +200,11 @@ _MIN_AND_MAX_VALS_LIFT_CHART = {
                 100: dict(min=None, max=None),
             },
             full = {
-                10: dict(min=None, max=None),
-                20: dict(min=None, max=None),
-                30: dict(min=None, max=None),
-                50: dict(min=None, max=None),
-                100: dict(min=None, max=None),
+                10: dict(min=None, max=4000),
+                20: dict(min=None, max=4000),
+                30: dict(min=None, max=4000),
+                50: dict(min=None, max=4000),
+                100: dict(min=None, max=8500),
             }
         )
     )
