@@ -10,7 +10,7 @@ from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
 from claim_modelling_kedro.pipelines.p07_data_science.models.sklearn_model import SklearnModel
 from claim_modelling_kedro.pipelines.p08_model_calibration.calibration_model import CalibrationModel
-from claim_modelling_kedro.pipelines.utils.metrics import Metric, RootMeanSquaredError
+from claim_modelling_kedro.pipelines.utils.metrics import SklearnLikeMetric, RootMeanSquaredError
 
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ class IsotonicLikeCalibrationModel(CalibrationModel, ABC):
     def get_y_max(self) -> float:
         return self._y_max
 
-    def metric(self) -> Metric:
+    def metric(self) -> SklearnLikeMetric:
         return RootMeanSquaredError(self.config, pred_col=self.pred_col)
 
 

@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum, MetricType
+from claim_modelling_kedro.pipelines.p01_init.metric_config import SklearnMetricEnum
 from claim_modelling_kedro.pipelines.utils.concentration_curve import calculate_concentration_curve_parts
-from claim_modelling_kedro.pipelines.utils.metrics.metric import Metric
+from claim_modelling_kedro.pipelines.utils.metrics.sklearn_like_metric import SklearnLikeMetric
 
 
 def calculate_area_under_cc_parts(curve_parts: List[Tuple[np.ndarray[float], np.ndarray[float]]]) -> float:
@@ -41,7 +41,7 @@ def calculate_area_under_cc(y_true: pd.Series, y_pred: pd.Series, sample_weight:
     return calculate_area_under_cc_parts(curve_parts)
 
 
-class LorenzGiniIndex(Metric):
+class LorenzGiniIndex(SklearnLikeMetric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=self._gini_index, **kwargs)
 
@@ -66,18 +66,18 @@ class LorenzGiniIndex(Metric):
     def _get_short_name(self) -> str:
         return "LCGI"
 
-    def get_enum(self) -> MetricType:
+    def get_enum(self) -> SklearnMetricEnum:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_LC_GINI
+            return SklearnMetricEnum.EXP_WEIGHTED_LC_GINI
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_LC_GINI
-        return MetricEnum.LC_GINI
+            return SklearnMetricEnum.CLNB_WEIGHTED_LC_GINI
+        return SklearnMetricEnum.LC_GINI
 
     def is_larger_better(self) -> bool:
         return True
 
 
-class ConcentrationCurveGiniIndex(Metric):
+class ConcentrationCurveGiniIndex(SklearnLikeMetric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=self._cc_gini_index, **kwargs)
 
@@ -102,18 +102,18 @@ class ConcentrationCurveGiniIndex(Metric):
     def _get_short_name(self) -> str:
         return "CCGI"
 
-    def get_enum(self) -> MetricType:
+    def get_enum(self) -> SklearnMetricEnum:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_CC_GINI
+            return SklearnMetricEnum.EXP_WEIGHTED_CC_GINI
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_CC_GINI
-        return MetricEnum.CC_GINI
+            return SklearnMetricEnum.CLNB_WEIGHTED_CC_GINI
+        return SklearnMetricEnum.CC_GINI
 
     def is_larger_better(self) -> bool:
         return True
 
 
-class NormalizedConcentrationCurveGiniIndex(Metric):
+class NormalizedConcentrationCurveGiniIndex(SklearnLikeMetric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=self._normalized_cc_gini_index, **kwargs)
 
@@ -145,12 +145,12 @@ class NormalizedConcentrationCurveGiniIndex(Metric):
     def _get_short_name(self) -> str:
         return "NCCGI"
 
-    def get_enum(self) -> MetricType:
+    def get_enum(self) -> SklearnMetricEnum:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_NORMALIZED_CC_GINI
+            return SklearnMetricEnum.EXP_WEIGHTED_NORMALIZED_CC_GINI
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_NORMALIZED_CC_GINI
-        return MetricEnum.NORMALIZED_CC_GINI
+            return SklearnMetricEnum.CLNB_WEIGHTED_NORMALIZED_CC_GINI
+        return SklearnMetricEnum.NORMALIZED_CC_GINI
 
     def is_larger_better(self) -> bool:
         return True

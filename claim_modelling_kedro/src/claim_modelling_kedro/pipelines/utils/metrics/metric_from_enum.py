@@ -1,106 +1,112 @@
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum, TWEEDIE_DEV, EXP_WEIGHTED_TWEEDIE_DEV, \
-    CLNB_WEIGHTED_TWEEDIE_DEV
+from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricType, SklearnMetricEnum, TWEEDIE_DEV, \
+    EXP_WEIGHTED_TWEEDIE_DEV, \
+    CLNB_WEIGHTED_TWEEDIE_DEV, MAX_ABS_BIAS_BINS, MAX_OVERPRICING_BINS, MAX_UNDERPRICING_BINS
 from claim_modelling_kedro.pipelines.utils.metrics.cumulative_calibration_index import CumulativeCalibrationIndex, \
     CumulativeOverpricingIndex, CumulativeUnderpricingIndex
 from claim_modelling_kedro.pipelines.utils.metrics.area_between_cc_and_lc import AreaBetweenCCAndLC
-from claim_modelling_kedro.pipelines.utils.metrics.metric import MeanAbsoluteError, RootMeanSquaredError, R2, \
-    MeanBiasDeviation, MeanPoissonDeviance, MeanGammaDeviance, SpearmanCorrelation, MeanTweedieDeviance, Metric
+from claim_modelling_kedro.pipelines.utils.metrics.bins_metrics import MaxAbsBiasBinsMetric, MaxOverpricingBinsMetric, \
+    MaxUnderpricingBinsMetric
+from claim_modelling_kedro.pipelines.utils.metrics.metric import Metric
+from claim_modelling_kedro.pipelines.utils.metrics.sklearn_like_metric import MeanAbsoluteError, RootMeanSquaredError, R2, \
+    MeanBiasDeviation, MeanPoissonDeviance, MeanGammaDeviance, SpearmanCorrelation, MeanTweedieDeviance
 from claim_modelling_kedro.pipelines.utils.metrics.gini import LorenzGiniIndex, ConcentrationCurveGiniIndex, NormalizedConcentrationCurveGiniIndex
 from claim_modelling_kedro.pipelines.utils.metrics.sup_diff_cc_and_lc import SupremumDiffBetweenCCAndLC
 
 
-def get_metric_from_enum(config: Config, enum: MetricEnum, pred_col: str) -> Metric:
+def get_metric_from_enum(config: Config, enum: MetricType, pred_col: str = None) -> Metric:
+    if issubclass(type(enum), SklearnMetricEnum) and pred_col is None:
+        raise ValueError("pred_col must be provided for SklearnMetricEnum metrics.")
     match enum:
-        case MetricEnum.MAE:
+        case SklearnMetricEnum.MAE:
             return MeanAbsoluteError(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_MAE:
+        case SklearnMetricEnum.EXP_WEIGHTED_MAE:
             return MeanAbsoluteError(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_MAE:
+        case SklearnMetricEnum.CLNB_WEIGHTED_MAE:
             return MeanAbsoluteError(config, pred_col=pred_col, claim_nb_weighted=True)
-        case MetricEnum.RMSE:
+        case SklearnMetricEnum.RMSE:
             return RootMeanSquaredError(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_RMSE:
+        case SklearnMetricEnum.EXP_WEIGHTED_RMSE:
             return RootMeanSquaredError(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_RMSE:
+        case SklearnMetricEnum.CLNB_WEIGHTED_RMSE:
             return RootMeanSquaredError(config, pred_col=pred_col, claim_nb_weighted=True)
-        case MetricEnum.R2:
+        case SklearnMetricEnum.R2:
             return R2(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_R2:
+        case SklearnMetricEnum.EXP_WEIGHTED_R2:
             return R2(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_R2:
+        case SklearnMetricEnum.CLNB_WEIGHTED_R2:
             return R2(config, pred_col=pred_col, claim_nb_weighted=True)
-        case MetricEnum.MBD:
+        case SklearnMetricEnum.MBD:
             return MeanBiasDeviation(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_MBD:
+        case SklearnMetricEnum.EXP_WEIGHTED_MBD:
             return MeanBiasDeviation(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_MBD:
+        case SklearnMetricEnum.CLNB_WEIGHTED_MBD:
             return MeanBiasDeviation(config, pred_col=pred_col, claim_nb_weighted=True)
-        case MetricEnum.POISSON_DEV:
+        case SklearnMetricEnum.POISSON_DEV:
             return MeanPoissonDeviance(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_POISSON_DEV:
+        case SklearnMetricEnum.EXP_WEIGHTED_POISSON_DEV:
             return MeanPoissonDeviance(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_POISSON_DEV:
+        case SklearnMetricEnum.CLNB_WEIGHTED_POISSON_DEV:
             return MeanPoissonDeviance(config, pred_col=pred_col, claim_nb_weighted=True)
-        case MetricEnum.GAMMA_DEV:
+        case SklearnMetricEnum.GAMMA_DEV:
             return MeanGammaDeviance(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_GAMMA_DEV:
+        case SklearnMetricEnum.EXP_WEIGHTED_GAMMA_DEV:
             return MeanGammaDeviance(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_GAMMA_DEV:
+        case SklearnMetricEnum.CLNB_WEIGHTED_GAMMA_DEV:
             return MeanGammaDeviance(config, pred_col=pred_col, claim_nb_weighted=True)
-        case MetricEnum.SPEARMAN:
+        case SklearnMetricEnum.SPEARMAN:
             return SpearmanCorrelation(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_SPEARMAN:
+        case SklearnMetricEnum.EXP_WEIGHTED_SPEARMAN:
             return SpearmanCorrelation(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_SPEARMAN:
+        case SklearnMetricEnum.CLNB_WEIGHTED_SPEARMAN:
             return SpearmanCorrelation(config, pred_col=pred_col, claim_nb_weighted=True)
-        case MetricEnum.ABC:
+        case SklearnMetricEnum.ABC:
             return AreaBetweenCCAndLC(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_ABC:
+        case SklearnMetricEnum.EXP_WEIGHTED_ABC:
             return AreaBetweenCCAndLC(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_ABC:
+        case SklearnMetricEnum.CLNB_WEIGHTED_ABC:
             return AreaBetweenCCAndLC(config, pred_col=pred_col, claim_nb_weighted=True)
-        case MetricEnum.SUP_CL_DIFF:
+        case SklearnMetricEnum.SUP_CL_DIFF:
             return SupremumDiffBetweenCCAndLC(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_SUP_CL_DIFF:
+        case SklearnMetricEnum.EXP_WEIGHTED_SUP_CL_DIFF:
             return SupremumDiffBetweenCCAndLC(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_SUP_CL_DIFF:
+        case SklearnMetricEnum.CLNB_WEIGHTED_SUP_CL_DIFF:
             return SupremumDiffBetweenCCAndLC(config, pred_col=pred_col, claim_nb_weighted=True)
-        case MetricEnum.CCI:
+        case SklearnMetricEnum.CCI:
             return CumulativeCalibrationIndex(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_CCI:
+        case SklearnMetricEnum.EXP_WEIGHTED_CCI:
             return CumulativeCalibrationIndex(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_CCI:
+        case SklearnMetricEnum.CLNB_WEIGHTED_CCI:
             return CumulativeCalibrationIndex(config, pred_col=pred_col, claim_nb_weighted=True)
-        case MetricEnum.COI:
+        case SklearnMetricEnum.COI:
             return CumulativeOverpricingIndex(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_COI:
+        case SklearnMetricEnum.EXP_WEIGHTED_COI:
             return CumulativeOverpricingIndex(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_COI:
+        case SklearnMetricEnum.CLNB_WEIGHTED_COI:
             return CumulativeOverpricingIndex(config, pred_col=pred_col, claim_nb_weighted=True)
-        case MetricEnum.CUI:
+        case SklearnMetricEnum.CUI:
             return CumulativeUnderpricingIndex(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_CUI:
+        case SklearnMetricEnum.EXP_WEIGHTED_CUI:
             return CumulativeUnderpricingIndex(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_CUI:
+        case SklearnMetricEnum.CLNB_WEIGHTED_CUI:
             return CumulativeUnderpricingIndex(config, pred_col=pred_col, claim_nb_weighted=True)
-        case MetricEnum.LC_GINI:
+        case SklearnMetricEnum.LC_GINI:
             return LorenzGiniIndex(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_LC_GINI:
+        case SklearnMetricEnum.EXP_WEIGHTED_LC_GINI:
             return LorenzGiniIndex(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_LC_GINI:
+        case SklearnMetricEnum.CLNB_WEIGHTED_LC_GINI:
             return LorenzGiniIndex(config, pred_col=pred_col, claim_nb_weighted=True)
-        case MetricEnum.CC_GINI:
+        case SklearnMetricEnum.CC_GINI:
             return ConcentrationCurveGiniIndex(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_CC_GINI:
+        case SklearnMetricEnum.EXP_WEIGHTED_CC_GINI:
             return ConcentrationCurveGiniIndex(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_CC_GINI:
+        case SklearnMetricEnum.CLNB_WEIGHTED_CC_GINI:
             return ConcentrationCurveGiniIndex(config, pred_col=pred_col, claim_nb_weighted=True)
-        case MetricEnum.NORMALIZED_CC_GINI:
+        case SklearnMetricEnum.NORMALIZED_CC_GINI:
             return NormalizedConcentrationCurveGiniIndex(config, pred_col=pred_col)
-        case MetricEnum.EXP_WEIGHTED_NORMALIZED_CC_GINI:
+        case SklearnMetricEnum.EXP_WEIGHTED_NORMALIZED_CC_GINI:
             return NormalizedConcentrationCurveGiniIndex(config, pred_col=pred_col, exposure_weighted=True)
-        case MetricEnum.CLNB_WEIGHTED_NORMALIZED_CC_GINI:
+        case SklearnMetricEnum.CLNB_WEIGHTED_NORMALIZED_CC_GINI:
             return NormalizedConcentrationCurveGiniIndex(config, pred_col=pred_col, claim_nb_weighted=True)
         case TWEEDIE_DEV(p):
             return MeanTweedieDeviance(config, pred_col=pred_col, power=p)
@@ -108,5 +114,11 @@ def get_metric_from_enum(config: Config, enum: MetricEnum, pred_col: str) -> Met
             return MeanTweedieDeviance(config, pred_col=pred_col, exposure_weighted=True, power=p)
         case CLNB_WEIGHTED_TWEEDIE_DEV(p):
             return MeanTweedieDeviance(config, pred_col=pred_col, claim_nb_weighted=True, power=p)
+        case MAX_ABS_BIAS_BINS(n_bins):
+            return MaxAbsBiasBinsMetric(config, n_bins=n_bins)
+        case MAX_OVERPRICING_BINS(n_bins):
+            return MaxOverpricingBinsMetric(config, n_bins=n_bins)
+        case MAX_UNDERPRICING_BINS(n_bins):
+            return MaxUnderpricingBinsMetric(config, n_bins=n_bins)
         case _:
             raise ValueError(f"The metric enum: {enum} is not supported by the Metric class.")

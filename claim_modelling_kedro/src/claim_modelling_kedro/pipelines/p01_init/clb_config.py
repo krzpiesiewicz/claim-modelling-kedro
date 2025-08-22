@@ -24,6 +24,7 @@ class CalibrationMethod(Enum):
 
 class RebalanceInTotalsMethod(Enum):
     SCALE: str = "scale"
+    SHIFT: str = "shift"
 
 
 @dataclass

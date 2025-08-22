@@ -8,9 +8,10 @@ import pandas as pd
 from tabulate import tabulate
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum
-from claim_modelling_kedro.pipelines.p07_data_science.tabular_stats import N_BINS_LIST, \
+from claim_modelling_kedro.pipelines.p01_init.metric_config import BinsMetricType, MetricType
+from claim_modelling_kedro.pipelines.p07_data_science.tabular_stats import \
     create_prediction_group_statistics_strict_bins, create_average_prediction_group_statistics
+from claim_modelling_kedro.pipelines.p01_init.mdl_task_config import N_BINS_LIST
 from claim_modelling_kedro.pipelines.utils.dataframes import save_metrics_table_in_mlflow, \
     save_metrics_cv_stats_in_mlflow
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
@@ -21,10 +22,10 @@ logger = logging.getLogger(__name__)
 
 
 def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
-                              target_df: pd.DataFrame, dataset: str, prefix: str, part: str, log_metrics_to_mlflow: bool,
-                              log_metrics_to_console: bool = True, compute_group_stats: bool = True,
-                              keys: pd.Index = None) -> Tuple[
-    Dict[Tuple[MetricEnum, str], float], Dict[int, pd.DataFrame]]:
+                              target_df: pd.DataFrame, pred_col: str, dataset: str, prefix: str, part: str,
+                              log_metrics_to_mlflow: bool, log_metrics_to_console: bool = True,
+                              compute_group_stats: bool = True, keys: pd.Index = None) -> Tuple[
+    Dict[Tuple[MetricType, str], float], Dict[int, pd.DataFrame]]:
     """
     Evaluates the predictions for a specific partition of the dataset.
     Args:
@@ -38,7 +39,7 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
         log_metrics_to_console (bool): Whether to log metrics to console. Defaults to True.
         keys (pd.Index, optional): Index of keys to filter the predictions and target DataFrames.
     Returns:
-        Tuple[Dict[Tuple[MetricEnum, str], float], pd.DataFrame]: A tuple containing:
+        Tuple[Dict[Tuple[MetricType, str], float], pd.DataFrame]: A tuple containing:
             - scores: Dictionary of scores for each metric.
             - stats_df_per_n_bins: DataFrame containing the statistics for the predictions and targets grouped into bins.
     """
@@ -53,7 +54,7 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
                 config=config,
                 predictions_df=predictions_df,
                 target_df=target_df,
-                prediction_col=config.mdl_task.prediction_col,
+                prediction_col=pred_col,
                 target_col=config.mdl_task.target_col,
                 joined_dataset=joined_dataset,
                 n_bins=n_bins,
@@ -66,16 +67,31 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
 
     logger.info(f"Computing the metrics for partition '{part}' in {joined_dataset} dataset...")
     for metric_enum in config.mdl_task.evaluation_metrics:
-        metric = get_metric_from_enum(config, metric_enum, pred_col=config.mdl_task.prediction_col)
-        try:
-            if keys is not None:
-                predictions_df = predictions_df.loc[keys, :]
-                target_df = target_df.loc[keys, :]
-            score = metric.eval(target_df, predictions_df)
-        except Exception as e:
-            logger.error(f"Error while evaluating the metric {metric.get_short_name()} for partition '{part}': {e}")
-            logger.warning(f"Setting the score to NaN for partition '{part}'.")
-            score = np.nan
+        if issubclass(type(metric_enum), BinsMetricType):
+            n_bins = metric_enum.n_bins
+            if n_bins not in stats_df_per_n_bins:
+                raise ValueError(
+                    f"Not found stats_df for {n_bins} bins in partition '{part}' of {joined_dataset} dataset.")
+            stats_df = stats_df_per_n_bins[n_bins]
+            metric = get_metric_from_enum(config, metric_enum)
+            try:
+                score = metric.eval(stats_df)
+            except Exception as e:
+                logger.error(
+                    f"Error while evaluating the bins metric {metric.get_short_name()} for partition '{part}': {e}")
+                logger.warning(f"Setting the score to NaN for partition '{part}'.")
+                score = np.nan
+        else:
+            metric = get_metric_from_enum(config, metric_enum, pred_col=pred_col)
+            try:
+                if keys is not None:
+                    predictions_df = predictions_df.loc[keys, :]
+                    target_df = target_df.loc[keys, :]
+                score = metric.eval(target_df, predictions_df)
+            except Exception as e:
+                logger.error(f"Error while evaluating the metric {metric.get_short_name()} for partition '{part}': {e}")
+                logger.warning(f"Setting the score to NaN for partition '{part}'.")
+                score = np.nan
         metric_name = metric.get_short_name()
         if prefix is not None:
             metric_name = f"{prefix}_{metric_name}"
@@ -94,11 +110,12 @@ def evaluate_predictions_part(config: Config, predictions_df: pd.DataFrame,
 def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame],
                          target_df: Dict[str, pd.DataFrame], dataset: str,
                          prefix: str = None,
+                         pred_col: str = None,
                          log_metrics_to_mlflow: bool = True,
                          save_metrics_table: bool = True,
                          compute_group_stats: bool = True,
                          keys: Dict[str, pd.Index] = None) -> Tuple[
-    Dict[str, List[Tuple[MetricEnum, str, float]]], pd.DataFrame]:
+    Dict[str, List[Tuple[MetricType, str, float]]], pd.DataFrame]:
     """
     Evaluates the predictions for all partitions of the dataset.
     Args:
@@ -113,15 +130,17 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
         keys (Dict[str, pd.Index], optional): Dictionary of keys for each partition. Defaults to None.
 
     Returns:
-        Tuple[Dict[str, List[Tuple[MetricEnum, str, float]]], pd.DataFrame]: A tuple containing:
+        Tuple[Dict[str, List[Tuple[MetricType, str, float]]], pd.DataFrame]: A tuple containing:
             - scores_by_part: Dictionary of scores for each partition.
             - scores_df: DataFrame containing the scores for each metric and partition.
     """
     scores_by_part = {}
     scores_by_names = {}
     stats_df_by_n_bins = {}
+    pred_col = pred_col or config.mdl_task.prediction_col
     joined_dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
     logger.info(f"Evaluating the predictions for {joined_dataset} dataset...")
+    metric_name_to_enum_dct = {}
     for part in predictions_df.keys():
         predictions_part_df = get_partition(predictions_df, part)
         target_part_df = get_partition(target_df, part)
@@ -129,7 +148,7 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
         mlflow_subrun_id = get_mlflow_run_id_for_partition(part, config)
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
             scores, stats_df_per_n_bins = evaluate_predictions_part(config, predictions_part_df, target_part_df,
-                                                                    dataset, prefix, part, log_metrics_to_mlflow,
+                                                                    pred_col, dataset, prefix, part, log_metrics_to_mlflow,
                                                                     compute_group_stats=compute_group_stats,
                                                                     keys=keys_part, log_metrics_to_console=False)
             scores_by_part[part] = scores
@@ -140,6 +159,7 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
                     stats_df_by_n_bins[n_bins].append(stats_df)
                     
         for (metric_enum, metric_name), score in scores_by_part[part].items():
+            metric_name_to_enum_dct[metric_name] = metric_enum
             if metric_name not in scores_by_names:
                 scores_by_names[metric_name] = {}
             scores_by_names[metric_name][part] = score
@@ -173,9 +193,26 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
                                                    index=pd.Index(["mean", "std"], name=joined_dataset))
     scores_table = scores_table.map(partial(round, ndigits=4))
     mean_and_std_table = mean_and_std_table.map(partial(round, ndigits=4))
-    logger.info(f"Scores of {joined_dataset} predictions:\n" +
-                tabulate(scores_table, headers="keys", tablefmt="psql", showindex=True) + "\n" +
-                tabulate(mean_and_std_table, headers="keys", tablefmt="psql", showindex=True))
+    # Print the scores tables
+    def print_tables(scores_names: List[str], title: str):
+        logger.info(
+            f"{title} scores of {joined_dataset} predictions ({title}):\n" +
+            tabulate(scores_table.loc[:, scores_names], headers="keys", tablefmt="psql", showindex=True) + "\n" +
+            tabulate(mean_and_std_table.loc[:, scores_names], headers="keys", tablefmt="psql", showindex=True))
+
+    standard_scores_names = [name for name in scores_table.columns if not issubclass(type(metric_name_to_enum_dct[name]), BinsMetricType)]
+    print_tables(standard_scores_names, "Standard")
+    bins_scores_names = [name for name in scores_table.columns if name not in standard_scores_names]
+    if prefix is not None:
+        bins_len = len(N_BINS_LIST)
+        metrics_len = len(bins_scores_names) // bins_len
+        half = int(np.ceil(metrics_len / 2)) * bins_len
+        bins_scores_names_row1 = bins_scores_names[:half]
+        bins_scores_names_row2 = bins_scores_names[half:]
+        print_tables(bins_scores_names_row1, "Bins")
+        print_tables(bins_scores_names_row2, "Bins")
+    else:
+        print_tables(bins_scores_names, "Bins")
     # Create a DataFrame of averaged group statistics
     if compute_group_stats:
         logger.info(f"Computing group statistics for all partitions in {joined_dataset} dataset...")

@@ -42,7 +42,7 @@ def recompute_metrics(
         test_predictions_df (Dict[str, pd.DataFrame]): Dictionary of test predictions for each partition.
         test_target_df (Dict[str, pd.DataFrame]): Dictionary of test targets for each partition.
     """
-    # Iterate over train and test datasets
+    # Iterate over sample, calib, train and test datasets
     for dataset, predictions_df, target_df in zip(
             ["sample_train", "sample_valid", "calib", "train", "test"],
             [sample_train_predictions_df, sample_valid_predictions_df, calib_predictions_df, train_predictions_df, test_predictions_df],
@@ -58,7 +58,7 @@ def recompute_metrics(
                 prefixes_and_columns.append(("pure", config.clb.pure_prediction_col))
         for prefix, prediction_col in prefixes_and_columns:
             # Evaluate the predictions
-            evaluate_predictions(config, predictions_df, target_df, dataset=dataset, prefix=prefix,
+            evaluate_predictions(config, predictions_df, target_df, pred_col=prediction_col, dataset=dataset, prefix=prefix,
                                  log_metrics_to_mlflow=True, save_metrics_table=True, compute_group_stats=True)
 
     dummy_recomp_metrics_df = pd.DataFrame({})

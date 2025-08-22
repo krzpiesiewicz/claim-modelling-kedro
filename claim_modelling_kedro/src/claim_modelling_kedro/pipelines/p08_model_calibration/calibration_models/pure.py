@@ -3,7 +3,7 @@ import pandas as pd
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p08_model_calibration.calibration_model import CalibrationModel
-from claim_modelling_kedro.pipelines.utils.metrics import Metric, RootMeanSquaredError
+from claim_modelling_kedro.pipelines.utils.metrics import SklearnLikeMetric, RootMeanSquaredError
 
 
 class PureCalibration(CalibrationModel):
@@ -16,7 +16,7 @@ class PureCalibration(CalibrationModel):
     def _predict(self, pure_predictions_df: pd.DataFrame) -> pd.Series:
         return pure_predictions_df[self.pure_pred_col]
 
-    def metric(self) -> Metric:
+    def metric(self) -> SklearnLikeMetric:
         return RootMeanSquaredError(self.config, pred_col=self.pred_col)
 
     @classmethod
