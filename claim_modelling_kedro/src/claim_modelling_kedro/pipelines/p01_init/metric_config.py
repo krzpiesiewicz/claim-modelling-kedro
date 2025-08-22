@@ -175,6 +175,44 @@ class MAX_ABS_BIAS_BINS(BinsMetricType):
         return hash(self.serialize())
 
 
+@dataclass
+class MAX_OVERPRICING_BINS(BinsMetricType):
+
+    def serialize(self) -> str:
+        return f"MAX_OVERPRICING_{self.n_bins}_BINS"
+
+    @classmethod
+    def deserialize(cls, serialized_str: str):
+        for regex_temp in [r"max_overpricing_\((\d+(\.\d+)?)\)_bins", r"MAX_OVERPRICING_(\d+(\.\d+)?)_BINS"]:
+            match = re.match(regex_temp, serialized_str)
+            if match:
+                n_bins = int(match.group(1))  # Convert matched n_bins value to int
+                return cls(n_bins=n_bins)
+        raise ValueError(f"Invalid format for MAX_OVERPRICING_BINS: {serialized_str}")
+
+    def __hash__(self):
+        return hash(self.serialize())
+
+
+@dataclass
+class MAX_UNDERPRICING_BINS(BinsMetricType):
+
+    def serialize(self) -> str:
+        return f"MAX_UNDERPRICING_{self.n_bins}_BINS"
+
+    @classmethod
+    def deserialize(cls, serialized_str: str):
+        for regex_temp in [r"max_underpricing_\((\d+(\.\d+)?)\)_bins", r"MAX_UNDERPRICING_(\d+(\.\d+)?)_BINS"]:
+            match = re.match(regex_temp, serialized_str)
+            if match:
+                n_bins = int(match.group(1))  # Convert matched n_bins value to int
+                return cls(n_bins=n_bins)
+        raise ValueError(f"Invalid format for MAX_UNDERPRICING_BINS: {serialized_str}")
+
+    def __hash__(self):
+        return hash(self.serialize())
+
+
 def get_weighted_metric_enum(enum: MetricType, weight: TargetWeight) -> MetricType:
     """
     Returns the corresponding weighted metric (exposure or claims number) for the given base metric.

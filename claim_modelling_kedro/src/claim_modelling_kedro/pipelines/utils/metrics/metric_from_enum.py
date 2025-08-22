@@ -1,10 +1,12 @@
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricType, SklearnMetricEnum, TWEEDIE_DEV, EXP_WEIGHTED_TWEEDIE_DEV, \
-    CLNB_WEIGHTED_TWEEDIE_DEV, MAX_ABS_BIAS_BINS
+from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricType, SklearnMetricEnum, TWEEDIE_DEV, \
+    EXP_WEIGHTED_TWEEDIE_DEV, \
+    CLNB_WEIGHTED_TWEEDIE_DEV, MAX_ABS_BIAS_BINS, MAX_OVERPRICING_BINS, MAX_UNDERPRICING_BINS
 from claim_modelling_kedro.pipelines.utils.metrics.cumulative_calibration_index import CumulativeCalibrationIndex, \
     CumulativeOverpricingIndex, CumulativeUnderpricingIndex
 from claim_modelling_kedro.pipelines.utils.metrics.area_between_cc_and_lc import AreaBetweenCCAndLC
-from claim_modelling_kedro.pipelines.utils.metrics.bins_metrics import MaxAbsBiasBinsMetric
+from claim_modelling_kedro.pipelines.utils.metrics.bins_metrics import MaxAbsBiasBinsMetric, MaxOverpricingBinsMetric, \
+    MaxUnderpricingBinsMetric
 from claim_modelling_kedro.pipelines.utils.metrics.metric import Metric
 from claim_modelling_kedro.pipelines.utils.metrics.sklearn_like_metric import MeanAbsoluteError, RootMeanSquaredError, R2, \
     MeanBiasDeviation, MeanPoissonDeviance, MeanGammaDeviance, SpearmanCorrelation, MeanTweedieDeviance
@@ -114,5 +116,9 @@ def get_metric_from_enum(config: Config, enum: MetricType, pred_col: str = None)
             return MeanTweedieDeviance(config, pred_col=pred_col, claim_nb_weighted=True, power=p)
         case MAX_ABS_BIAS_BINS(n_bins):
             return MaxAbsBiasBinsMetric(config, n_bins=n_bins)
+        case MAX_OVERPRICING_BINS(n_bins):
+            return MaxOverpricingBinsMetric(config, n_bins=n_bins)
+        case MAX_UNDERPRICING_BINS(n_bins):
+            return MaxUnderpricingBinsMetric(config, n_bins=n_bins)
         case _:
             raise ValueError(f"The metric enum: {enum} is not supported by the Metric class.")
