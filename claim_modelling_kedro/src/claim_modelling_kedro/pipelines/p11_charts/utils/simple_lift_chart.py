@@ -6,6 +6,10 @@ import numpy as np
 import pandas as pd
 from typing import List
 import logging
+
+import matplotlib
+matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
@@ -33,7 +37,7 @@ def get_file_name(file_template: str, dataset: str, n_bins: int) -> str:
 
 
 def plot_cv_mean_simple_lift_chart(
-        summary_dfs: List[pd.DataFrame],
+        stats_dfs: List[pd.DataFrame],
         min_val: float = None,
         max_val: float = None,
         show_std_band: bool = True,
@@ -44,7 +48,7 @@ def plot_cv_mean_simple_lift_chart(
     optionally showing standard deviation bands.
 
     Args:
-        summary_dfs (List[pd.DataFrame]): List of summary DataFrames with "group", "mean_pred", and "mean_target" columns.
+        stats_dfs (List[pd.DataFrame]): List of summary DataFrames with "group", "mean_pred", and "mean_target" columns.
         min_val (float, optional): Minimum value for the y-axis. Defaults to None.
         max_val (float, optional): Maximum value for the y-axis. Defaults to None.
         show_std_band (bool, optional): Whether to show standard deviation bands. Defaults to True.
@@ -53,7 +57,7 @@ def plot_cv_mean_simple_lift_chart(
     Returns:
         plt.Figure: The generated matplotlib figure.
     """
-    all_groups = sorted(set(summary_dfs[0]["group"]))
+    all_groups = sorted(set(stats_dfs[0]["group"]))
     mean_pred = []
     mean_target = []
     std_pred = []
@@ -62,13 +66,13 @@ def plot_cv_mean_simple_lift_chart(
     for group in all_groups:
         pred_vals = []
         target_vals = []
-        for df in summary_dfs:
+        for df in stats_dfs:
             row = df[df["group"] == group]
             pred_vals.append(row["mean_pred"].values[0])
             target_vals.append(row["mean_target"].values[0])
         mean_pred.append(np.mean(pred_vals))
         mean_target.append(np.mean(target_vals))
-        if len(summary_dfs) > 1:
+        if len(stats_dfs) > 1:
             std_pred.append(np.std(pred_vals))
             std_target.append(np.std(target_vals))
 
@@ -80,14 +84,14 @@ def plot_cv_mean_simple_lift_chart(
 
 
     # Plot standard deviation band if applicable
-    if show_std_band and len(summary_dfs) > 1:
+    if show_std_band and len(stats_dfs) > 1:
         ax.fill_between(all_groups, np.array(mean_target) - std_target, np.array(mean_target) + std_target,
                         color=target_color, alpha=0.1)
     # Plot mean target line
     ax.plot(all_groups, mean_target, color=target_color, marker=marker, linewidth=linewidth)
 
     # Plot standard deviation band if applicable
-    if show_std_band and len(summary_dfs) > 1:
+    if show_std_band and len(stats_dfs) > 1:
         ax.fill_between(all_groups, np.array(mean_pred) - std_pred, np.array(mean_pred) + std_pred,
                         color=pred_color, alpha=0.1)
     # Plot mean prediction line
@@ -116,7 +120,7 @@ def plot_cv_mean_simple_lift_chart(
     ax.set_xlabel(xlabel)
 
     title = "Lift Chart"
-    if len(summary_dfs) > 1:
+    if len(stats_dfs) > 1:
         title = f"Mean {title} (CV Average)"
     ax.set_title(title)
 
@@ -124,7 +128,7 @@ def plot_cv_mean_simple_lift_chart(
         Line2D([0], [0], color=target_color, marker=marker, linewidth=linewidth, label="Mean Target"),
         Line2D([0], [0], color=pred_color, marker=marker, linewidth=linewidth, label="Mean Prediction"),
     ]
-    if show_std_band and len(summary_dfs) > 1:
+    if show_std_band and len(stats_dfs) > 1:
         legend_handles = legend_handles + [
             Patch(facecolor=target_color, alpha=0.1, label="Standard Deviation of Target Mean"),
             Patch(facecolor=pred_color, alpha=0.1, label="Standard Deviation of Prediction Mean"),
@@ -137,7 +141,7 @@ def plot_cv_mean_simple_lift_chart(
 
 def create_simple_lift_chart_fig(
     config: Config,
-    summary_df: pd.DataFrame,
+    stats_df: pd.DataFrame,
     n_bins: int,
     dataset: str,
     prefix: str = None,
@@ -148,7 +152,7 @@ def create_simple_lift_chart_fig(
     Creates a chart showing the mean deviation lines between predictions and targets.
 
     Args:
-        summary_df (pd.DataFrame): DataFrame containing summary statistics.
+        stats_df (pd.DataFrame): DataFrame containing summary statistics.
         n_bins (int): Number of bins used in the summary.
         dataset (str): Name of the dataset (e.g., "train" or "test").
         prefix (str, optional): Prefix for the dataset ('pure' or None). Defaults to None.
@@ -163,7 +167,7 @@ def create_simple_lift_chart_fig(
         params["max_val"] = max_val
     if min_val is not None:
         params["min_val"] = min_val
-    fig = plot_cv_mean_simple_lift_chart([summary_df], **params)
+    fig = plot_cv_mean_simple_lift_chart([stats_df], **params)
     logger.info("Generated the simple lift chart.")
 
     # Save and log the concentration curve with the Lorenz curve to MLflow
@@ -180,7 +184,7 @@ def create_simple_lift_chart_fig(
 
 def create_simple_lift_cv_mean_chart_fig(
     config: Config,
-    summary_dfs: List[pd.DataFrame],
+    stats_dfs: List[pd.DataFrame],
     n_bins: int,
     dataset: str,
     prefix: str = None,
@@ -191,7 +195,7 @@ def create_simple_lift_cv_mean_chart_fig(
     Creates a chart showing the mean deviation lines between predictions and targets.
 
     Args:
-        summary_dfs (List[pd.DataFrame]): DataFrame containing summary statistics.
+        stats_dfs (List[pd.DataFrame]): DataFrame containing summary statistics.
         n_bins (int): Number of bins used in the summary.
         dataset (str): Name of the dataset (e.g., "train" or "test").
         prefix (str, optional): Prefix for the dataset ('pure' or None). Defaults to None.
@@ -206,7 +210,7 @@ def create_simple_lift_cv_mean_chart_fig(
         params["max_val"] = max_val
     if min_val is not None:
         params["min_val"] = min_val
-    fig = plot_cv_mean_simple_lift_chart(summary_dfs, show_std_band=True, **params)
+    fig = plot_cv_mean_simple_lift_chart(stats_dfs, show_std_band=True, **params)
     logger.info("Generated the CV-mean simple lift chart.")
 
     # Save and log the concentration curve with the Lorenz curve to MLflow

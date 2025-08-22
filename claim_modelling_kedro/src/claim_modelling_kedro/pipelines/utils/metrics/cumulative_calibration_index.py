@@ -3,9 +3,9 @@ import pandas as pd
 from typing import Tuple
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricType, MetricEnum
+from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricType, SklearnMetricEnum
 from claim_modelling_kedro.pipelines.utils.dataframes import ordered_by_pred_and_hashed_index
-from claim_modelling_kedro.pipelines.utils.metrics.metric import Metric
+from claim_modelling_kedro.pipelines.utils.metrics.sklearn_like_metric import SklearnLikeMetric
 
 
 def weighted_cumul_clb_areas(y_true: pd.Series, y_pred: pd.Series, sample_weight: pd.Series = None) -> Tuple[float, float, float]:
@@ -100,7 +100,7 @@ def weighted_underpricing_idx(y_true: pd.Series, y_pred: pd.Series, sample_weigh
     return cui
 
 
-class CumulativeCalibrationIndex(Metric):
+class CumulativeCalibrationIndex(SklearnLikeMetric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=self._weighted_cumul_clb_idx, **kwargs)
 
@@ -129,16 +129,16 @@ class CumulativeCalibrationIndex(Metric):
 
     def get_enum(self) -> MetricType:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_CCI
+            return SklearnMetricEnum.EXP_WEIGHTED_CCI
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_CCI
-        return MetricEnum.CCI
+            return SklearnMetricEnum.CLNB_WEIGHTED_CCI
+        return SklearnMetricEnum.CCI
 
     def is_larger_better(self) -> bool:
         return False
 
 
-class CumulativeOverpricingIndex(Metric):
+class CumulativeOverpricingIndex(SklearnLikeMetric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=self._weighted_overpricing_idx, **kwargs)
 
@@ -166,16 +166,16 @@ class CumulativeOverpricingIndex(Metric):
 
     def get_enum(self) -> MetricType:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_COI
+            return SklearnMetricEnum.EXP_WEIGHTED_COI
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_COI
-        return MetricEnum.COI
+            return SklearnMetricEnum.CLNB_WEIGHTED_COI
+        return SklearnMetricEnum.COI
 
     def is_larger_better(self) -> bool:
         return False
 
 
-class CumulativeUnderpricingIndex(Metric):
+class CumulativeUnderpricingIndex(SklearnLikeMetric):
     def __init__(self, config: Config, **kwargs):
         super().__init__(config, sklearn_like_metric=self._weighted_underpricing_idx, **kwargs)
 
@@ -203,10 +203,10 @@ class CumulativeUnderpricingIndex(Metric):
 
     def get_enum(self) -> MetricType:
         if self.exposure_weighted:
-            return MetricEnum.EXP_WEIGHTED_CUI
+            return SklearnMetricEnum.EXP_WEIGHTED_CUI
         if self.claim_nb_weighted:
-            return MetricEnum.CLNB_WEIGHTED_CUI
-        return MetricEnum.CUI
+            return SklearnMetricEnum.CLNB_WEIGHTED_CUI
+        return SklearnMetricEnum.CUI
 
     def is_larger_better(self) -> bool:
         return False

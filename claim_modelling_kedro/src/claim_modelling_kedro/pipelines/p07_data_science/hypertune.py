@@ -23,7 +23,7 @@ from claim_modelling_kedro.pipelines.p01_init.hp_space_config import build_hyper
 from claim_modelling_kedro.pipelines.p07_data_science.model import PredictiveModel, save_ds_model_in_mlflow
 from claim_modelling_kedro.pipelines.utils.dataframes import save_pd_dataframe_as_csv_in_mlflow
 from claim_modelling_kedro.pipelines.utils.datasets import get_partition, get_mlflow_run_id_for_partition
-from claim_modelling_kedro.pipelines.utils.metrics import get_metric_from_enum, Metric
+from claim_modelling_kedro.pipelines.utils.metrics import get_metric_from_enum, SklearnLikeMetric
 from claim_modelling_kedro.pipelines.utils.stratified_cv_split import get_stratified_train_test_cv
 from claim_modelling_kedro.pipelines.utils.stratified_split import get_stratified_train_test_split_keys
 from claim_modelling_kedro.pipelines.utils.utils import get_class_from_path, \
@@ -186,7 +186,7 @@ def create_hyperopt_result_message(trials: Trials, current_trial: Dict[str, Any]
 
 def process_fold(config: Config, fold: str, train_keys_cv: Dict[str, pd.Index], val_keys_cv: Dict[str, pd.Index],
                  selected_sample_features_df: pd.DataFrame, sample_target_df: pd.DataFrame,
-                 hparams: Dict[str, Any], model: PredictiveModel, metric: Metric) -> Tuple[float, float, PredictiveModel]:
+                 hparams: Dict[str, Any], model: PredictiveModel, metric: SklearnLikeMetric) -> Tuple[float, float, PredictiveModel]:
     train_keys = train_keys_cv[fold]
     val_keys = val_keys_cv[fold]
 
@@ -218,7 +218,7 @@ def fit_model(hparams: Dict[str, any],
               config: Config,
               trials: Trials,
               space: Dict[str, Any],
-              metric: Metric,
+              metric: SklearnLikeMetric,
               selected_sample_features_df: pd.DataFrame,
               sample_target_df: pd.DataFrame,
               train_keys_cv: Dict[str, pd.Index],
@@ -318,7 +318,7 @@ def fit_model(hparams: Dict[str, any],
     }
 
 
-def get_hparam_space(config: Config, log_space_to_mlflow: bool = False) -> Tuple[PredictiveModel, Metric, Dict[str, Any]]:
+def get_hparam_space(config: Config, log_space_to_mlflow: bool = False) -> Tuple[PredictiveModel, SklearnLikeMetric, Dict[str, Any]]:
     model = get_class_from_path(config.ds.model_class)(config=config, target_col=config.mdl_task.target_col,
                                                        pred_col=config.mdl_task.prediction_col)
     model.update_hparams(config.ds.model_const_hparams)
@@ -450,7 +450,7 @@ def process_hypertune_part(config: Config, part: str, selected_sample_features_d
         sample_target_part_df = get_partition(sample_target_df, part)
         sample_train_keys_part = get_partition(sample_train_keys, part)
         sample_val_keys_part = get_partition(sample_val_keys, part)
-        mlflow_subrun_id = get_mlflow_run_id_for_partition(config, part, parent_mlflow_run_id=parent_mlflow_run_id)
+        mlflow_subrun_id = get_mlflow_run_id_for_partition(part, config, parent_mlflow_run_id=parent_mlflow_run_id)
         logger.info(f"Tuning the hyper parameters of the predictive model on partition '{part}' of the sample dataset...")
         with mlflow.start_run(run_id=mlflow_subrun_id, nested=True):
             log_space_to_mlflow = mlflow_subrun_id != parent_mlflow_run_id

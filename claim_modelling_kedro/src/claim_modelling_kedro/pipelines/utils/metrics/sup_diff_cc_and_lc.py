@@ -8,17 +8,17 @@ from claim_modelling_kedro.pipelines.utils.concentration_curve import calculate_
 from claim_modelling_kedro.pipelines.utils.metrics.sklearn_like_metric import SklearnLikeMetric
 
 
-class AreaBetweenCCAndLC(SklearnLikeMetric):
+class SupremumDiffBetweenCCAndLC(SklearnLikeMetric):
     """
-    Class to compute the integral of the absolute difference between the Concentration Curve (CC) and the Lorenz Curve (LC).
+    Class to compute the supremum of the absolute difference between the Concentration Curve (CC) and the Lorenz Curve (LC).
     """
     def __init__(self, config: Config, **kwargs):
-        super().__init__(config, sklearn_like_metric=self._weighted_area_between_cc_and_lc, **kwargs)
+        super().__init__(config, sklearn_like_metric=self._weighted_sup_abs_diff_cc_and_lc, **kwargs)
 
     @staticmethod
-    def _weighted_area_between_cc_and_lc(y_true: pd.Series, y_pred: pd.Series, sample_weight: pd.Series = None):
+    def _weighted_sup_abs_diff_cc_and_lc(y_true: pd.Series, y_pred: pd.Series, sample_weight: pd.Series = None):
         """
-        Compute the integral of the absolute difference between the Concentration Curve (CC) and the Lorenz Curve (LC).
+        Compute the supremum of the absolute difference between the Concentration Curve (CC) and the Lorenz Curve (LC).
 
         Args:
             y_true (pd.Series): Series of true values.
@@ -26,7 +26,7 @@ class AreaBetweenCCAndLC(SklearnLikeMetric):
             sample_weight (pd.Series): Series of sample weights. If None, all weights are set to 1.
 
         Returns:
-            float: The integral of the absolute difference between CC and LC.
+            float: The supremum of the absolute difference between CC and LC.
         """
         assert len(y_true) == len(y_pred), "y_true and y_pred must have the same length"
 
@@ -40,20 +40,20 @@ class AreaBetweenCCAndLC(SklearnLikeMetric):
         x_lc, y_lc = interpolate_to_points(x_lc, y_lc, x_interp, trunc_to_xs=False)
 
         y_abs_diff = np.abs(y_cc - y_lc)
-        return np.trapz(y_abs_diff, x=x_interp)
+        return np.max(y_abs_diff)
 
     def _get_name(self) -> str:
-        return "Area Between CC and LC"
+        return "Supremum of Difference Between CC and LC"
 
     def _get_short_name(self) -> str:
-        return "ABC"
+        return "SDCL"
 
     def get_enum(self) -> MetricType:
         if self.exposure_weighted:
-            return SklearnMetricEnum.EXP_WEIGHTED_ABC
+            return SklearnMetricEnum.EXP_WEIGHTED_SUP_CL_DIFF
         if self.claim_nb_weighted:
-            return SklearnMetricEnum.CLNB_WEIGHTED_ABC
-        return SklearnMetricEnum.ABC
+            return SklearnMetricEnum.CLNB_WEIGHTED_SUP_CL_DIFF
+        return SklearnMetricEnum.SUP_CL_DIFF
 
     def is_larger_better(self) -> bool:
         return False

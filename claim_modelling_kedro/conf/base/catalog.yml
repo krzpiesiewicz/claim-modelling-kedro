@@ -239,14 +239,26 @@ dummy_test_2_df:
   save_args:
     index: True
 
-dummy_summary_1_df:
+dummy_load_pred_and_trg_df:
   type: pandas.ParquetDataset
-  filepath: data/06_test/summary/dummy_summary_1_df.pq
+  filepath: data/06_test/load_pred_and_trg/dummy_load_pred_and_trg_df.pq
   save_args:
     index: True
 
-dummy_summary_2_df:
+dummy_recomp_metrics_df:
   type: pandas.ParquetDataset
-  filepath: data/06_test/summary/dummy_summary_2_df.pq
+  filepath: data/06_test/recompute_metrics/dummy_recomp_metrics_df.pq
+  save_args:
+    index: True
+
+dummy_charts_1_df:
+  type: pandas.ParquetDataset
+  filepath: data/06_test/charts/dummy_charts_1_df.pq
+  save_args:
+    index: True
+
+dummy_charts_2_df:
+  type: pandas.ParquetDataset
+  filepath: data/06_test/charts/dummy_charts_2_df.pq
   save_args:
     index: True

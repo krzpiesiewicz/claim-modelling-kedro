@@ -187,8 +187,7 @@ def create_prediction_groups_stats_tables_and_charts(
             prefixes_and_columns.append(("pure", config.clb.pure_prediction_col))
         for prefix, prediction_col in prefixes_and_columns:
             dataset_name = f"{prefix}_{dataset}" if prefix is not None else dataset
-            for n_bins, max_val in zip([10, 20, 30, 50, 100], [4000, 4000, 4000, 4000, 8500]):
-                min_val = 1000
+            for n_bins in [10, 20, 30, 50, 100]:
                 # Collect stats for each partition
                 summary_df = {}
                 # Iterate over each partition in the dataset
@@ -224,8 +223,6 @@ def create_prediction_groups_stats_tables_and_charts(
                             n_bins=n_bins,
                             dataset=dataset,
                             prefix=prefix,
-                            min_val=min_val,
-                            max_val=max_val+1000,
                         )
                         create_simple_lift_chart_fig(
                             config=config,
@@ -233,8 +230,6 @@ def create_prediction_groups_stats_tables_and_charts(
                             n_bins=n_bins,
                             dataset=dataset,
                             prefix=prefix,
-                            min_val=min_val,
-                            max_val=max_val+1000,
                         )
                         create_auto_calib_chart_fig(
                             config=config,
@@ -261,8 +256,6 @@ def create_prediction_groups_stats_tables_and_charts(
                     n_bins=n_bins,
                     dataset=dataset,
                     prefix=prefix,
-                    min_val=min_val,
-                    max_val=max_val,
                 )
                 create_simple_lift_cv_mean_chart_fig(
                     config=config,
@@ -270,8 +263,6 @@ def create_prediction_groups_stats_tables_and_charts(
                     n_bins=n_bins,
                     dataset=dataset,
                     prefix=prefix,
-                    min_val=min_val,
-                    max_val=max_val,
                 )
 
     dummy_summary_2_df = pd.DataFrame({})

@@ -14,7 +14,7 @@ from claim_modelling_kedro.pipelines.p07_data_science.models import StatsmodelsP
 from claim_modelling_kedro.pipelines.p08_model_calibration.calibration_models.kernel import KernelEnum, \
     compute_kernel_weights
 from claim_modelling_kedro.pipelines.utils.dataframes import index_ordered_by_col
-from claim_modelling_kedro.pipelines.utils.metrics import Metric
+from claim_modelling_kedro.pipelines.utils.metrics.sklearn_like_metric import SklearnLikeMetric
 
 
 class LocalStatsmodelsGLMCalibration(CalibrationModel):
@@ -88,7 +88,7 @@ class LocalStatsmodelsGLMCalibration(CalibrationModel):
             pred.append(self._y_pred[idx])
         return pd.Series(pred, index=pure_predictions_df.index)
 
-    def metric(self) -> Metric:
+    def metric(self) -> SklearnLikeMetric:
         return get_statsmodels_metric(self.config, self._model_enum, self.pred_col)
 
 

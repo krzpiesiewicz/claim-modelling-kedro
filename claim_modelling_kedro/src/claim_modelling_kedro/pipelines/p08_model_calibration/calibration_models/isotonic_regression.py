@@ -10,7 +10,7 @@ from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
 from claim_modelling_kedro.pipelines.p07_data_science.models.sklearn_model import SklearnModel
 from claim_modelling_kedro.pipelines.p08_model_calibration.calibration_model import CalibrationModel
-from claim_modelling_kedro.pipelines.utils.metrics import Metric, RootMeanSquaredError
+from claim_modelling_kedro.pipelines.utils.metrics import SklearnLikeMetric, RootMeanSquaredError
 
 
 logger = logging.getLogger(__name__)
@@ -46,17 +46,17 @@ class IsotonicLikeCalibrationModel(CalibrationModel, ABC):
                 find_first_positive = True
             if find_first_positive:
                 first_positive_position = sorted_df[sorted_df[self.target_col] > 0].index[0]
-                lowest_idx = sorted_df.index[:first_positive_position]
+                lowest_idx = sorted_df.loc[:first_positive_position,:].index
         if lowest_idx is not None:
             self._y_min = np.average(sorted_df.loc[lowest_idx, self.target_col], weights=sample_weight.loc[lowest_idx])
             adjusted_target_df.loc[lowest_idx, self.target_col] = self._y_min
-            logger.debug(f"Clipped lower bin: {n_low} obs → mean={self._y_min}")
+            logger.debug(f"Clipped lower bin: {len(lowest_idx)} obs → mean={self._y_min}")
 
         # Clip upper bin
         n_high = int(n_obs * self._clip_high_bin)
         if n_high > 0:
             highest_idx = sorted_df.index[-n_high:]
-            self._y_max = np.average(sorted_df.loc[highest_idx, self.target_col], weights=sample_weight.loc[lowest_idx])
+            self._y_max = np.average(sorted_df.loc[highest_idx, self.target_col], weights=sample_weight.loc[highest_idx])
             adjusted_target_df.loc[highest_idx, self.target_col] = self._y_max
             logger.debug(f"Clipped upper bin: {n_high} obs → mean={self._y_max}")
 
@@ -68,7 +68,7 @@ class IsotonicLikeCalibrationModel(CalibrationModel, ABC):
     def get_y_max(self) -> float:
         return self._y_max
 
-    def metric(self) -> Metric:
+    def metric(self) -> SklearnLikeMetric:
         return RootMeanSquaredError(self.config, pred_col=self.pred_col)
 
 
