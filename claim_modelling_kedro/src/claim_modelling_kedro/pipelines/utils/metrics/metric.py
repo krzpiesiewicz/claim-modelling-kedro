@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricEnum
+from claim_modelling_kedro.pipelines.p01_init.metric_config import MetricType
 
 
 class Metric(ABC):
@@ -37,7 +37,7 @@ class Metric(ABC):
         pass
 
     @abstractmethod
-    def get_enum(self) -> MetricEnum:
+    def get_enum(self) -> MetricType:
         pass
 
     @abstractmethod
