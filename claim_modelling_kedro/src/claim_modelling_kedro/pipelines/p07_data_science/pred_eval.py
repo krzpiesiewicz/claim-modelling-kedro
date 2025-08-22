@@ -8,7 +8,7 @@ import pandas as pd
 from tabulate import tabulate
 
 from claim_modelling_kedro.pipelines.p01_init.config import Config
-from claim_modelling_kedro.pipelines.p01_init.metric_config import SklearnMetricEnum, BinsMetricType, MetricType
+from claim_modelling_kedro.pipelines.p01_init.metric_config import BinsMetricType, MetricType
 from claim_modelling_kedro.pipelines.p07_data_science.tabular_stats import \
     create_prediction_group_statistics_strict_bins, create_average_prediction_group_statistics
 from claim_modelling_kedro.pipelines.p01_init.mdl_task_config import N_BINS_LIST
