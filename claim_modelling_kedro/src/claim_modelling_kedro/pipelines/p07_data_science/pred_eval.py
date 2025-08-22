@@ -140,6 +140,7 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
     pred_col = pred_col or config.mdl_task.prediction_col
     joined_dataset = f"{prefix}_{dataset}" if prefix is not None else dataset
     logger.info(f"Evaluating the predictions for {joined_dataset} dataset...")
+    metric_name_to_enum_dct = {}
     for part in predictions_df.keys():
         predictions_part_df = get_partition(predictions_df, part)
         target_part_df = get_partition(target_df, part)
@@ -158,6 +159,7 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
                     stats_df_by_n_bins[n_bins].append(stats_df)
                     
         for (metric_enum, metric_name), score in scores_by_part[part].items():
+            metric_name_to_enum_dct[metric_name] = metric_enum
             if metric_name not in scores_by_names:
                 scores_by_names[metric_name] = {}
             scores_by_names[metric_name][part] = score
@@ -191,9 +193,26 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
                                                    index=pd.Index(["mean", "std"], name=joined_dataset))
     scores_table = scores_table.map(partial(round, ndigits=4))
     mean_and_std_table = mean_and_std_table.map(partial(round, ndigits=4))
-    logger.info(f"Scores of {joined_dataset} predictions:\n" +
-                tabulate(scores_table, headers="keys", tablefmt="psql", showindex=True) + "\n" +
-                tabulate(mean_and_std_table, headers="keys", tablefmt="psql", showindex=True))
+    # Print the scores tables
+    def print_tables(scores_names: List[str], title: str):
+        logger.info(
+            f"{title} scores of {joined_dataset} predictions ({title}):\n" +
+            tabulate(scores_table.loc[:, scores_names], headers="keys", tablefmt="psql", showindex=True) + "\n" +
+            tabulate(mean_and_std_table.loc[:, scores_names], headers="keys", tablefmt="psql", showindex=True))
+
+    standard_scores_names = [name for name in scores_table.columns if not issubclass(type(metric_name_to_enum_dct[name]), BinsMetricType)]
+    print_tables(standard_scores_names, "Standard")
+    bins_scores_names = [name for name in scores_table.columns if name not in standard_scores_names]
+    if prefix is not None:
+        bins_len = len(N_BINS_LIST)
+        metrics_len = len(bins_scores_names) // bins_len
+        half = int(np.ceil(metrics_len / 2)) * bins_len
+        bins_scores_names_row1 = bins_scores_names[:half]
+        bins_scores_names_row2 = bins_scores_names[half:]
+        print_tables(bins_scores_names_row1, "Bins")
+        print_tables(bins_scores_names_row2, "Bins")
+    else:
+        print_tables(bins_scores_names, "Bins")
     # Create a DataFrame of averaged group statistics
     if compute_group_stats:
         logger.info(f"Computing group statistics for all partitions in {joined_dataset} dataset...")
