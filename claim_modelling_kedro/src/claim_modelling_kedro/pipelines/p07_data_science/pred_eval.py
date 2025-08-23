@@ -180,12 +180,10 @@ def evaluate_predictions(config: Config, predictions_df: Dict[str, pd.DataFrame]
         if log_metrics_to_mlflow:
             for stat in metrics_cv_stats_df.columns:
                 for metric_name, score in metrics_cv_stats_df[stat].items():
-                    # metric_name = f"{prefix}_{metric_name}" if prefix is not None else metric_name
-                    mlflow.log_metric(f"{metric_name}_{stat}", score)
+                    mlflow.log_metric(f"{dataset}_{metric_name}_{stat}", score)
     elif log_metrics_to_mlflow:
         for metric_name, score in scores_df.iloc[:, 0].items():
-            # metric_name = f"{prefix}_{metric_name}" if prefix is not None else metric_name
-            mlflow.log_metric(metric_name, score)
+            mlflow.log_metric(f"{dataset}_{metric_name}", score)
     scores_table = scores_df.T.sort_index()
     scores_table.index.name = joined_dataset
     scores_table.columns = [name.replace(f"{joined_dataset}_", "") for name in scores_table.columns]
