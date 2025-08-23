@@ -1,3 +1,5 @@
+import logging
+import time
 from typing import Dict, Any
 import numpy as np
 import pandas as pd
@@ -5,6 +7,7 @@ import hyperopt as hp
 import warnings
 from statsmodels.tools.sm_exceptions import DomainWarning
 
+from claim_modelling_kedro.experiments.run_experiment import fmt_duration
 from claim_modelling_kedro.pipelines.p01_init.config import Config
 from claim_modelling_kedro.pipelines.p01_init.ds_config import ModelEnum
 from claim_modelling_kedro.pipelines.utils.weights import get_sample_weight
@@ -15,6 +18,9 @@ from claim_modelling_kedro.pipelines.p08_model_calibration.calibration_models.ke
     compute_kernel_weights
 from claim_modelling_kedro.pipelines.utils.dataframes import index_ordered_by_col
 from claim_modelling_kedro.pipelines.utils.metrics.sklearn_like_metric import SklearnLikeMetric
+
+
+logger = logging.getLogger(__name__)
 
 
 class LocalStatsmodelsGLMCalibration(CalibrationModel):
@@ -55,7 +61,10 @@ class LocalStatsmodelsGLMCalibration(CalibrationModel):
             call_updated_hparams=True
         )
 
-        for i in range(len(sorted_idx)):
+        logger.info("LocalStatsmodelsGLMCalibration: fitting local models...")
+        start_time = time.time()
+        n = len(sorted_idx)
+        for i in range(n):
             center_value = pure_predictions_df[self.pure_pred_col].iloc[i]
             distances = np.abs(pure_predictions_df[self.pure_pred_col].values - center_value)
             idx = np.argsort(distances)[:self._k]
@@ -74,6 +83,12 @@ class LocalStatsmodelsGLMCalibration(CalibrationModel):
             # y_pred = np.average(local_target_df[self.target_col], weights=local_sample_weight)
             self._y_pred.append(y_pred)
             self._y_pure_pred.append(center_value)
+            elapsed_time = time.time() - start_time
+            expected_remaining_time = elapsed_time / (i + 1) * (n - i - 1)
+            elapsed_time_fmt = fmt_duration(elapsed_time)
+            expected_remaining_time_fmt = fmt_duration(expected_remaining_time)
+            if np.floor(1000 * i / n) < np.floor(1000 * (i + 1) / n):
+                logger.info(f"Fitted local models: {i + 1}/{n} ({100 * (i + 1) / n:.1f}%) - elapsed time: {elapsed_time_fmt} - expected remaining time: {expected_remaining_time_fmt}")
 
         self._y_pred = np.array(self._y_pred)
         self._y_pure_pred = np.array(self._y_pure_pred)
