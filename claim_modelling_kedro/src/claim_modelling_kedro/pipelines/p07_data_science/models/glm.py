@@ -235,7 +235,11 @@ class StatsmodelsGLM(PredictiveModel, ABC):
 
     @classmethod
     def get_hparams_space(cls) -> Dict[str, Any]:
-        return {}
+        return {
+            "fit_intercept": hp.choice("fit_intercept", [False, True]),
+            "trg_divisor": hp.choice("trg_divisor", ["mean", 1, 10, 100, 1000, 10000, 100000]),
+            "intercept_scale": hp.choice("intercept_scale", ["mean", 1, 10, 100, 1000]),
+        }
 
     @classmethod
     def get_default_hparams(cls) -> Dict[str, Any]:

@@ -63,7 +63,7 @@ data:
 sampling:
   included_calib_set_in_train_sample: <SMPL_INCLUDE_CALIB_IN_TRAIN> # whether to use also the calibration data for creating a training sample
   random_seed: 1
-  n_obs: # the number of samples which are used to train a model.
+  n_obs: <SMPL_N_OBS> # the number of samples which are used to train a model.
   target_ratio:     # the ratio of nonzero samples, if None, the ratio is not controlled
                     # if target_ratio is not None and n_obs is None, then get all targets and complete the sample with zeros
                     # If both n_obs and target_ratio are Nones, then all training data is used
@@ -265,14 +265,59 @@ data_science:
         val_size: 0.25 # the part of data used for validation – used only if cross_validation.enabled is False
         n_repeats: 10 # the number of times the data is split into train and validation sets
         random_seed: 0 # the random seed for stratified splitting the data into train and validation sets
-    excluded_params:
-      SklearnPoissonGLM:
-        - solver
+    params_space: # the space of hyperparameters to optimize
+      PyGLMNetGammaGLM:
+        alpha:
+          type: uniform
+          low: 0.0
+          high: 1.0
+        reg_lambda:
+          type: loguniform
+          low: 1e-6
+          high: 100
+        eta:
+          type: loguniform
+          low: 1e-5
+          high: 2
+        max_iter:
+          type: quniform
+          low: 50
+          high: 1000
+          q: 10
+        tol:
+          type: loguniform
+          low: 1e-7
+          high: 1e-2
+        fit_intercept:
+          type: choice
+          values: [True, False]
+        learning_rate:
+          type: uniform
+          low: 0.001
+          high: 1
       SklearnGammaGLM:
-        - solver
-      SklearnTweedieGLM:
-        - solver
-      PyGLMNetPoissonGLM:
+        alpha:
+          type: loguniform
+          low: 1e-6
+          high: 100
+        max_iter:
+          type: quniform
+          low: 50
+          high: 500
+          q: 10
+        tol:
+          type: loguniform
+          low: 1e-6
+          high: 1e-2
+      StatsmodelsGammaGLM:
+        intercept_scale:
+          type: choice
+          values: ["mean", 1, 10, 100, 1000, 10000, 100000]
+        trg_divisor:
+          type: choice
+          values: ["mean", 1, 10, 100, 1000]
+    excluded_params:
+      SklearnGammaGLM:
         - solver
       PyGLMNetGammaGLM:
         - solver
@@ -284,12 +329,6 @@ data_science:
                  # model_class: claim_modelling_kedro.pipelines.p07_data_science.models.SklearnPoissonGLM
                  # if empty, the model class is inferred from the parameter model.model
     const_hparams:
-      StatsmodelsTweedieGLM:
-        link: log # 'log' (all families), 'inverse' (Gamma), 'power' (Tweedie)
-        power: 1.2
-#        variance: mu_squared # 'mu', 'mu_squared', 'power(p)', where p is a float number, e.g., 'power(1.5)'
-        force_min_y_pred: False
-        fit_intercept: True
       StatsmodelsGammaGLM:
         link: <STATSMODELS_LINK> # 'log' (all families), 'inverse' (Gamma), 'power' (Tweedie)
         force_min_y_pred: True
@@ -300,10 +339,7 @@ data_science:
                      # 'mean': trg_divisor := mean target value in train set
       SklearnGammaGLM:
         fit_intercept: True
-      SklearnPoissonGLM:
-        fit_intercept: True
-      PyGLMNetPoissonGLM:
-        fit_intercept: True
+        solver: lbfgs # 'lbfgs', 'newton-cholesky'
       PyGLMNetGammaGLM:
         fit_intercept: True
         random_state: 1 # the random seed for the model
