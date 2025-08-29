@@ -380,7 +380,7 @@ class SklearnPoissonGLM(SklearnGLM):
         return {
             "alpha": 1.0,
             "fit_intercept": True,
-            "solver": "newton-cholesky",
+            "solver": "lbfgs",
             "max_iter": 1000,
             "tol": 0.0001,
             "warm_start": False,
@@ -428,7 +428,7 @@ class SklearnGammaGLM(SklearnGLM):
         return {
             "alpha": 1.0,
             "fit_intercept": True,
-            "solver": "newton-cholesky",
+            "solver": "lbfgs",
             "max_iter": 1000,
             "tol": 0.0001,
             "warm_start": False,
