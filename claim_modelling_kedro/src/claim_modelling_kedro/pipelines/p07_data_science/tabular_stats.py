@@ -230,14 +230,29 @@ def create_average_prediction_group_statistics(
     avg_stats_df["std_of_abs_bias_deviation"] = pd.concat(stats_dfs).abs_bias_deviation.groupby(level=0).std()
 
     # Calculate relative statistics, handling division by zero by assigning np.nan
-    avg_stats_df["rel_bias_deviation"] = avg_stats_df["bias_deviation"] / avg_stats_df["mean_target"]
-    avg_stats_df["rel_bias_deviation"] = avg_stats_df["rel_bias_deviation"].where(avg_stats_df["mean_target"] != 0, np.nan)
-    avg_stats_df["rel_mean_overpricing"] = avg_stats_df["mean_overpricing"] / avg_stats_df["mean_target"]
-    avg_stats_df["rel_mean_overpricing"] = avg_stats_df["rel_mean_overpricing"].where(avg_stats_df["mean_target"] != 0, np.nan)
-    avg_stats_df["rel_mean_underpricing"] = avg_stats_df["mean_underpricing"] / avg_stats_df["mean_target"]
-    avg_stats_df["rel_mean_underpricing"] = avg_stats_df["rel_mean_underpricing"].where(avg_stats_df["mean_target"] != 0, np.nan)
-    avg_stats_df["rel_abs_bias_deviation"] = avg_stats_df["abs_bias_deviation"] / avg_stats_df["mean_target"]
-    avg_stats_df["rel_abs_bias_deviation"] = avg_stats_df["rel_abs_bias_deviation"].where(avg_stats_df["mean_target"] != 0, np.nan)
+    avg_stats_df["rel_bias_deviation"] = np.divide(
+        avg_stats_df["bias_deviation"], avg_stats_df["mean_target"],
+        out=np.full_like(avg_stats_df["bias_deviation"], np.nan, dtype=float),
+        where=avg_stats_df["mean_target"] != 0
+    )
+
+    avg_stats_df["rel_mean_overpricing"] = np.divide(
+        avg_stats_df["mean_overpricing"], avg_stats_df["mean_target"],
+        out=np.full_like(avg_stats_df["mean_overpricing"], np.nan, dtype=float),
+        where=avg_stats_df["mean_target"] != 0
+    )
+
+    avg_stats_df["rel_mean_underpricing"] = np.divide(
+        avg_stats_df["mean_underpricing"], avg_stats_df["mean_target"],
+        out=np.full_like(avg_stats_df["mean_underpricing"], np.nan, dtype=float),
+        where=avg_stats_df["mean_target"] != 0
+    )
+
+    avg_stats_df["rel_abs_bias_deviation"] = np.divide(
+        avg_stats_df["abs_bias_deviation"], avg_stats_df["mean_target"],
+        out=np.full_like(avg_stats_df["abs_bias_deviation"], np.nan, dtype=float),
+        where=avg_stats_df["mean_target"] != 0
+    )
 
     # Save and log the averaged statistics DataFrame as a CSV file to MLflow
     with tempfile.TemporaryDirectory() as temp_dir:
