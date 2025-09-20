@@ -22,9 +22,11 @@ def preprocess_data(config: Config, raw_features_and_claims_numbers_df: pd.DataF
     # Join the aggregated severities to the raw data
     raw_joined_df = raw_features_and_claims_numbers_df.merge(aggregated_severities_df,
                                                              on=config.data.raw_policy_id_col, how="inner")
-    # # Filter out policies where the claim_count does not match the number of claims in the frequency data
-    # raw_filtered_joined_df = raw_joined_df[
-    #     raw_joined_df.claim_count == raw_joined_df[config.data.raw_claims_number_col]]
+    inconsistent_claim_nb_policies_df = raw_joined_df[raw_joined_df.claim_count != raw_joined_df[config.data.raw_claims_number_col]]
+    if not inconsistent_claim_nb_policies_df.empty:
+        logger.info(f"There are {inconsistent_claim_nb_policies_df.shape[0]} policies with inconsistent number of claims. "
+                    "Specifically, the number of claims based on severity data and the number of claims from the raw data do not match. "
+                    "We do nothing and keep these numbers for frequency target calculation.")
     raw_filtered_joined_df = raw_joined_df
     # Filter out policies with claims amount greater than 4
     logger.info(f"Filtering out policies with claims amount greater than 4...")
