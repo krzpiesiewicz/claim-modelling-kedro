@@ -28,8 +28,12 @@ def preprocess_data(config: Config, raw_features_and_claims_numbers_df: pd.DataF
                     "Specifically, the number of claims based on severity data and the number of claims from the raw data do not match. "
                     "We do nothing and keep these numbers for frequency target calculation.")
     raw_filtered_joined_df = raw_joined_df
-    # Filter out policies with claims amount greater than 4
-    logger.info(f"Filtering out policies with claims amount greater than 4...")
+    # Filter out policies with claims number greater than 4
+    raw_claims_number_gt_4 = raw_filtered_joined_df[raw_filtered_joined_df[config.data.raw_claims_number_col] > 4][config.data.raw_claims_number_col]
+    if not raw_claims_number_gt_4.empty:
+        logger.info(f"There are {raw_claims_number_gt_4.shape[0]} policies with {config.data.raw_claims_number_col} greater than 4 in the raw dataframe: "
+                    f"{', '.join(raw_claims_number_gt_4.sort_values().astype(str).tolist())}. "
+                    f"These claims numbers will be filtered out.")
     raw_filtered_joined_df = raw_filtered_joined_df[raw_filtered_joined_df["claim_count"] <= 4]
     # Set exposures greater than 1 to 1
     logger.info(f"Setting exposures greater than 1 to 1...")
