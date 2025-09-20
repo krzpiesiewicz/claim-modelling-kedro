@@ -40,6 +40,12 @@ def preprocess_data(config: Config, raw_features_and_claims_numbers_df: pd.DataF
     if not raw_claims_number_gt_4.empty:
         logger.info(f"There are {raw_claims_number_gt_4.shape[0]} policies with {config.data.raw_claims_number_col} greater than 4 in the raw dataframe: "
                     f"{', '.join(raw_claims_number_gt_4.sort_values().astype(str).tolist())}.")
+    # Filter out policies with claims number greater than 4
+    # logger.info(f"Filtering out policies with claims numbers greater than 4...")
+    # raw_filtered_joined_df = raw_filtered_joined_df[raw_filtered_joined_df[config.data.raw_claims_number_col] <= 4]
+    # Cap policies with claims number greater than 4 to 4
+    logger.info("The claim numbers of these policies will be capped to 4.")
+    raw_filtered_joined_df.loc[raw_filtered_joined_df[config.data.raw_claims_number_col] > 4, config.data.raw_claims_number_col] = 4
     # Set exposures greater than 1 to 1
     logger.info(f"Setting exposures greater than 1 to 1...")
     raw_filtered_joined_df.loc[
