@@ -20,6 +20,7 @@ class DataConfig:
     claims_total_amount_pred_col: str
     claims_avg_amount_pred_col: str
     policy_exposure_col: str
+    policy_claim_nb_weight: str
     policy_id_col: str
     split_random_seed: int
     stratify_target_col: str
@@ -50,10 +51,11 @@ class DataConfig:
         self.claims_avg_amount_pred_col = params["claims_avg_amount_pred_col"]
         self.claims_pure_premium_pred_col = params["claims_pure_premium_pred_col"]
         self.policy_exposure_col = params["policy_exposure_col"]
+        self.policy_claim_nb_weight = "ClaimCountWeight"
         self.policy_id_col = params["policy_id_col"]
         self.targets_cols = [self.claims_number_target_col, self.claims_freq_target_col,
                              self.claims_avg_amount_target_col, self.claims_total_amount_target_col,
-                             self.claims_pure_premium_target_col, self.policy_exposure_col]
+                             self.claims_pure_premium_target_col, self.policy_exposure_col, self.policy_claim_nb_weight]
         self.split_random_seed = params["split_random_seed"]
         self.stratify_target_col = params["stratify_target_col"]
 

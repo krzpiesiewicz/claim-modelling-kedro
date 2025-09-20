@@ -20,7 +20,7 @@ def get_sample_weight(config: Config, target_df: Union[pd.DataFrame, np.ndarray]
             sample_weight = target_df[config.data.policy_exposure_col]
             logger.debug("Using policy exposure as sample weight.")
         elif config.mdl_task.claim_nb_weighted:
-            sample_weight = np.fmax(target_df[config.data.claims_number_target_col], 1).astype(int)
+            sample_weight = np.fmax(target_df[config.data.policy_claim_nb_weight], 1).astype(int)
             logger.debug("Using claims number as sample weight.")
         else:
             sample_weight = pd.Series(1, index=target_df.index)
