@@ -32,7 +32,7 @@ def preprocess_data(config: Config, raw_features_and_claims_numbers_df: pd.DataF
     if not inconsistent_claim_nb_policies_df.empty:
         logger.info(
             f"There are {inconsistent_claim_nb_policies_df.shape[0]} policies with inconsistent number of claims and claim count >= 1: " +
-            ", ".join(inconsistent_claim_nb_policies_df.claim_count.sort_values()) + ".\n"
+            ", ".join(inconsistent_claim_nb_policies_df.claim_count.sort_values().astype(str).tolist()) + ".\n"
             "These policies will be kept for frequency target calculation.")
     raw_filtered_joined_df = raw_joined_df
     # Filter out policies with claims number greater than 4
