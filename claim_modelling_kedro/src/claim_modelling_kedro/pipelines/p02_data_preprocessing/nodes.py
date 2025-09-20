@@ -11,8 +11,6 @@ logger = logging.getLogger(__name__)
 
 def preprocess_data(config: Config, raw_features_and_claims_numbers_df: pd.DataFrame,
                     raw_severities_df: pd.DataFrame) -> pd.DataFrame:
-    logger.info("Filtering erroneous policies...")
-    # Filter out policies with no severity data
     raw_joined_df = raw_features_and_claims_numbers_df.merge(raw_severities_df, on=config.data.raw_policy_id_col,
                                                              how="left")
     # Compute the number of claims per year based on severity data
@@ -39,12 +37,12 @@ def preprocess_data(config: Config, raw_features_and_claims_numbers_df: pd.DataF
     logger.info(f"Converting columns to the correct types and changing names...")
     filtered_joined_df = raw_filtered_joined_df.drop([
         config.data.raw_policy_id_col,
-        config.data.raw_claims_number_col,
     ], axis=1)
     filtered_joined_df[config.data.policy_id_col] = raw_filtered_joined_df[config.data.raw_policy_id_col].astype(int)
     filtered_joined_df.rename(columns={
         config.data.raw_exposure_col: config.data.policy_exposure_col,
-        "claim_count": config.data.claims_number_target_col,
+        "claim_count": config.data.policy_claim_nb_weight,
+        config.data.raw_claims_number_col: config.data.claims_number_target_col,
         "claim_sum": config.data.claims_total_amount_target_col,
     }, inplace=True)
     # Add target columns adjusted to whole year
@@ -58,7 +56,7 @@ def preprocess_data(config: Config, raw_features_and_claims_numbers_df: pd.DataF
     # Add average claim amount target column
     filtered_joined_df[config.data.claims_avg_amount_target_col] = (
             filtered_joined_df[config.data.claims_total_amount_target_col] /
-            np.fmax(filtered_joined_df[config.data.claims_number_target_col], 1))
+            np.fmax(filtered_joined_df[config.data.policy_claim_nb_weight], 1))
     # Set index to policy_id_col
     filtered_joined_df.set_index(config.data.policy_id_col, inplace=True)
     logger.info("All done. Created filtered joined dataframe.")
