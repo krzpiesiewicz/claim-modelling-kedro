@@ -241,6 +241,7 @@ def get_weighted_metric_enum(enum: MetricType, weight: TargetWeight) -> MetricTy
             SklearnMetricEnum.LC_GINI: SklearnMetricEnum.EXP_WEIGHTED_LC_GINI,
             SklearnMetricEnum.CC_GINI: SklearnMetricEnum.EXP_WEIGHTED_CC_GINI,
             SklearnMetricEnum.NORMALIZED_CC_GINI: SklearnMetricEnum.EXP_WEIGHTED_NORMALIZED_CC_GINI,
+            SklearnMetricEnum.SUP_CL_DIFF: SklearnMetricEnum.EXP_WEIGHTED_SUP_CL_DIFF,
         }
         if enum in exposure_map:
             return exposure_map[enum]
@@ -263,6 +264,7 @@ def get_weighted_metric_enum(enum: MetricType, weight: TargetWeight) -> MetricTy
             SklearnMetricEnum.LC_GINI: SklearnMetricEnum.CLNB_WEIGHTED_LC_GINI,
             SklearnMetricEnum.CC_GINI: SklearnMetricEnum.CLNB_WEIGHTED_CC_GINI,
             SklearnMetricEnum.NORMALIZED_CC_GINI: SklearnMetricEnum.CLNB_WEIGHTED_NORMALIZED_CC_GINI,
+            SklearnMetricEnum.SUP_CL_DIFF: SklearnMetricEnum.CLNB_WEIGHTED_SUP_CL_DIFF,
         }
         if enum in claims_map:
             return claims_map[enum]
