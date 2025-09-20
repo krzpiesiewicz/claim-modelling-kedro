@@ -67,7 +67,7 @@ def sample_part(
                                       is_event=is_event)
         sample_keys = sample_keys.union(sample_calib_keys)
     sample_features_df = features_df.loc[sample_keys, :]
-    sample_target_df = target_df.loc[sample_keys, :]
+    sample_target_df = train_trg_df_handled_outliers.loc[sample_keys, :]
     actual_target_ratio = get_actual_target_ratio(config=config, sample_trg_df=sample_target_df, is_event=is_event)
     return sample_keys, sample_features_df, sample_target_df, actual_target_ratio
 

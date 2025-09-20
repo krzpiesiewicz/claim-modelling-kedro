@@ -29,7 +29,7 @@ data:
   claims_total_amount_pred_col: ClaimTotalAmount_PRED
   claims_avg_amount_pred_col: ClaimSeverity_PRED
   claims_pure_premium_pred_col: ClaimPurePremium_PRED
-  policy_exposure_col: ClaimNb
+  policy_exposure_col: Exposure
   policy_id_col: IDpol
   split_random_seed: 1
   stratify_target_col: # the target column used for stratification;
